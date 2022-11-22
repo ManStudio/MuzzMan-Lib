@@ -56,6 +56,9 @@ pub trait TElement {
     fn get_module(&self) -> Result<Option<MInfo>, SessionError>;
     fn set_module(&self, module: Option<MInfo>) -> Result<(), SessionError>;
 
+    fn resolv_module(&self) -> Result<bool, SessionError>;
+    fn init(&self) -> Result<bool, SessionError>;
+
     fn get_statuses(&self) -> Result<Vec<String>, SessionError>;
     fn set_statuses(&self, statuses: Vec<String>) -> Result<(), SessionError>;
 
@@ -226,6 +229,25 @@ impl TElement for EInfo {
     fn set_module(&self, module: Option<MInfo>) -> Result<(), SessionError> {
         if let Some(session) = self.get_session() {
             return session.element_set_module(self, module);
+        }
+        Err(SessionError::InvalidSession)
+    }
+
+    fn resolv_module(&self) -> Result<bool, SessionError> {
+        if let Some(session) = self.get_session() {
+            return session.element_resolv_module(self);
+        }
+        Err(SessionError::InvalidSession)
+    }
+
+    fn init(&self) -> Result<bool, SessionError> {
+        if let Some(session) = self.get_session() {
+            if let Some(module) = self.get_module()? {
+                session.module_init_element(&module, self)?;
+                return Ok(true);
+            } else {
+                return Ok(false);
+            }
         }
         Err(SessionError::InvalidSession)
     }
