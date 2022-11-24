@@ -1,3 +1,5 @@
+#![feature(io_error_more)]
+
 pub mod data;
 pub mod element;
 pub mod enums;

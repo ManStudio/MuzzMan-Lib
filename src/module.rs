@@ -46,7 +46,7 @@ impl Debug for Module {
     }
 }
 
-pub trait TModule: std::panic::UnwindSafe {
+pub trait TModule {
     fn init(&self, session: Box<dyn TSession>) -> Result<(), String>;
 
     fn get_name(&self) -> String;
@@ -246,5 +246,122 @@ impl TModule for Arc<RawModule> {
 
     fn c(&self) -> Box<dyn TModule> {
         Box::new(self.clone())
+    }
+}
+
+pub trait TModuleInfo {
+    fn get_session(&self) -> Result<Box<dyn TSession>, SessionError>;
+
+    fn get_name(&self) -> Result<String, SessionError>;
+    fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError>;
+    fn set_default_name(&self) -> Result<(), SessionError>;
+
+    fn get_desc(&self) -> Result<String, SessionError>;
+    fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError>;
+    fn set_default_desc(&self) -> Result<(), SessionError>;
+
+    fn get_proxy(&self) -> Result<usize, SessionError>;
+    fn set_proxy(&self, proxy: usize) -> Result<(), SessionError>;
+
+    fn get_settings(&self) -> Result<Data, SessionError>;
+    fn set_settings(&self, settings: Data) -> Result<(), SessionError>;
+
+    fn get_element_settings(&self) -> Result<Data, SessionError>;
+    fn set_element_settings(&self, settings: Data) -> Result<(), SessionError>;
+
+    fn step_element(
+        &self,
+        element_info: &EInfo,
+        control_flow: &mut ControlFlow,
+    ) -> Result<(), SessionError>;
+    fn accept_url(&self, url: Url) -> Result<bool, SessionError>;
+    fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError>;
+
+    fn init_element(&self, element_info: &EInfo) -> Result<(), SessionError>;
+    fn init_location(&self, location_info: &LInfo, data: FileOrData) -> Result<(), SessionError>;
+}
+
+impl TModuleInfo for MInfo {
+    fn get_session(&self) -> Result<Box<dyn TSession>, SessionError> {
+        if let Some(session) = &self.read().unwrap().session {
+            return Ok(session.c());
+        }
+        Err(SessionError::InvalidSession)
+    }
+
+    fn get_name(&self) -> Result<String, SessionError> {
+        return self.get_session()?.get_module_name(self);
+    }
+
+    fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError> {
+        self.get_session()?.set_module_name(self, name.into())
+    }
+
+    fn set_default_name(&self) -> Result<(), SessionError> {
+        self.get_session()?.default_module_name(self)
+    }
+
+    fn get_desc(&self) -> Result<String, SessionError> {
+        self.get_session()?.get_module_desc(self)
+    }
+
+    fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError> {
+        self.get_session()?.set_module_desc(self, desc.into())
+    }
+
+    fn set_default_desc(&self) -> Result<(), SessionError> {
+        self.get_session()?.default_module_desc(self)
+    }
+
+    fn get_proxy(&self) -> Result<usize, SessionError> {
+        self.get_session()?.get_module_proxy(self)
+    }
+
+    fn set_proxy(&self, proxy: usize) -> Result<(), SessionError> {
+        self.get_session()?.set_module_proxy(self, proxy)
+    }
+
+    fn get_settings(&self) -> Result<Data, SessionError> {
+        self.get_session()?.get_module_settings(self)
+    }
+
+    fn set_settings(&self, settings: Data) -> Result<(), SessionError> {
+        self.get_session()?.set_module_settings(self, settings)
+    }
+
+    fn get_element_settings(&self) -> Result<Data, SessionError> {
+        self.get_session()?.get_module_element_settings(self)
+    }
+
+    fn set_element_settings(&self, settings: Data) -> Result<(), SessionError> {
+        self.get_session()?
+            .set_module_element_settings(self, settings)
+    }
+
+    fn step_element(
+        &self,
+        element_info: &EInfo,
+        control_flow: &mut ControlFlow,
+    ) -> Result<(), SessionError> {
+        self.get_session()?
+            .module_step_element(self, element_info, control_flow)
+    }
+
+    fn accept_url(&self, url: Url) -> Result<bool, SessionError> {
+        self.get_session()?.moduie_accept_url(self, url)
+    }
+
+    fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError> {
+        self.get_session()?
+            .module_accept_extension(self, &filename.into())
+    }
+
+    fn init_element(&self, element_info: &EInfo) -> Result<(), SessionError> {
+        self.get_session()?.module_init_element(self, element_info)
+    }
+
+    fn init_location(&self, location_info: &LInfo, data: FileOrData) -> Result<(), SessionError> {
+        self.get_session()?
+            .module_init_location(self, location_info, data)
     }
 }

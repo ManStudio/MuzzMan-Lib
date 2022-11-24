@@ -20,7 +20,9 @@ pub enum SessionError {
 }
 
 pub trait TSession {
-    fn get_module(&self, info: &MInfo) -> Result<Module, SessionError>;
+    //
+    // Module
+    //
 
     fn add_module(&self, module: Box<dyn TModule>) -> Result<MInfo, SessionError>;
     fn remove_module(&self, info: MInfo) -> Result<MRow, SessionError>;
@@ -39,62 +41,57 @@ pub trait TSession {
     fn get_module_proxy(&self, info: &MInfo) -> Result<usize, SessionError>;
     fn set_module_proxy(&self, info: &MInfo, proxy: usize) -> Result<(), SessionError>;
 
+    fn get_module_settings(&self, module_info: &MInfo) -> Result<Data, SessionError>;
+    fn set_module_settings(&self, module_info: &MInfo, data: Data) -> Result<(), SessionError>;
+
+    fn get_module_element_settings(&self, module_info: &MInfo) -> Result<Data, SessionError>;
+    fn set_module_element_settings(
+        &self,
+        module_info: &MInfo,
+        data: Data,
+    ) -> Result<(), SessionError>;
+
     fn module_init_location(
         &self,
         module_info: &MInfo,
         location_info: &LInfo,
         data: FileOrData,
     ) -> Result<(), SessionError>;
+
     fn module_init_element(
         &self,
         module_info: &MInfo,
         element_info: &EInfo,
     ) -> Result<(), SessionError>;
+
     fn moduie_accept_url(&self, module_info: &MInfo, url: Url) -> Result<bool, SessionError>;
+
     fn module_accept_extension(
         &self,
         module_info: &MInfo,
         filename: &str,
     ) -> Result<bool, SessionError>;
-    fn element_resolv_module(&self, element_info: &EInfo) -> Result<bool, SessionError>;
 
-    fn create_location(&self, name: &str, location: &LInfo) -> Result<LInfo, SessionError>;
-    fn get_locations_len(&self, location: &LInfo) -> Result<usize, SessionError>;
-    fn get_locations(
+    fn module_step_element(
         &self,
-        location: &LInfo,
-        range: Range<usize>,
-    ) -> Result<Vec<LInfo>, SessionError>;
-    fn destroy_location(&self, location: LInfo) -> Result<LRow, SessionError>;
-    fn get_default_location(&self) -> Result<LInfo, SessionError>;
-    fn move_location(&self, location: &LInfo, to: &LInfo) -> Result<(), SessionError>;
-
-    fn location_get_name(&self, location: &LInfo) -> Result<String, SessionError>;
-    fn location_set_name(&self, location: &LInfo, name: &str) -> Result<(), SessionError>;
-
-    fn location_get_desc(&self, location: &LInfo) -> Result<String, SessionError>;
-    fn location_set_desc(&self, location: &LInfo, desc: &str) -> Result<(), SessionError>;
-
-    fn location_get_where_is(&self, location: &LInfo) -> Result<WhereIsLocation, SessionError>;
-    fn location_set_where_is(
-        &self,
-        location: &LInfo,
-        where_is: WhereIsLocation,
+        module_info: &MInfo,
+        element_info: &EInfo,
+        control_flow: &mut ControlFlow,
     ) -> Result<(), SessionError>;
 
-    fn location_get_should_save(&self, location: &LInfo) -> Result<bool, SessionError>;
-    fn location_set_should_save(
+    fn module_step_location(
         &self,
-        location: &LInfo,
-        should_save: bool,
+        module_info: &MInfo,
+        location_info: &LInfo,
     ) -> Result<(), SessionError>;
 
-    fn location_get_elements_len(&self, location: &LInfo) -> Result<usize, SessionError>;
-    fn location_get_elements(
-        &self,
-        location: &LInfo,
-        range: Range<usize>,
-    ) -> Result<Vec<EInfo>, SessionError>;
+    //
+    // End Module
+    //
+
+    //
+    // Element
+    //
 
     fn create_element(&self, name: &str, location: &LInfo) -> Result<EInfo, SessionError>;
     fn move_element(&self, element: &EInfo, location: &LInfo) -> Result<(), SessionError>;
@@ -157,12 +154,65 @@ pub trait TSession {
         info: &EInfo,
     ) -> Result<Arc<RwLock<AdvancedSignal<ElementNotify, ()>>>, SessionError>;
 
+    fn element_resolv_module(&self, element_info: &EInfo) -> Result<bool, SessionError>;
+
+    /// Blocking the current thread until is done!
+    fn element_wait(&self, element: &EInfo) -> Result<(), SessionError>;
+
+    //
+    // End Element
+    //
+
+    //
+    // Location
+    //
+
+    fn create_location(&self, name: &str, location: &LInfo) -> Result<LInfo, SessionError>;
+    fn get_locations_len(&self, location: &LInfo) -> Result<usize, SessionError>;
+    fn get_locations(
+        &self,
+        location: &LInfo,
+        range: Range<usize>,
+    ) -> Result<Vec<LInfo>, SessionError>;
+    fn destroy_location(&self, location: LInfo) -> Result<LRow, SessionError>;
+    fn get_default_location(&self) -> Result<LInfo, SessionError>;
+    fn move_location(&self, location: &LInfo, to: &LInfo) -> Result<(), SessionError>;
+
+    fn location_get_name(&self, location: &LInfo) -> Result<String, SessionError>;
+    fn location_set_name(&self, location: &LInfo, name: &str) -> Result<(), SessionError>;
+
+    fn location_get_desc(&self, location: &LInfo) -> Result<String, SessionError>;
+    fn location_set_desc(&self, location: &LInfo, desc: &str) -> Result<(), SessionError>;
+
+    fn location_get_where_is(&self, location: &LInfo) -> Result<WhereIsLocation, SessionError>;
+    fn location_set_where_is(
+        &self,
+        location: &LInfo,
+        where_is: WhereIsLocation,
+    ) -> Result<(), SessionError>;
+
+    fn location_get_should_save(&self, location: &LInfo) -> Result<bool, SessionError>;
+    fn location_set_should_save(
+        &self,
+        location: &LInfo,
+        should_save: bool,
+    ) -> Result<(), SessionError>;
+
+    fn location_get_elements_len(&self, location: &LInfo) -> Result<usize, SessionError>;
+    fn location_get_elements(
+        &self,
+        location: &LInfo,
+        range: Range<usize>,
+    ) -> Result<Vec<EInfo>, SessionError>;
+
     fn location_get_notify(
         &self,
         info: &LInfo,
     ) -> Result<Arc<RwLock<AdvancedSignal<LocationNotify, ()>>>, SessionError>;
 
-    /// Blocking the current thread until is done!
-    fn element_wait(&self, element: &EInfo) -> Result<(), SessionError>;
+    //
+    // End Location
+    //
+
     fn c(&self) -> Box<dyn TSession>;
 }
