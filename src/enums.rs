@@ -1,8 +1,14 @@
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Debug)]
 pub struct CustomEnum {
     data: Vec<String>,
     active: Option<usize>,
     locked: bool,
+}
+
+impl PartialEq for CustomEnum {
+    fn eq(&self, other: &Self) -> bool {
+        self.data == other.data
+    }
 }
 
 impl Clone for CustomEnum {
@@ -107,10 +113,25 @@ mod test_custom_enum {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Debug)]
 pub struct AdvanceEnum {
     data: Vec<(String, bool)>,
     locked: bool,
+}
+
+impl PartialEq for AdvanceEnum {
+    fn eq(&self, other: &Self) -> bool {
+        let mut ok = 0;
+        if self.data.len() == other.data.len() {
+            for i in 0..self.data.len() {
+                if self.data[i].0 == other.data[i].0 {
+                    ok += 1;
+                }
+            }
+        }
+
+        ok == self.data.len()
+    }
 }
 
 impl Clone for AdvanceEnum {

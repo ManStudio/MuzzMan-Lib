@@ -100,9 +100,88 @@ impl Type {
             Type::None => None,
         }
     }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            Type::U8(v) => v.to_string(),
+            Type::U16(v) => v.to_string(),
+            Type::U32(v) => v.to_string(),
+            Type::U64(v) => v.to_string(),
+            Type::U128(v) => v.to_string(),
+            Type::USize(v) => v.to_string(),
+            Type::I8(v) => v.to_string(),
+            Type::I16(v) => v.to_string(),
+            Type::I32(v) => v.to_string(),
+            Type::I64(v) => v.to_string(),
+            Type::I128(v) => v.to_string(),
+            Type::ISize(v) => v.to_string(),
+            Type::F32(v) => v.to_string(),
+            Type::F64(v) => v.to_string(),
+            Type::Bool(v) => v.to_string(),
+            Type::String(s) => s.clone(),
+            Type::Path(v) => {
+                if let Some(str) = v.to_str() {
+                    str.to_owned()
+                } else {
+                    String::from("Cannot parse")
+                }
+            }
+            Type::HashMapSS(v) => {
+                let mut buff = String::new();
+                for (k, v) in v.iter() {
+                    buff.push_str(&format!("{}: {}", k, v));
+                }
+                buff
+            }
+            Type::HashMapS(v) => {
+                let mut buff = String::new();
+                for (k, v) in v.iter() {
+                    buff.push_str(&format!("{}: {}", k, v.to_string()));
+                }
+                buff
+            }
+            Type::HashMap(v) => {
+                let mut buff = String::new();
+                for (k, v) in v.iter() {
+                    buff.push_str(&format!("{}: {}", k.to_string(), v.to_string()));
+                }
+                buff
+            }
+            Type::FileOrData(ford) => match ford {
+                FileOrData::File(file_path, _) => format!(
+                    "File: {}",
+                    if let Some(path) = file_path.to_str() {
+                        path
+                    } else {
+                        "Cannot parse path!"
+                    }
+                ),
+                FileOrData::Bytes(b) => format!("{:?}", b),
+            },
+            Type::Any(_) => format!("Any"),
+            Type::CustomEnum(e) => {
+                if let Some(e) = e.get_active() {
+                    e
+                } else {
+                    format!("None")
+                }
+            }
+            Type::AdvancedEnum(_) => {
+                format!("Not implemented!")
+                // if let Some(e) = e.get_active() {
+                //     e
+                // } else {
+                //     format!("None")
+                // }
+            }
+            Type::Vec(v) => format!("{:?}", v),
+            Type::Bytes(b) => format!("{:?}", b),
+            Type::None => format!(""),
+        }
+    }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TypeTag {
     U8,
     U16,

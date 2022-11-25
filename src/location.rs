@@ -3,6 +3,7 @@ use std::net::{IpAddr, TcpStream};
 use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::RwLock;
+use std::thread::JoinHandle;
 
 use crate::prelude::*;
 
@@ -69,7 +70,6 @@ impl PartialEq for LocationInfo {
     }
 }
 
-#[derive(Clone)]
 pub struct Location {
     pub name: String,
     pub desc: String,
@@ -78,140 +78,106 @@ pub struct Location {
     pub elements: Vec<ERow>,
     pub locations: Vec<LRow>,
     pub info: LInfo,
+    pub path: PathBuf,
+    pub thread: JoinHandle<()>,
     pub module: Option<Box<dyn TModule>>,
     pub signal_notify: Arc<RwLock<AdvancedSignal<LocationNotify, ()>>>,
 }
 
 impl TLocation for LInfo {
-    fn get_session(&self) -> Option<Box<dyn TSession>> {
-        let mut s = None;
+    fn get_session(&self) -> Result<Box<dyn TSession>, SessionError> {
         if let Some(session) = &self.read().unwrap().session {
-            s = Some(session.c())
+            return Ok(session.c());
         }
-        s
+
+        Err(SessionError::InvalidSession)
     }
 
     fn get_name(&self) -> Result<String, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.location_get_name(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.location_get_name(self)
     }
 
     fn set_name(&self, name: &str) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.location_set_name(self, name);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.location_set_name(self, name)
     }
 
     fn get_desc(&self) -> Result<String, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.location_get_desc(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.location_get_desc(self)
     }
 
     fn set_desc(&self, desc: &str) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.location_set_desc(self, desc);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.location_set_desc(self, desc)
+    }
+
+    fn get_path(&self) -> Result<PathBuf, SessionError> {
+        self.get_session()?.location_get_path(self)
+    }
+
+    fn set_path(&self, path: PathBuf) -> Result<(), SessionError> {
+        self.get_session()?.location_set_path(self, path)
     }
 
     fn get_where_is(&self) -> Result<WhereIsLocation, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.location_get_where_is(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.location_get_where_is(self)
     }
 
     fn set_where_is(&self, where_is: WhereIsLocation) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.location_set_where_is(self, where_is);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.location_set_where_is(self, where_is)
     }
 
     fn get_should_save(&self) -> Result<bool, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.location_get_should_save(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.location_get_should_save(self)
     }
 
     fn set_should_save(&self, should_save: bool) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.location_set_should_save(self, should_save);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?
+            .location_set_should_save(self, should_save)
     }
 
     fn get_elements(&self, range: Range<usize>) -> Result<Vec<EInfo>, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.location_get_elements(self, range);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.location_get_elements(self, range)
     }
 
     fn get_elements_len(&self) -> Result<usize, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.location_get_elements_len(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.location_get_elements_len(self)
     }
 
     fn get_locations(&self, range: Range<usize>) -> Result<Vec<LInfo>, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.get_locations(self, range);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.get_locations(self, range)
     }
 
     fn get_locations_len(&self) -> Result<usize, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.get_locations_len(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.get_locations_len(self)
     }
 
     fn create_element(&self, name: &str) -> Result<EInfo, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.create_element(name, self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.create_element(name, self)
     }
 
     fn create_location(&self, name: &str) -> Result<LInfo, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.create_location(name, self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.create_location(name, self)
     }
 
     fn destroy(self) -> Result<LRow, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.destroy_location(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.destroy_location(self)
     }
 
     fn _move(&self, to: &LInfo) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.move_location(self, to);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.move_location(self, to)
     }
 }
 
 pub trait TLocation {
-    fn get_session(&self) -> Option<Box<dyn TSession>>;
+    fn get_session(&self) -> Result<Box<dyn TSession>, SessionError>;
 
     fn get_name(&self) -> Result<String, SessionError>;
     fn set_name(&self, name: &str) -> Result<(), SessionError>;
 
     fn get_desc(&self) -> Result<String, SessionError>;
     fn set_desc(&self, desc: &str) -> Result<(), SessionError>;
+
+    fn get_path(&self) -> Result<PathBuf, SessionError>;
+    fn set_path(&self, path: PathBuf) -> Result<(), SessionError>;
 
     fn get_where_is(&self) -> Result<WhereIsLocation, SessionError>;
     fn set_where_is(&self, where_is: WhereIsLocation) -> Result<(), SessionError>;

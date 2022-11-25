@@ -1,4 +1,5 @@
 use std::ops::Range;
+use std::path::PathBuf;
 use std::sync::RwLock;
 
 use crate::prelude::*;
@@ -129,12 +130,8 @@ pub trait TSession {
     fn element_get_status(&self, element: &EInfo) -> Result<usize, SessionError>;
     fn element_set_status(&self, element: &EInfo, status: usize) -> Result<(), SessionError>;
 
-    fn element_get_data(&self, element: &EInfo) -> Result<Option<FileOrData>, SessionError>;
-    fn element_set_data(
-        &self,
-        element: &EInfo,
-        data: Option<FileOrData>,
-    ) -> Result<(), SessionError>;
+    fn element_get_data(&self, element: &EInfo) -> Result<FileOrData, SessionError>;
+    fn element_set_data(&self, element: &EInfo, data: FileOrData) -> Result<(), SessionError>;
 
     fn element_get_progress(&self, element: &EInfo) -> Result<f32, SessionError>;
     fn element_set_progress(&self, element: &EInfo, progress: f32) -> Result<(), SessionError>;
@@ -183,6 +180,9 @@ pub trait TSession {
 
     fn location_get_desc(&self, location: &LInfo) -> Result<String, SessionError>;
     fn location_set_desc(&self, location: &LInfo, desc: &str) -> Result<(), SessionError>;
+
+    fn location_get_path(&self, location: &LInfo) -> Result<PathBuf, SessionError>;
+    fn location_set_path(&self, location: &LInfo, path: PathBuf) -> Result<(), SessionError>;
 
     fn location_get_where_is(&self, location: &LInfo) -> Result<WhereIsLocation, SessionError>;
     fn location_set_where_is(

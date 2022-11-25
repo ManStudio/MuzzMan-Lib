@@ -44,6 +44,8 @@ impl LocalSession {
             info: location_info,
             module: None,
             signal_notify: Arc::new(RwLock::new(AdvancedSignal::<LocationNotify, ()>::new())),
+            path: PathBuf::from("."),
+            thread: std::thread::spawn(|| {}),
         }));
         session.write().unwrap().location = Some(location);
         session.c()
@@ -383,6 +385,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
             uid: element_uid,
         }));
 
+        let path = location.get_path()?.join(name);
+
         let element = Arc::new(RwLock::new(RowElement {
             name: name.to_owned(),
             desc: String::new(),
@@ -392,7 +396,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             module: None,
             statuses: Vec::new(),
             status: usize::MAX,
-            data: None,
+            data: FileOrData::File(path, None),
             progress: 0.0,
             should_save: false,
             enabled: false,
@@ -542,18 +546,11 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }
     }
 
-    fn element_get_data(
-        &self,
-        element: &EInfo,
-    ) -> Result<Option<crate::data::FileOrData>, SessionError> {
+    fn element_get_data(&self, element: &EInfo) -> Result<FileOrData, SessionError> {
         Ok(self.get_element(element)?.read().unwrap().data.clone())
     }
 
-    fn element_set_data(
-        &self,
-        element: &EInfo,
-        data: Option<crate::data::FileOrData>,
-    ) -> Result<(), SessionError> {
+    fn element_set_data(&self, element: &EInfo, data: FileOrData) -> Result<(), SessionError> {
         self.get_element(element)?.write().unwrap().data = data;
         Ok(())
     }
@@ -688,6 +685,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
             uid: location_uid,
         }));
 
+        let path = self.get_location(location)?.read().unwrap().path.join(name);
+
         let loc = Location {
             name: name.to_owned(),
             desc: String::new(),
@@ -700,6 +699,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
             info: location_info.clone(),
             module: None,
             signal_notify: Arc::new(RwLock::new(AdvancedSignal::new())),
+            path,
+            thread: std::thread::spawn(|| {}),
         };
 
         let dest = self.get_location(location)?;
@@ -798,6 +799,15 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn location_set_desc(&self, location: &LInfo, desc: &str) -> Result<(), SessionError> {
         self.get_location(location)?.write().unwrap().desc = desc.to_owned();
+        Ok(())
+    }
+
+    fn location_get_path(&self, location: &LInfo) -> Result<PathBuf, SessionError> {
+        Ok(self.get_location(location)?.read().unwrap().path.clone())
+    }
+
+    fn location_set_path(&self, location: &LInfo, path: PathBuf) -> Result<(), SessionError> {
+        self.get_location(location)?.write().unwrap().path = path;
         Ok(())
     }
 

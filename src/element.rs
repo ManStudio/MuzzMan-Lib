@@ -66,8 +66,8 @@ pub trait TElement {
     fn get_status_msg(&self) -> Result<String, SessionError>;
     fn set_status(&self, status: usize) -> Result<(), SessionError>;
 
-    fn get_data(&self) -> Result<Option<FileOrData>, SessionError>;
-    fn set_data(&self, data: Option<FileOrData>) -> Result<(), SessionError>;
+    fn get_data(&self) -> Result<FileOrData, SessionError>;
+    fn set_data(&self, data: FileOrData) -> Result<(), SessionError>;
 
     fn get_progress(&self) -> Result<f32, SessionError>;
     fn set_progress(&self, progress: f32) -> Result<(), SessionError>;
@@ -94,7 +94,7 @@ pub struct RowElement {
     pub module: Option<MInfo>,
     pub statuses: Vec<String>,
     pub status: usize,
-    pub data: Option<FileOrData>,
+    pub data: FileOrData,
     pub progress: f32,
     pub should_save: bool,
     pub enabled: bool,
@@ -289,14 +289,14 @@ impl TElement for EInfo {
         Err(SessionError::InvalidSession)
     }
 
-    fn get_data(&self) -> Result<Option<FileOrData>, SessionError> {
+    fn get_data(&self) -> Result<FileOrData, SessionError> {
         if let Some(session) = self.get_session() {
             return session.element_get_data(self);
         }
         Err(SessionError::InvalidSession)
     }
 
-    fn set_data(&self, data: Option<FileOrData>) -> Result<(), SessionError> {
+    fn set_data(&self, data: FileOrData) -> Result<(), SessionError> {
         if let Some(session) = self.get_session() {
             return session.element_set_data(self, data);
         }
