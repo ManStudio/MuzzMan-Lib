@@ -36,7 +36,7 @@ impl PartialEq for Element {
 }
 
 pub trait TElement {
-    fn get_session(&self) -> Option<Box<dyn TSession>>;
+    fn get_session(&self) -> Result<Box<dyn TSession>, SessionError>;
 
     fn get_name(&self) -> Result<String, SessionError>;
     fn set_name(&self, name: &str) -> Result<(), SessionError>;
@@ -141,141 +141,88 @@ impl Debug for RowElement {
 }
 
 impl TElement for EInfo {
-    fn get_session(&self) -> Option<Box<dyn TSession>> {
-        let mut s = None;
+    fn get_session(&self) -> Result<Box<dyn TSession>, SessionError> {
         if let Some(session) = &self.read().unwrap().session {
-            s = Some(session.c())
+            return Ok(session.c());
         }
-        s
+        Err(SessionError::InvalidSession)
     }
 
     fn get_name(&self) -> Result<String, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_get_name(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_get_name(self)
     }
 
     fn set_name(&self, name: &str) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_set_name(self, name);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_set_name(self, name)
     }
 
     fn get_desc(&self) -> Result<String, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_get_desc(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_get_desc(self)
     }
 
     fn set_desc(&self, desc: &str) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_set_desc(self, desc);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_set_desc(self, desc)
     }
 
     fn get_meta(&self) -> Result<String, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_get_meta(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_get_meta(self)
     }
 
     fn set_meta(&self, meta: &str) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_set_meta(self, meta);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_set_meta(self, meta)
     }
 
     fn get_element_data(&self) -> Result<Data, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_get_element_data(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_get_element_data(self)
     }
 
     fn set_element_data(&self, data: Data) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_set_element_data(self, data);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_set_element_data(self, data)
     }
 
     fn get_module_data(&self) -> Result<Data, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_get_module_data(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_get_module_data(self)
     }
 
     fn set_module_data(&self, data: Data) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_set_module_data(self, data);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_set_module_data(self, data)
     }
 
     fn get_module(&self) -> Result<Option<MInfo>, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_get_module(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_get_module(self)
     }
 
     fn set_module(&self, module: Option<MInfo>) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_set_module(self, module);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_set_module(self, module)
     }
 
     fn resolv_module(&self) -> Result<bool, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_resolv_module(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_resolv_module(self)
     }
 
     fn init(&self) -> Result<bool, SessionError> {
-        if let Some(session) = self.get_session() {
-            if let Some(module) = self.get_module()? {
-                session.module_init_element(&module, self)?;
-                return Ok(true);
-            } else {
-                return Ok(false);
-            }
+        if let Some(module) = &self.get_module()? {
+            self.get_session()?.module_init_element(module, self)?;
+            Ok(true)
+        } else {
+            Ok(false)
         }
-        Err(SessionError::InvalidSession)
     }
 
     fn get_statuses(&self) -> Result<Vec<String>, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_get_statuses(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_get_statuses(self)
     }
 
     fn set_statuses(&self, statuses: Vec<String>) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_set_statuses(self, statuses);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_set_statuses(self, statuses)
     }
 
     fn get_status(&self) -> Result<usize, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_get_status(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_get_status(self)
     }
 
     fn get_status_msg(&self) -> Result<String, SessionError> {
-        let index = self.get_status()?;
-        if let Some(status) = self.get_statuses()?.get(index) {
+        if let Some(status) = self.get_statuses()?.get(self.get_status()?) {
             Ok(status.clone())
         } else {
             Ok(String::from("None"))
@@ -283,86 +230,51 @@ impl TElement for EInfo {
     }
 
     fn set_status(&self, status: usize) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_set_status(self, status);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_set_status(self, status)
     }
 
     fn get_data(&self) -> Result<FileOrData, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_get_data(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_get_data(self)
     }
 
     fn set_data(&self, data: FileOrData) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_set_data(self, data);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_set_data(self, data)
     }
 
     fn get_progress(&self) -> Result<f32, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_get_progress(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_get_progress(self)
     }
 
     fn set_progress(&self, progress: f32) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_set_progress(self, progress);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_set_progress(self, progress)
     }
 
     fn get_should_save(&self) -> Result<bool, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_get_should_save(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_get_should_save(self)
     }
 
     fn set_should_save(&self, should_save: bool) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_set_should_save(self, should_save);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?
+            .element_set_should_save(self, should_save)
     }
 
     fn is_enabled(&self) -> Result<bool, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_get_enabled(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_get_enabled(self)
     }
 
     fn set_enabled(&self, enabled: bool) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_set_enabled(self, enabled);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_set_enabled(self, enabled)
     }
 
     fn get_notify(&self) -> Result<Arc<RwLock<AdvancedSignal<ElementNotify, ()>>>, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_get_notify(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_get_notify(self)
     }
 
     fn wait(&self) -> Result<(), SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.element_wait(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.element_wait(self)
     }
 
     fn destroy(self) -> Result<ERow, SessionError> {
-        if let Some(session) = self.get_session() {
-            return session.destroy_element(self);
-        }
-        Err(SessionError::InvalidSession)
+        self.get_session()?.destroy_element(self)
     }
 }
