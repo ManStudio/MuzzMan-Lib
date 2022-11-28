@@ -78,6 +78,7 @@ pub trait TSession {
         module_info: &MInfo,
         element_info: &EInfo,
         control_flow: &mut ControlFlow,
+        storage: &mut Storage,
     ) -> Result<(), SessionError>;
 
     fn module_step_location(
@@ -144,7 +145,12 @@ pub trait TSession {
     ) -> Result<(), SessionError>;
 
     fn element_get_enabled(&self, element: &EInfo) -> Result<bool, SessionError>;
-    fn element_set_enabled(&self, element: &EInfo, enabled: bool) -> Result<(), SessionError>;
+    fn element_set_enabled(
+        &self,
+        element: &EInfo,
+        enabled: bool,
+        storage: Option<Storage>,
+    ) -> Result<(), SessionError>;
 
     fn element_get_notify(
         &self,

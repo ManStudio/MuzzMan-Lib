@@ -56,7 +56,7 @@ pub trait TModule {
     fn init_element_settings(&self, data: &mut Data);
 
     fn init_element(&self, element: ERow);
-    fn step_element(&self, element: ERow, control_flow: &mut ControlFlow);
+    fn step_element(&self, element: ERow, control_flow: &mut ControlFlow, storage: &mut Storage);
 
     fn accept_extension(&self, filename: &str) -> bool;
     fn accept_url(&self, uri: Url) -> bool;
@@ -100,7 +100,7 @@ pub struct RawModule {
     fn_init_element: Symbol<'static, fn(ERow)>,
     fn_init_location: Symbol<'static, fn(LInfo, FileOrData)>,
 
-    fn_step_element: Symbol<'static, fn(ERow, &mut ControlFlow)>,
+    fn_step_element: Symbol<'static, fn(ERow, &mut ControlFlow, &mut Storage)>,
 
     fn_accept_extension: Symbol<'static, fn(&str) -> bool>,
     fn_accept_url: Symbol<'static, fn(Url) -> bool>,
@@ -228,8 +228,8 @@ impl TModule for Arc<RawModule> {
         (*self.fn_init_element)(element)
     }
 
-    fn step_element(&self, element: ERow, control_flow: &mut ControlFlow) {
-        (*self.fn_step_element)(element, control_flow)
+    fn step_element(&self, element: ERow, control_flow: &mut ControlFlow, storage: &mut Storage) {
+        (*self.fn_step_element)(element, control_flow, storage)
     }
 
     fn accept_extension(&self, filename: &str) -> bool {
@@ -273,6 +273,7 @@ pub trait TModuleInfo {
         &self,
         element_info: &EInfo,
         control_flow: &mut ControlFlow,
+        storage: &mut Storage,
     ) -> Result<(), SessionError>;
     fn accept_url(&self, url: Url) -> Result<bool, SessionError>;
     fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError>;
@@ -342,9 +343,10 @@ impl TModuleInfo for MInfo {
         &self,
         element_info: &EInfo,
         control_flow: &mut ControlFlow,
+        storage: &mut Storage,
     ) -> Result<(), SessionError> {
         self.get_session()?
-            .module_step_element(self, element_info, control_flow)
+            .module_step_element(self, element_info, control_flow, storage)
     }
 
     fn accept_url(&self, url: Url) -> Result<bool, SessionError> {

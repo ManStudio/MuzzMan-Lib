@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[derive(Debug)]
 pub struct CustomEnum {
     data: Vec<String>,

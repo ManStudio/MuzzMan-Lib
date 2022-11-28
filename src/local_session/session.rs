@@ -358,6 +358,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         module_info: &MInfo,
         element_info: &EInfo,
         control_flow: &mut ControlFlow,
+        storage: &mut Storage,
     ) -> Result<(), SessionError> {
         let module = self.get_module(module_info)?;
         let element = self.get_element(element_info)?;
@@ -365,7 +366,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .read()
             .unwrap()
             .module
-            .step_element(element, control_flow);
+            .step_element(element, control_flow, storage);
         Ok(())
     }
 
@@ -581,7 +582,12 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(self.get_element(element)?.read().unwrap().enabled)
     }
 
-    fn element_set_enabled(&self, element: &EInfo, enabled: bool) -> Result<(), SessionError> {
+    fn element_set_enabled(
+        &self,
+        element: &EInfo,
+        enabled: bool,
+        storage: Option<Storage>,
+    ) -> Result<(), SessionError> {
         let element = self.get_element(element)?;
         element.write().unwrap().enabled = enabled;
         if !enabled {
@@ -593,6 +599,11 @@ impl TSession for Arc<RwLock<LocalSession>> {
             let element = tmp_element.clone();
             let element_info = element.read().unwrap().info.clone();
             let mut control_flow = ControlFlow::Run;
+            let mut storage = if let Some(storage) = storage {
+                storage
+            } else {
+                Storage::new()
+            };
 
             loop {
                 if let ControlFlow::Break = control_flow {
@@ -615,7 +626,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     }
                     if let Some(module) = module {
                         module
-                            .step_element(&element_info, &mut control_flow)
+                            .step_element(&element_info, &mut control_flow, &mut storage)
                             .unwrap();
                     }
                 } else {

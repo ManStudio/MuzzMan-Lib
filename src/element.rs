@@ -76,7 +76,7 @@ pub trait TElement {
     fn set_should_save(&self, should_save: bool) -> Result<(), SessionError>;
 
     fn is_enabled(&self) -> Result<bool, SessionError>;
-    fn set_enabled(&self, enabled: bool) -> Result<(), SessionError>;
+    fn set_enabled(&self, enabled: bool, storage: Option<Storage>) -> Result<(), SessionError>;
 
     fn get_notify(&self) -> Result<Arc<RwLock<AdvancedSignal<ElementNotify, ()>>>, SessionError>;
 
@@ -262,8 +262,9 @@ impl TElement for EInfo {
         self.get_session()?.element_get_enabled(self)
     }
 
-    fn set_enabled(&self, enabled: bool) -> Result<(), SessionError> {
-        self.get_session()?.element_set_enabled(self, enabled)
+    fn set_enabled(&self, enabled: bool, storage: Option<Storage>) -> Result<(), SessionError> {
+        self.get_session()?
+            .element_set_enabled(self, enabled, storage)
     }
 
     fn get_notify(&self) -> Result<Arc<RwLock<AdvancedSignal<ElementNotify, ()>>>, SessionError> {
