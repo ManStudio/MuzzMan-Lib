@@ -16,6 +16,7 @@ use crate::prelude::*;
 pub struct LocalSession {
     pub location: Option<LRow>,
     pub modules: Vec<MRow>,
+    pub actions: Vec<Arc<RwLock<Action>>>,
 }
 
 impl LocalSession {
@@ -23,6 +24,7 @@ impl LocalSession {
         let session = Self {
             location: None,
             modules: Vec::new(),
+            actions: Vec::new(),
         };
 
         let session = Arc::new(RwLock::new(session));
@@ -113,14 +115,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
             info: None,
         };
 
-        if let Err(error) = module.module.init(self.c()) {
-            return Err(SessionError::CannotInstallModule(error));
-        }
-
         let info = Arc::new(RwLock::new(ModuleInfo {
             uid: Some(self.get_modules_len()?),
             session: Some(self.c()),
         }));
+
+        if let Err(error) = module.module.init(info.clone()) {
+            return Err(SessionError::CannotInstallModule(error));
+        }
 
         module.info = Some(info.clone());
 
@@ -134,6 +136,15 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn remove_module(&self, info: MInfo) -> Result<MRow, SessionError> {
         if let Some(index) = info.read().unwrap().uid {
+            {
+                let module = self.read().unwrap().modules[index].clone();
+                let module = module.read().unwrap();
+                if let Some(info) = module.info.clone() {
+                    self.write().unwrap().actions.retain(|e| {
+                        *e.read().unwrap().owner.read().unwrap() != *info.read().unwrap()
+                    });
+                }
+            }
             let module = self.write().unwrap().modules.remove(index);
 
             module.write().unwrap().info = None;
@@ -153,6 +164,77 @@ impl TSession for Arc<RwLock<LocalSession>> {
             return Ok(module);
         }
         Err(SessionError::InvalidModule)
+    }
+
+    fn register_action(
+        &self,
+        module: &MInfo,
+        name: String,
+        values: Vec<(String, Value)>,
+        callback: fn(MInfo, values: Vec<Type>),
+    ) -> Result<(), SessionError> {
+        self.write()
+            .unwrap()
+            .actions
+            .push(Arc::new(RwLock::new(Action {
+                name,
+                owner: module.clone(),
+                input: values,
+                callback,
+            })));
+        Ok(())
+    }
+
+    fn remove_action(&self, owner: &MInfo, name: String) -> Result<(), SessionError> {
+        let mut finded = None;
+        for (i, action) in self.read().unwrap().actions.iter().enumerate() {
+            let action = action.read().unwrap();
+            if *action.owner.read().unwrap() == *owner.read().unwrap() && action.name == name {
+                finded = Some(i);
+                break;
+            }
+        }
+        if let Some(finded) = finded {
+            self.write().unwrap().actions.remove(finded);
+        }
+        Ok(())
+    }
+
+    fn get_actions(
+        &self,
+        range: Range<usize>,
+    ) -> Result<Vec<(String, MInfo, Vec<(String, Value)>)>, SessionError> {
+        let mut res = Vec::new();
+        for action in self.read().unwrap().actions[range].iter() {
+            let action = action.read().unwrap();
+            res.push((
+                action.name.clone(),
+                action.owner.clone(),
+                action.input.clone(),
+            ));
+        }
+
+        Ok(res)
+    }
+
+    fn get_actions_len(&self) -> Result<usize, SessionError> {
+        Ok(self.read().unwrap().actions.len())
+    }
+
+    fn run_action(&self, owner: MInfo, name: String, data: Vec<Type>) -> Result<(), SessionError> {
+        let mut finded = None;
+        for (i, action) in self.read().unwrap().actions.iter().enumerate() {
+            let action = action.read().unwrap();
+            if *action.owner.read().unwrap() == *owner.read().unwrap() && action.name == name {
+                finded = Some(i);
+                break;
+            }
+        }
+        if let Some(finded) = finded {
+            let action = self.read().unwrap().actions[finded].clone();
+            (action.read().unwrap().callback)(owner, data);
+        }
+        Ok(())
     }
 
     fn get_modules_len(&self) -> Result<usize, SessionError> {

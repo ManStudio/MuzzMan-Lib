@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, ops::Range};
 
 use crate::prelude::*;
 use libloading::{Library, Symbol};
@@ -18,6 +18,12 @@ pub struct ModuleInfo {
 impl Debug for ModuleInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ModuleInfo").finish()
+    }
+}
+
+impl PartialEq for ModuleInfo {
+    fn eq(&self, other: &Self) -> bool {
+        self.uid == other.uid
     }
 }
 
@@ -47,7 +53,7 @@ impl Debug for Module {
 }
 
 pub trait TModule {
-    fn init(&self, session: Box<dyn TSession>) -> Result<(), String>;
+    fn init(&self, info: MInfo) -> Result<(), String>;
 
     fn get_name(&self) -> String;
     fn get_desc(&self) -> String;
@@ -89,7 +95,7 @@ pub enum RawLibraryError {
 pub struct RawModule {
     lib: &'static Library,
 
-    fn_init: Symbol<'static, fn(Box<dyn TSession>) -> Result<(), String>>,
+    fn_init: Symbol<'static, fn(MInfo) -> Result<(), String>>,
 
     fn_get_name: Symbol<'static, fn() -> String>,
     fn_get_desc: Symbol<'static, fn() -> String>,
@@ -204,8 +210,8 @@ impl Drop for RawModule {
 }
 
 impl TModule for Arc<RawModule> {
-    fn init(&self, session: Box<dyn TSession>) -> Result<(), String> {
-        (*self.fn_init)(session)
+    fn init(&self, info: MInfo) -> Result<(), String> {
+        (*self.fn_init)(info)
     }
 
     fn get_name(&self) -> String {
@@ -268,6 +274,15 @@ pub trait TModuleInfo {
 
     fn get_element_settings(&self) -> Result<Data, SessionError>;
     fn set_element_settings(&self, settings: Data) -> Result<(), SessionError>;
+
+    fn register_action(
+        &self,
+        name: String,
+        values: Vec<(String, Value)>,
+        callback: fn(MInfo, values: Vec<Type>),
+    ) -> Result<(), SessionError>;
+    fn remove_action(&self, name: String) -> Result<(), SessionError>;
+    fn run_action(&self, name: String, data: Vec<Type>) -> Result<(), SessionError>;
 
     fn step_element(
         &self,
@@ -337,6 +352,24 @@ impl TModuleInfo for MInfo {
     fn set_element_settings(&self, settings: Data) -> Result<(), SessionError> {
         self.get_session()?
             .set_module_element_settings(self, settings)
+    }
+
+    fn register_action(
+        &self,
+        name: String,
+        values: Vec<(String, Value)>,
+        callback: fn(MInfo, values: Vec<Type>),
+    ) -> Result<(), SessionError> {
+        self.get_session()?
+            .register_action(self, name, values, callback)
+    }
+
+    fn remove_action(&self, name: String) -> Result<(), SessionError> {
+        self.get_session()?.remove_action(self, name)
+    }
+
+    fn run_action(&self, name: String, data: Vec<Type>) -> Result<(), SessionError> {
+        self.get_session()?.run_action(self.clone(), name, data)
     }
 
     fn step_element(

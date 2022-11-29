@@ -28,6 +28,21 @@ pub trait TSession {
     fn add_module(&self, module: Box<dyn TModule>) -> Result<MInfo, SessionError>;
     fn remove_module(&self, info: MInfo) -> Result<MRow, SessionError>;
 
+    fn register_action(
+        &self,
+        module: &MInfo,
+        name: String,
+        values: Vec<(String, Value)>,
+        callback: fn(MInfo, values: Vec<Type>),
+    ) -> Result<(), SessionError>;
+    fn remove_action(&self, owner: &MInfo, name: String) -> Result<(), SessionError>;
+    fn get_actions(
+        &self,
+        range: Range<usize>,
+    ) -> Result<Vec<(String, MInfo, Vec<(String, Value)>)>, SessionError>;
+    fn get_actions_len(&self) -> Result<usize, SessionError>;
+    fn run_action(&self, owner: MInfo, name: String, data: Vec<Type>) -> Result<(), SessionError>;
+
     fn get_modules_len(&self) -> Result<usize, SessionError>;
     fn get_modules(&self, range: Range<usize>) -> Result<Vec<MInfo>, SessionError>;
 

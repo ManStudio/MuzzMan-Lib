@@ -1,5 +1,6 @@
 #![feature(io_error_more)]
 
+pub mod action;
 pub mod data;
 pub mod element;
 pub mod enums;
@@ -12,7 +13,8 @@ pub mod types;
 
 pub mod prelude {
     pub use crate::{
-        data::*, element::*, enums::*, location::*, module::*, session::*, storage::*, types::*,
+        action::*, data::*, element::*, enums::*, location::*, module::*, session::*, storage::*,
+        types::*,
     };
     pub use get_ref::*;
     pub use signals_kman::prelude::*;
