@@ -3,7 +3,7 @@
 #[derive(Debug)]
 pub struct CustomEnum {
     data: Vec<String>,
-    active: Option<usize>,
+    pub active: Option<usize>,
     locked: bool,
 }
 

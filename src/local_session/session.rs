@@ -442,13 +442,15 @@ impl TSession for Arc<RwLock<LocalSession>> {
         control_flow: &mut ControlFlow,
         storage: &mut Storage,
     ) -> Result<(), SessionError> {
-        let module = self.get_module(module_info)?;
+        let module;
+        {
+            let m = self.get_module(module_info)?;
+            module = m.read().unwrap().module.c();
+        }
+
         let element = self.get_element(element_info)?;
-        module
-            .read()
-            .unwrap()
-            .module
-            .step_element(element, control_flow, storage);
+
+        module.step_element(element, control_flow, storage);
         Ok(())
     }
 
