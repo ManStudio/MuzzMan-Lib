@@ -691,7 +691,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
             loop {
                 if let ControlFlow::Break = control_flow {
-                    element.write().unwrap().enabled = false;
                     break;
                 }
                 let enabled = element.read().unwrap().enabled;
@@ -714,7 +713,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                             .unwrap();
                     }
                 } else {
-                    std::thread::sleep(std::time::Duration::from_secs(1));
+                    break;
                 }
             }
 
