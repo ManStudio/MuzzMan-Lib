@@ -1,6 +1,5 @@
 use std::ops::Range;
 use std::path::PathBuf;
-use std::sync::RwLock;
 
 use crate::prelude::*;
 
@@ -167,11 +166,6 @@ pub trait TSession {
         storage: Option<Storage>,
     ) -> Result<(), SessionError>;
 
-    fn element_get_notify(
-        &self,
-        info: &EInfo,
-    ) -> Result<Arc<RwLock<AdvancedSignal<ElementNotify, ()>>>, SessionError>;
-
     fn element_resolv_module(&self, element_info: &EInfo) -> Result<bool, SessionError>;
 
     /// Blocking the current thread until is done!
@@ -225,11 +219,6 @@ pub trait TSession {
         location: &LInfo,
         range: Range<usize>,
     ) -> Result<Vec<EInfo>, SessionError>;
-
-    fn location_get_notify(
-        &self,
-        info: &LInfo,
-    ) -> Result<Arc<RwLock<AdvancedSignal<LocationNotify, ()>>>, SessionError>;
 
     //
     // End Location

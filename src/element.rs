@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::RwLock, thread::JoinHandle};
+use std::{fmt::Debug, thread::JoinHandle};
 
 use crate::prelude::*;
 
@@ -78,8 +78,6 @@ pub trait TElement {
     fn is_enabled(&self) -> Result<bool, SessionError>;
     fn set_enabled(&self, enabled: bool, storage: Option<Storage>) -> Result<(), SessionError>;
 
-    fn get_notify(&self) -> Result<Arc<RwLock<AdvancedSignal<ElementNotify, ()>>>, SessionError>;
-
     fn wait(&self) -> Result<(), SessionError>;
 
     fn destroy(self) -> Result<ERow, SessionError>;
@@ -100,7 +98,6 @@ pub struct RowElement {
     pub enabled: bool,
     pub thread: JoinHandle<()>,
     pub info: EInfo,
-    pub signal_notify: Arc<RwLock<AdvancedSignal<ElementNotify, ()>>>,
 }
 
 unsafe impl Sync for RowElement {}
@@ -116,9 +113,6 @@ impl TRowElement for ERow {
             let mut element = self.write().unwrap();
             element.status = status;
         }
-        let signal = self.read().unwrap().signal_notify.clone();
-        let signal = signal.read().unwrap();
-        signal.call(ElementNotify::StatusChanged(status));
     }
 }
 
@@ -265,10 +259,6 @@ impl TElement for EInfo {
     fn set_enabled(&self, enabled: bool, storage: Option<Storage>) -> Result<(), SessionError> {
         self.get_session()?
             .element_set_enabled(self, enabled, storage)
-    }
-
-    fn get_notify(&self) -> Result<Arc<RwLock<AdvancedSignal<ElementNotify, ()>>>, SessionError> {
-        self.get_session()?.element_get_notify(self)
     }
 
     fn wait(&self) -> Result<(), SessionError> {

@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::net::{IpAddr, TcpStream};
 use std::ops::Range;
 use std::path::PathBuf;
-use std::sync::RwLock;
+use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
 use crate::prelude::*;
@@ -81,7 +81,6 @@ pub struct Location {
     pub path: PathBuf,
     pub thread: JoinHandle<()>,
     pub module: Option<Box<dyn TModule>>,
-    pub signal_notify: Arc<RwLock<AdvancedSignal<LocationNotify, ()>>>,
 }
 
 impl TLocation for LInfo {

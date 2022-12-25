@@ -1,4 +1,8 @@
-use std::{ops::Range, path::PathBuf, sync::RwLock};
+use std::{
+    ops::Range,
+    path::PathBuf,
+    sync::{Arc, RwLock},
+};
 
 // use crate::{
 //     data::Data,
@@ -45,7 +49,6 @@ impl LocalSession {
             locations: Vec::new(),
             info: location_info,
             module: None,
-            signal_notify: Arc::new(RwLock::new(AdvancedSignal::<LocationNotify, ()>::new())),
             path: PathBuf::from("."),
             thread: std::thread::spawn(|| {}),
         }));
@@ -486,7 +489,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
             should_save: false,
             enabled: false,
             thread: std::thread::spawn(|| {}),
-            signal_notify: Arc::new(RwLock::new(AdvancedSignal::new())),
             info: element_info.clone(),
         }));
 
@@ -723,18 +725,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(())
     }
 
-    fn element_get_notify(
-        &self,
-        info: &EInfo,
-    ) -> Result<Arc<RwLock<AdvancedSignal<ElementNotify, ()>>>, SessionError> {
-        Ok(self
-            .get_element(info)?
-            .read()
-            .unwrap()
-            .signal_notify
-            .clone())
-    }
-
     fn element_resolv_module(&self, element_info: &EInfo) -> Result<bool, SessionError> {
         let len = self.get_modules_len()?;
 
@@ -792,7 +782,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
             locations: Vec::new(),
             info: location_info.clone(),
             module: None,
-            signal_notify: Arc::new(RwLock::new(AdvancedSignal::new())),
             path,
             thread: std::thread::spawn(|| {}),
         };
@@ -950,18 +939,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
             element_infos.push(element.read().unwrap().info.clone())
         }
         Ok(element_infos)
-    }
-
-    fn location_get_notify(
-        &self,
-        info: &LInfo,
-    ) -> Result<Arc<RwLock<AdvancedSignal<LocationNotify, ()>>>, SessionError> {
-        Ok(self
-            .get_location(info)?
-            .read()
-            .unwrap()
-            .signal_notify
-            .clone())
     }
 
     fn c(&self) -> Box<dyn TSession> {
