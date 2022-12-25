@@ -102,7 +102,7 @@ impl std::io::Seek for Bytes {
             std::io::SeekFrom::Start(pos) => {
                 let res = 0 + pos;
                 if res >= self.data.len() as u64 {
-                    Err(std::io::Error::new(std::io::ErrorKind::NotSeekable, ""))
+                    Err(std::io::Error::from_raw_os_error(25))
                 } else {
                     self.coursor = res as usize;
                     Ok(res)
@@ -111,7 +111,7 @@ impl std::io::Seek for Bytes {
             std::io::SeekFrom::End(pos) => {
                 let res = (self.data.len() as i64) + pos;
                 if res >= self.data.len() as i64 {
-                    Err(std::io::Error::new(std::io::ErrorKind::StorageFull, ""))
+                    Err(std::io::Error::from_raw_os_error(24))
                 } else {
                     self.coursor = res as usize;
                     Ok(res as u64)
@@ -120,7 +120,7 @@ impl std::io::Seek for Bytes {
             std::io::SeekFrom::Current(pos) => {
                 let res = pos + self.coursor as i64;
                 if res >= self.data.len() as i64 {
-                    Err(std::io::Error::new(std::io::ErrorKind::NotSeekable, ""))
+                    Err(std::io::Error::from_raw_os_error(25))
                 } else {
                     self.coursor = res as usize;
                     Ok(res as u64)
