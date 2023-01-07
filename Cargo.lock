@@ -96,7 +96,7 @@ dependencies = [
  "get_ref",
  "http",
  "libloading",
- "muzzman-lib-macros",
+ "muzzman-lib-macros 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand",
  "url",
 ]
@@ -104,6 +104,17 @@ dependencies = [
 [[package]]
 name = "muzzman-lib-macros"
 version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "muzzman-lib-macros"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "263407039a62daf8c74f9b8daa024897fa76c99fc0ef8af144ca1aab82e2ac4b"
 dependencies = [
  "proc-macro2",
  "quote",
