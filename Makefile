@@ -1,7 +1,5 @@
-check: setup_dev
+check:
 	cargo check
 
 clean:
 	cargo clean
-
-setup_dev:

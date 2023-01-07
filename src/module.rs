@@ -205,7 +205,7 @@ impl RawModule {
 
 impl Drop for RawModule {
     fn drop(&mut self) {
-        std::mem::forget(self.lib)
+        let lib = unsafe { Box::from_raw((self.lib as *const _) as *mut Library) };
     }
 }
 
