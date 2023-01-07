@@ -32,6 +32,8 @@ dependencies = [
 [[package]]
 name = "get_ref"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f7f2a36158ff259649653bc4e6dc02763e25ee544c75872705011179276ec7b"
 
 [[package]]
 name = "getrandom"
@@ -89,7 +91,7 @@ dependencies = [
 
 [[package]]
 name = "muzzman-lib"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "get_ref",
  "http",
