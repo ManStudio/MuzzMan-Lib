@@ -1,7 +1,12 @@
 [package]
 name = "muzzman-lib-macros"
+description = "MuzzManLib Macros"
 version = "0.1.0"
 edition = "2021"
+authors = ["konkitoman"]
+repository = "https://github.com/ManStudio/MuzzMan-Lib"
+license = "GPL-3.0"
+keywords = ["macros"]
 
 [lib]
 path = "src/lib.rs"
