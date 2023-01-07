@@ -1,6 +1,7 @@
 use std::{
     any::Any,
     collections::HashMap,
+    fmt::Display,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
@@ -177,6 +178,300 @@ impl Type {
             Type::Vec(v) => format!("{:?}", v),
             Type::Bytes(b) => format!("{:?}", b),
             Type::None => format!(""),
+        }
+    }
+}
+
+impl From<u8> for Type {
+    fn from(value: u8) -> Self {
+        Self::U8(value)
+    }
+}
+
+impl From<u16> for Type {
+    fn from(value: u16) -> Self {
+        Self::U16(value)
+    }
+}
+
+impl From<u32> for Type {
+    fn from(value: u32) -> Self {
+        Self::U32(value)
+    }
+}
+
+impl From<u64> for Type {
+    fn from(value: u64) -> Self {
+        Self::U64(value)
+    }
+}
+
+impl From<u128> for Type {
+    fn from(value: u128) -> Self {
+        Self::U128(value)
+    }
+}
+
+impl From<usize> for Type {
+    fn from(value: usize) -> Self {
+        Self::USize(value)
+    }
+}
+
+impl From<i8> for Type {
+    fn from(value: i8) -> Self {
+        Self::I8(value)
+    }
+}
+
+impl From<i16> for Type {
+    fn from(value: i16) -> Self {
+        Self::I16(value)
+    }
+}
+
+impl From<i32> for Type {
+    fn from(value: i32) -> Self {
+        Self::I32(value)
+    }
+}
+
+impl From<i64> for Type {
+    fn from(value: i64) -> Self {
+        Self::I64(value)
+    }
+}
+
+impl From<i128> for Type {
+    fn from(value: i128) -> Self {
+        Self::I128(value)
+    }
+}
+
+impl From<isize> for Type {
+    fn from(value: isize) -> Self {
+        Self::ISize(value)
+    }
+}
+
+impl From<f32> for Type {
+    fn from(value: f32) -> Self {
+        Self::F32(value)
+    }
+}
+
+impl From<f64> for Type {
+    fn from(value: f64) -> Self {
+        Self::F64(value)
+    }
+}
+
+impl From<bool> for Type {
+    fn from(value: bool) -> Self {
+        Self::Bool(value)
+    }
+}
+
+impl From<String> for Type {
+    fn from(value: String) -> Self {
+        Self::String(value)
+    }
+}
+
+impl From<&str> for Type {
+    fn from(value: &str) -> Self {
+        Self::String(value.into())
+    }
+}
+
+impl TryInto<u8> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<u8, Self::Error> {
+        if let Self::U8(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<u16> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<u16, Self::Error> {
+        if let Self::U16(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<u32> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<u32, Self::Error> {
+        if let Self::U32(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<u64> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<u64, Self::Error> {
+        if let Self::U64(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<u128> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<u128, Self::Error> {
+        if let Self::U128(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<usize> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<usize, Self::Error> {
+        if let Self::USize(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<i8> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<i8, Self::Error> {
+        if let Self::I8(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<i16> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<i16, Self::Error> {
+        if let Self::I16(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<i32> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<i32, Self::Error> {
+        if let Self::I32(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<i64> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<i64, Self::Error> {
+        if let Self::I64(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<i128> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<i128, Self::Error> {
+        if let Self::I128(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<isize> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<isize, Self::Error> {
+        if let Self::ISize(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<f32> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<f32, Self::Error> {
+        if let Self::F32(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<f64> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<f64, Self::Error> {
+        if let Self::F64(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<bool> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<bool, Self::Error> {
+        if let Self::Bool(value) = self {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryInto<String> for Type {
+    type Error = ();
+
+    fn try_into(self) -> Result<String, Self::Error> {
+        if let Self::String(value) = self {
+            Ok(value)
+        } else {
+            Err(())
         }
     }
 }
