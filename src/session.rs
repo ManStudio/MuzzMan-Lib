@@ -1,9 +1,11 @@
 use std::ops::Range;
 use std::path::PathBuf;
 
+use serde::{Deserialize, Serialize};
+
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum SessionError {
     InvalidSession,
     ElementDoNotExist,

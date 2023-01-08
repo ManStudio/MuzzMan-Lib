@@ -2,6 +2,7 @@ use std::{fmt::Debug, sync::Arc};
 
 use crate::prelude::*;
 use libloading::{Library, Symbol};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]
 pub enum ControlFlow {
@@ -10,8 +11,10 @@ pub enum ControlFlow {
     Break,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct ModuleInfo {
     pub uid: Option<usize>,
+    #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
 }
 

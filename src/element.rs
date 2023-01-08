@@ -1,11 +1,13 @@
 use std::{fmt::Debug, thread::JoinHandle};
 
+use serde::{Deserialize, Serialize};
+
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ElementNotify {
     Complited,
-    ModuleChanged(Option<MInfo>),
+    ModuleChanged(#[serde(skip)] Option<MInfo>),
     StatusChanged(usize),
     Progress(f32),
     Error(String),
@@ -15,7 +17,9 @@ pub enum ElementNotify {
 
 impl_get_ref!(ElementNotify);
 
+#[derive(Serialize, Deserialize)]
 pub struct Element {
+    #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
     pub location: LInfo,
     pub uid: usize,
@@ -83,6 +87,7 @@ pub trait TElement {
     fn destroy(self) -> Result<ERow, SessionError>;
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct RowElement {
     pub name: String,
     pub desc: String,
@@ -96,7 +101,8 @@ pub struct RowElement {
     pub progress: f32,
     pub should_save: bool,
     pub enabled: bool,
-    pub thread: JoinHandle<()>,
+    #[serde(skip)]
+    pub thread: Option<JoinHandle<()>>,
     pub info: EInfo,
 }
 

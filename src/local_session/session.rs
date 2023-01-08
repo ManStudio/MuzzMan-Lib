@@ -50,7 +50,7 @@ impl LocalSession {
             info: location_info,
             module: None,
             path: PathBuf::from("."),
-            thread: std::thread::spawn(|| {}),
+            thread: None,
         }));
         session.write().unwrap().location = Some(location);
         session.c()
@@ -488,7 +488,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             progress: 0.0,
             should_save: false,
             enabled: false,
-            thread: std::thread::spawn(|| {}),
+            thread: None,
             info: element_info.clone(),
         }));
 
@@ -681,7 +681,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }
 
         let tmp_element = element.clone();
-        element.write().unwrap().thread = std::thread::spawn(move || {
+        element.write().unwrap().thread = Some(std::thread::spawn(move || {
             let element = tmp_element.clone();
             let element_info = element.read().unwrap().info.clone();
             let mut control_flow = ControlFlow::Run;
@@ -720,7 +720,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             }
 
             element.write().unwrap().enabled = false;
-        });
+        }));
 
         Ok(())
     }
@@ -756,8 +756,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn element_wait(&self, element: &EInfo) -> Result<(), SessionError> {
-        let thread = unsafe { std::ptr::read(&self.get_element(element)?.read().unwrap().thread) };
-        thread.join().unwrap();
+        let thread = self.get_element(element)?.write().unwrap().thread.take();
+        if let Some(thread) = thread {
+            thread.join().unwrap();
+        }
         Ok(())
     }
 
@@ -783,7 +785,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             info: location_info.clone(),
             module: None,
             path,
-            thread: std::thread::spawn(|| {}),
+            thread: None,
         };
 
         let dest = self.get_location(location)?;

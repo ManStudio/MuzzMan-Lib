@@ -5,12 +5,14 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
+use serde::{Deserialize, Serialize};
+
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum LocationNotify {
     ElementNotify(usize, ElementNotify),
-    ModuleChanged(Option<MInfo>),
+    ModuleChanged(#[serde(skip)] Option<MInfo>),
     ElementsAllCompleted,
     Completed,
     Custom(String),
@@ -18,27 +20,30 @@ pub enum LocationNotify {
 
 impl_get_ref!(LocationNotify);
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ServerLocation {
     pub ip: IpAddr,
     pub port: u16,
     pub indentification: String,
     pub server_cert: Option<String>,
+    #[serde(skip)]
     pub conn: Option<Arc<Mutex<TcpStream>>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct LocalLocation {
     pub path: PathBuf,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum WhereIsLocation {
     Server(ServerLocation),
     Local(LocalLocation),
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct LocationInfo {
+    #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
     pub uid: Vec<usize>,
 }
@@ -70,6 +75,7 @@ impl PartialEq for LocationInfo {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Location {
     pub name: String,
     pub desc: String,
@@ -79,7 +85,9 @@ pub struct Location {
     pub locations: Vec<LRow>,
     pub info: LInfo,
     pub path: PathBuf,
-    pub thread: JoinHandle<()>,
+    #[serde(skip)]
+    pub thread: Option<JoinHandle<()>>,
+    #[serde(skip)]
     pub module: Option<Box<dyn TModule>>,
 }
 

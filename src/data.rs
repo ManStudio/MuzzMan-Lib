@@ -1,3 +1,5 @@
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use crate::{
     prelude::{TypeTag, TypeValidation},
     types::Type,
@@ -10,7 +12,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bytes {
     pub data: Vec<u8>,
     pub coursor: usize,
@@ -130,7 +132,7 @@ impl std::io::Seek for Bytes {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Value {
     pub value: Type,
     pub should_be: Vec<TypeTag>,
@@ -172,7 +174,7 @@ impl From<Type> for Value {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Data {
     pub data: HashMap<String, Value>,
     pub locked: bool,
@@ -293,9 +295,9 @@ impl Data {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FileOrData {
-    File(PathBuf, Option<Arc<Mutex<std::fs::File>>>),
+    File(PathBuf, #[serde(skip)] Option<Arc<Mutex<std::fs::File>>>),
     Bytes(Bytes),
 }
 

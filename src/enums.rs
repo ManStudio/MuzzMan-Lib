@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
-#[derive(Debug)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CustomEnum {
     data: Vec<String>,
     pub active: Option<usize>,
@@ -115,7 +117,7 @@ mod test_custom_enum {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AdvanceEnum {
     data: Vec<(String, bool)>,
     locked: bool,

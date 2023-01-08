@@ -14,12 +14,14 @@ pub type LRow = Arc<RwLock<Location>>;
 pub type ERow = Arc<RwLock<RowElement>>;
 pub type MRow = Arc<RwLock<Module>>;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     enums::{AdvanceEnum, CustomEnum},
     prelude::{Element, FileOrData, Location, LocationInfo, Module, ModuleInfo, RowElement},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Type {
     U8(u8),
     U16(u16),
@@ -44,11 +46,10 @@ pub enum Type {
     Path(PathBuf),
     HashMapSS(HashMap<String, String>),
     HashMapS(HashMap<String, Type>),
-    HashMap(HashMap<Type, Type>),
+    // HashMap(HashMap<Type, Type>),
     FileOrData(FileOrData),
+    #[serde(skip)]
     Any(Arc<RwLock<Box<dyn Any>>>),
-    // i hate my life
-    // i want to be able to use filds
     CustomEnum(CustomEnum),
     AdvancedEnum(AdvanceEnum),
     // Fields(Box<dyn Fields>),
@@ -84,10 +85,6 @@ impl Type {
             Type::HashMapS(h) => {
                 let Some(ty) = h.iter().nth(0) else{return None;};
                 HashMapS(Box::new(ty.1.to_tag()))
-            }
-            Type::HashMap(h) => {
-                let Some(ty) = h.iter().nth(0) else{return None;};
-                HashMap(Box::new(ty.0.to_tag()), Box::new(ty.1.to_tag()))
             }
             Type::FileOrData(_) => FileOrData,
             Type::Any(_) => TypeTag::Any,
@@ -138,13 +135,6 @@ impl Type {
                 let mut buff = String::new();
                 for (k, v) in v.iter() {
                     buff.push_str(&format!("{}: {}", k, v.to_string()));
-                }
-                buff
-            }
-            Type::HashMap(v) => {
-                let mut buff = String::new();
-                for (k, v) in v.iter() {
-                    buff.push_str(&format!("{}: {}", k.to_string(), v.to_string()));
                 }
                 buff
             }
@@ -476,7 +466,7 @@ impl TryInto<String> for Type {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TypeTag {
     U8,
     U16,
@@ -502,7 +492,6 @@ pub enum TypeTag {
     Path,
     HashMapSS,
     HashMapS(Box<TypeTag>),
-    HashMap(Box<TypeTag>, Box<TypeTag>),
     FileOrData,
 
     Any,
@@ -539,7 +528,6 @@ impl TypeTag {
             TypeTag::Path => "path".to_string(),
             TypeTag::HashMapSS => "hashmap_string_string".to_string(),
             TypeTag::HashMapS(h) => format!("hashmap_string({})", h.to_string()),
-            TypeTag::HashMap(h1, h2) => format!("hashmap({},{})", h1.to_string(), h2.to_string()),
             TypeTag::FileOrData => "file_or_data".to_string(),
             TypeTag::Any => "any".to_string(),
             TypeTag::CustomEnum(_) => "custom_enum".to_string(),
@@ -551,7 +539,7 @@ impl TypeTag {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TypeValidation {
     Range(usize, usize),
 }
