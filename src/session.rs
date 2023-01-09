@@ -11,7 +11,7 @@ pub enum SessionError {
     ElementDoNotExist,
     InsufficientPermissions,
     InvalidLocation,
-    ServerTimeOut(LocationInfo),
+    ServerTimeOut(RefLocation),
     CannotConnectToServer,
     ServerInvalidIndentification,
     InvalidElementStatus,
@@ -173,6 +173,8 @@ pub trait TSession {
     /// Blocking the current thread until is done!
     fn element_wait(&self, element: &EInfo) -> Result<(), SessionError>;
 
+    fn element_get_element_info(&self, element: &EInfo) -> Result<ElementInfo, SessionError>;
+
     //
     // End Element
     //
@@ -221,6 +223,8 @@ pub trait TSession {
         location: &LInfo,
         range: Range<usize>,
     ) -> Result<Vec<EInfo>, SessionError>;
+
+    fn location_get_location_info(&self, location: &LInfo) -> Result<LocationInfo, SessionError>;
 
     //
     // End Location

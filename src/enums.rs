@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::hash::Hash;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -12,6 +14,14 @@ pub struct CustomEnum {
 impl PartialEq for CustomEnum {
     fn eq(&self, other: &Self) -> bool {
         self.data == other.data
+    }
+}
+
+impl Hash for CustomEnum {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.data.hash(state);
+        self.active.hash(state);
+        self.locked.hash(state);
     }
 }
 
@@ -71,7 +81,7 @@ impl CustomEnum {
         }
 
         self.active = active;
-        return true;
+        true
     }
 
     pub fn lock(&mut self) {
@@ -135,6 +145,13 @@ impl PartialEq for AdvanceEnum {
         }
 
         ok == self.data.len()
+    }
+}
+
+impl Hash for AdvanceEnum {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.data.hash(state);
+        self.locked.hash(state);
     }
 }
 

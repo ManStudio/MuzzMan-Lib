@@ -2,23 +2,24 @@ use std::{
     any::Any,
     collections::HashMap,
     fmt::Display,
+    hash::Hash,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
 
-pub type LInfo = Arc<RwLock<LocationInfo>>;
-pub type EInfo = Arc<RwLock<Element>>;
-pub type MInfo = Arc<RwLock<ModuleInfo>>;
+pub type LInfo = Arc<RwLock<RefLocation>>;
+pub type EInfo = Arc<RwLock<RefElement>>;
+pub type MInfo = Arc<RwLock<RefModule>>;
 
 pub type LRow = Arc<RwLock<Location>>;
-pub type ERow = Arc<RwLock<RowElement>>;
+pub type ERow = Arc<RwLock<Element>>;
 pub type MRow = Arc<RwLock<Module>>;
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
     enums::{AdvanceEnum, CustomEnum},
-    prelude::{Element, FileOrData, Location, LocationInfo, Module, ModuleInfo, RowElement},
+    prelude::{Element, FileOrData, Location, Module, RefElement, RefLocation, RefModule},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,6 +58,48 @@ pub enum Type {
     Bytes(Vec<u8>),
 
     None,
+}
+
+impl Hash for Type {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Type::U8(i) => i.hash(state),
+            Type::U16(i) => i.hash(state),
+            Type::U32(i) => i.hash(state),
+            Type::U64(i) => i.hash(state),
+            Type::U128(i) => i.hash(state),
+            Type::USize(i) => i.hash(state),
+            Type::I8(i) => i.hash(state),
+            Type::I16(i) => i.hash(state),
+            Type::I32(i) => i.hash(state),
+            Type::I64(i) => i.hash(state),
+            Type::I128(i) => i.hash(state),
+            Type::ISize(i) => i.hash(state),
+            Type::F32(f) => (*f as i32).hash(state),
+            Type::F64(f) => (*f as i64).hash(state),
+            Type::Bool(b) => b.hash(state),
+            Type::String(s) => s.hash(state),
+            Type::Path(p) => p.hash(state),
+            Type::HashMapSS(h) => {
+                for (k, e) in h.iter() {
+                    k.hash(state);
+                    e.hash(state)
+                }
+            }
+            Type::HashMapS(h) => {
+                for k in h.keys() {
+                    k.hash(state)
+                }
+            }
+            Type::FileOrData(ford) => ford.hash(state),
+            Type::Any(_) => 21.hash(state),
+            Type::CustomEnum(e) => e.hash(state),
+            Type::AdvancedEnum(e) => e.hash(state),
+            Type::Vec(v) => v.hash(state),
+            Type::Bytes(b) => b.hash(state),
+            Type::None => 0.hash(state),
+        }
+    }
 }
 
 impl Type {
@@ -466,7 +509,7 @@ impl TryInto<String> for Type {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash)]
 pub enum TypeTag {
     U8,
     U16,
@@ -539,7 +582,7 @@ impl TypeTag {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
 pub enum TypeValidation {
     Range(usize, usize),
 }

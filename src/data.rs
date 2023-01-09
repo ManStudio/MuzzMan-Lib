@@ -1,4 +1,4 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     prelude::{TypeTag, TypeValidation},
@@ -8,11 +8,12 @@ use crate::{
 use std::{
     collections::HashMap,
     fs::File,
+    hash::Hash,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
 pub struct Bytes {
     pub data: Vec<u8>,
     pub coursor: usize,
@@ -132,7 +133,7 @@ impl std::io::Seek for Bytes {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
 pub struct Value {
     pub value: Type,
     pub should_be: Vec<TypeTag>,
@@ -178,6 +179,16 @@ impl From<Type> for Value {
 pub struct Data {
     pub data: HashMap<String, Value>,
     pub locked: bool,
+}
+
+impl Hash for Data {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.locked.hash(state);
+        for (k, v) in self.data.iter() {
+            k.hash(state);
+            v.hash(state)
+        }
+    }
 }
 
 impl Data {
@@ -299,6 +310,15 @@ impl Data {
 pub enum FileOrData {
     File(PathBuf, #[serde(skip)] Option<Arc<Mutex<std::fs::File>>>),
     Bytes(Bytes),
+}
+
+impl Hash for FileOrData {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            FileOrData::File(f, _) => f.hash(state),
+            FileOrData::Bytes(b) => b.hash(state),
+        }
+    }
 }
 
 impl std::io::Write for FileOrData {

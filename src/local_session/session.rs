@@ -1,4 +1,6 @@
 use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
     ops::Range,
     path::PathBuf,
     sync::{Arc, RwLock},
@@ -33,7 +35,7 @@ impl LocalSession {
 
         let session = Arc::new(RwLock::new(session));
 
-        let location_info = Arc::new(RwLock::new(LocationInfo {
+        let location_info = Arc::new(RwLock::new(RefLocation {
             session: Some(session.c()),
             uid: vec![],
         }));
@@ -118,7 +120,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             info: None,
         };
 
-        let info = Arc::new(RwLock::new(ModuleInfo {
+        let info = Arc::new(RwLock::new(RefModule {
             uid: Some(self.get_modules_len()?),
             session: Some(self.c()),
         }));
@@ -467,7 +469,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn create_element(&self, name: &str, location: &LInfo) -> Result<EInfo, SessionError> {
         let element_uid = self.get_location(location)?.read().unwrap().elements.len();
-        let element_info = Arc::new(RwLock::new(Element {
+        let element_info = Arc::new(RwLock::new(RefElement {
             session: Some(self.c()),
             location: location.clone(),
             uid: element_uid,
@@ -475,7 +477,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         let path = location.get_path()?.join(name);
 
-        let element = Arc::new(RwLock::new(RowElement {
+        let element = Arc::new(RwLock::new(Element {
             name: name.to_owned(),
             desc: String::new(),
             meta: String::new(),
@@ -763,10 +765,56 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(())
     }
 
+    fn element_get_element_info(&self, element: &EInfo) -> Result<ElementInfo, SessionError> {
+        let element = self.get_element(element)?;
+        let mut module = None;
+        {
+            let __module;
+            {
+                __module = element.read().unwrap().module.clone();
+            }
+
+            if let Some(__module) = __module {
+                let __module = self.get_module(&__module)?;
+                let __module = __module.read().unwrap();
+
+                let mut hasher = DefaultHasher::new();
+                let hasher = &mut hasher;
+                __module.name.hash(hasher);
+                __module.desc.hash(hasher);
+                let id = hasher.finish();
+
+                module = Some(ModuleInfo {
+                    name: __module.name.clone(),
+                    desc: __module.desc.clone(),
+                    module: id,
+                    proxy: __module.proxy,
+                    settings: __module.settings.clone(),
+                    element_data: __module.element_data.clone(),
+                });
+            }
+        }
+        let element = element.read().unwrap();
+        Ok(ElementInfo {
+            name: element.name.clone(),
+            desc: element.desc.clone(),
+            meta: element.meta.clone(),
+            element_data: element.element_data.clone(),
+            module_data: element.module_data.clone(),
+            module,
+            statuses: element.statuses.clone(),
+            status: element.status,
+            data: element.data.clone(),
+            progress: element.progress,
+            should_save: element.should_save,
+            enabled: element.enabled,
+        })
+    }
+
     fn create_location(&self, name: &str, location: &LInfo) -> Result<LInfo, SessionError> {
         let mut location_uid = location.read().unwrap().uid.clone();
         location_uid.push(self.get_locations_len(location)?);
-        let location_info = Arc::new(RwLock::new(LocationInfo {
+        let location_info = Arc::new(RwLock::new(RefLocation {
             session: Some(self.c()),
             uid: location_uid,
         }));
@@ -817,7 +865,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     fn destroy_location(&self, location: LInfo) -> Result<LRow, SessionError> {
         let mut location_uid = location.read().unwrap().uid.clone();
         if let Some(location_index) = location_uid.pop() {
-            let parent_location = Arc::new(RwLock::new(LocationInfo {
+            let parent_location = Arc::new(RwLock::new(RefLocation {
                 session: None,
                 uid: location_uid,
             }));
@@ -855,7 +903,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let location = self.destroy_location(location.clone())?;
         let mut location_uid = to.read().unwrap().uid.clone();
         location_uid.push(self.get_locations_len(to)?);
-        let location_info = Arc::new(RwLock::new(LocationInfo {
+        let location_info = Arc::new(RwLock::new(RefLocation {
             session: Some(self.c()),
             uid: location_uid,
         }));
@@ -941,6 +989,79 @@ impl TSession for Arc<RwLock<LocalSession>> {
             element_infos.push(element.read().unwrap().info.clone())
         }
         Ok(element_infos)
+    }
+
+    fn location_get_location_info(&self, location: &LInfo) -> Result<LocationInfo, SessionError> {
+        let mut module = None;
+        {
+            let __module;
+            {
+                let location = self.get_location(location)?;
+                __module = location.read().unwrap().module.clone();
+            }
+
+            if let Some(__module) = __module {
+                let __module = self.get_module(&__module)?;
+                let __module = __module.read().unwrap();
+
+                let mut hasher = DefaultHasher::new();
+                let hasher = &mut hasher;
+                __module.name.hash(hasher);
+                __module.desc.hash(hasher);
+                let id = hasher.finish();
+
+                module = Some(ModuleInfo {
+                    name: __module.name.clone(),
+                    desc: __module.desc.clone(),
+                    module: id,
+                    proxy: __module.proxy,
+                    settings: __module.settings.clone(),
+                    element_data: __module.element_data.clone(),
+                });
+            }
+        }
+
+        let mut elements = Vec::new();
+        {
+            let len = self.location_get_elements_len(location)?;
+            let __elements = self.location_get_elements(location, 0..len)?;
+            for element in __elements {
+                let info = element.get_element_info()?;
+                elements.push(info)
+            }
+        }
+
+        let mut locations = Vec::new();
+        {
+            let len = self.get_locations_len(location)?;
+            let __locations = self.get_locations(location, 0..len)?;
+            for location in __locations {
+                let info = location.get_location_info()?;
+                locations.push(info)
+            }
+        }
+
+        let location = self.get_location(location)?;
+        let location = location.read().unwrap();
+
+        let mut hasher = DefaultHasher::new();
+        let hasher = &mut hasher;
+        location.name.hash(hasher);
+        location.desc.hash(hasher);
+
+        let id = hasher.finish();
+
+        Ok(LocationInfo {
+            name: location.name.clone(),
+            desc: location.desc.clone(),
+            id,
+            where_is: location.where_is.clone(),
+            shoud_save: location.shoud_save,
+            elements,
+            locations,
+            path: location.path.clone(),
+            module,
+        })
     }
 
     fn c(&self) -> Box<dyn TSession> {

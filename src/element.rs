@@ -1,13 +1,13 @@
-use std::{fmt::Debug, thread::JoinHandle};
+use std::{fmt::Debug, hash::Hash, thread::JoinHandle};
 
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub enum ElementNotify {
     Complited,
-    ModuleChanged(#[serde(skip)] Option<MInfo>),
+    ModuleChanged(Option<MInfo>),
     StatusChanged(usize),
     Progress(f32),
     Error(String),
@@ -17,18 +17,16 @@ pub enum ElementNotify {
 
 impl_get_ref!(ElementNotify);
 
-#[derive(Serialize, Deserialize)]
-pub struct Element {
-    #[serde(skip)]
+pub struct RefElement {
     pub session: Option<Box<dyn TSession>>,
     pub location: LInfo,
     pub uid: usize,
 }
 
-unsafe impl Sync for Element {}
-unsafe impl Send for Element {}
+unsafe impl Sync for RefElement {}
+unsafe impl Send for RefElement {}
 
-impl PartialEq for Element {
+impl PartialEq for RefElement {
     fn eq(&self, other: &Self) -> bool {
         self.uid.eq(&other.uid)
             && self
@@ -82,13 +80,14 @@ pub trait TElement {
     fn is_enabled(&self) -> Result<bool, SessionError>;
     fn set_enabled(&self, enabled: bool, storage: Option<Storage>) -> Result<(), SessionError>;
 
+    fn get_element_info(&self) -> Result<ElementInfo, SessionError>;
+
     fn wait(&self) -> Result<(), SessionError>;
 
     fn destroy(self) -> Result<ERow, SessionError>;
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct RowElement {
+pub struct Element {
     pub name: String,
     pub desc: String,
     pub meta: String,
@@ -101,13 +100,12 @@ pub struct RowElement {
     pub progress: f32,
     pub should_save: bool,
     pub enabled: bool,
-    #[serde(skip)]
     pub thread: Option<JoinHandle<()>>,
     pub info: EInfo,
 }
 
-unsafe impl Sync for RowElement {}
-unsafe impl Send for RowElement {}
+unsafe impl Sync for Element {}
+unsafe impl Send for Element {}
 
 pub trait TRowElement {
     fn set_status(&self, status: usize);
@@ -122,7 +120,7 @@ impl TRowElement for ERow {
     }
 }
 
-impl Debug for RowElement {
+impl Debug for Element {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RowElement")
             .field("name", &self.name)
@@ -267,11 +265,46 @@ impl TElement for EInfo {
             .element_set_enabled(self, enabled, storage)
     }
 
+    fn get_element_info(&self) -> Result<ElementInfo, SessionError> {
+        self.get_session()?.element_get_element_info(self)
+    }
+
     fn wait(&self) -> Result<(), SessionError> {
         self.get_session()?.element_wait(self)
     }
 
     fn destroy(self) -> Result<ERow, SessionError> {
         self.get_session()?.destroy_element(self)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ElementInfo {
+    pub name: String,
+    pub desc: String,
+    pub meta: String,
+    pub element_data: Data,
+    pub module_data: Data,
+    pub module: Option<ModuleInfo>,
+    pub statuses: Vec<String>,
+    pub status: usize,
+    pub data: FileOrData,
+    pub progress: f32,
+    pub should_save: bool,
+    pub enabled: bool,
+}
+
+impl Hash for ElementInfo {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        self.desc.hash(state);
+        self.meta.hash(state);
+        self.element_data.hash(state);
+        self.module_data.hash(state);
+        self.statuses.hash(state);
+        self.status.hash(state);
+        self.data.hash(state);
+        self.enabled.hash(state);
+        (self.progress as i32).hash(state)
     }
 }

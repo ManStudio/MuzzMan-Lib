@@ -11,20 +11,18 @@ pub enum ControlFlow {
     Break,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct ModuleInfo {
+pub struct RefModule {
     pub uid: Option<usize>,
-    #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
 }
 
-impl Debug for ModuleInfo {
+impl Debug for RefModule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ModuleInfo").finish()
     }
 }
 
-impl PartialEq for ModuleInfo {
+impl PartialEq for RefModule {
     fn eq(&self, other: &Self) -> bool {
         self.uid == other.uid
     }
@@ -402,4 +400,15 @@ impl TModuleInfo for MInfo {
         self.get_session()?
             .module_init_location(self, location_info, data)
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+pub struct ModuleInfo {
+    pub name: String,
+    pub desc: String,
+    // module hash
+    pub module: u64,
+    pub proxy: usize,
+    pub settings: Data,
+    pub element_data: Data,
 }

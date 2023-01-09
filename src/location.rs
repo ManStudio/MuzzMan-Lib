@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::hash::Hash;
 use std::net::{IpAddr, TcpStream};
 use std::ops::Range;
 use std::path::PathBuf;
@@ -9,10 +10,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub enum LocationNotify {
     ElementNotify(usize, ElementNotify),
-    ModuleChanged(#[serde(skip)] Option<MInfo>),
+    ModuleChanged(Option<MInfo>),
     ElementsAllCompleted,
     Completed,
     Custom(String),
@@ -20,7 +21,7 @@ pub enum LocationNotify {
 
 impl_get_ref!(LocationNotify);
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerLocation {
     pub ip: IpAddr,
     pub port: u16,
@@ -30,25 +31,34 @@ pub struct ServerLocation {
     pub conn: Option<Arc<Mutex<TcpStream>>>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+impl Hash for ServerLocation {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.ip.hash(state);
+        self.port.hash(state);
+        self.indentification.hash(state);
+        self.server_cert.hash(state);
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
 pub struct LocalLocation {
     pub path: PathBuf,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
 pub enum WhereIsLocation {
     Server(ServerLocation),
     Local(LocalLocation),
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct LocationInfo {
+pub struct RefLocation {
     #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
     pub uid: Vec<usize>,
 }
 
-impl Debug for LocationInfo {
+impl Debug for RefLocation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LocatioInfo")
             .field("uid", &self.uid)
@@ -56,7 +66,7 @@ impl Debug for LocationInfo {
     }
 }
 
-impl Clone for LocationInfo {
+impl Clone for RefLocation {
     fn clone(&self) -> Self {
         Self {
             uid: self.uid.clone(),
@@ -69,13 +79,12 @@ impl Clone for LocationInfo {
     }
 }
 
-impl PartialEq for LocationInfo {
+impl PartialEq for RefLocation {
     fn eq(&self, other: &Self) -> bool {
         self.uid.eq(&other.uid)
     }
 }
 
-#[derive(Serialize, Deserialize)]
 pub struct Location {
     pub name: String,
     pub desc: String,
@@ -85,10 +94,8 @@ pub struct Location {
     pub locations: Vec<LRow>,
     pub info: LInfo,
     pub path: PathBuf,
-    #[serde(skip)]
     pub thread: Option<JoinHandle<()>>,
-    #[serde(skip)]
-    pub module: Option<Box<dyn TModule>>,
+    pub module: Option<MInfo>,
 }
 
 impl TLocation for LInfo {
@@ -157,6 +164,10 @@ impl TLocation for LInfo {
         self.get_session()?.get_locations_len(self)
     }
 
+    fn get_location_info(&self) -> Result<LocationInfo, SessionError> {
+        self.get_session()?.location_get_location_info(self)
+    }
+
     fn create_element(&self, name: &str) -> Result<EInfo, SessionError> {
         self.get_session()?.create_element(name, self)
     }
@@ -197,9 +208,25 @@ pub trait TLocation {
     fn get_locations(&self, range: Range<usize>) -> Result<Vec<LInfo>, SessionError>;
     fn get_locations_len(&self) -> Result<usize, SessionError>;
 
+    fn get_location_info(&self) -> Result<LocationInfo, SessionError>;
+
     fn create_element(&self, name: &str) -> Result<EInfo, SessionError>;
     fn create_location(&self, name: &str) -> Result<LInfo, SessionError>;
 
     fn destroy(self) -> Result<LRow, SessionError>;
     fn _move(&self, to: &LInfo) -> Result<(), SessionError>;
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Hash)]
+pub struct LocationInfo {
+    pub name: String,
+    pub desc: String,
+    // hash
+    pub id: u64,
+    pub where_is: WhereIsLocation,
+    pub shoud_save: bool,
+    pub elements: Vec<ElementInfo>,
+    pub locations: Vec<LocationInfo>,
+    pub path: PathBuf,
+    pub module: Option<ModuleInfo>,
 }
