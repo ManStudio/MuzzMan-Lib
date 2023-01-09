@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::hash::Hash;
+use std::{collections::HashMap, hash::Hash};
 
 use serde::{Deserialize, Serialize};
 
@@ -121,29 +121,21 @@ mod test_custom_enum {
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct AdvanceEnum {
-    data: Vec<(String, bool)>,
-    locked: bool,
+    pub data: HashMap<String, bool>,
 }
 
 impl PartialEq for AdvanceEnum {
     fn eq(&self, other: &Self) -> bool {
-        let mut ok = 0;
-        if self.data.len() == other.data.len() {
-            for i in 0..self.data.len() {
-                if self.data[i].0 == other.data[i].0 {
-                    ok += 1;
-                }
-            }
-        }
-
-        ok == self.data.len()
+        self.data == other.data
     }
 }
 
 impl Hash for AdvanceEnum {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.data.hash(state);
-        self.locked.hash(state);
+        let _ = self
+            .data
+            .iter()
+            .map(|(k, v)| (k.hash(state), v.hash(state)));
     }
 }
 
@@ -151,9 +143,20 @@ impl Clone for AdvanceEnum {
     fn clone(&self) -> Self {
         Self {
             data: self.data.clone(),
-            locked: false,
         }
     }
 }
 
-// TODO!: AdvanceEnum
+impl AdvanceEnum {
+    fn is_active(&self, key: &str) -> bool {
+        if let Some(has) = self.data.get(key) {
+            *has
+        } else {
+            false
+        }
+    }
+
+    fn set(&mut self, key: impl Into<String>, value: bool) -> Option<bool> {
+        self.data.insert(key.into(), value)
+    }
+}
