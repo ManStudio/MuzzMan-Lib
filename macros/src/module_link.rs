@@ -13,17 +13,14 @@ pub fn module_link(
         let mut struct_finded = false;
 
         for token in input.clone() {
-            match token {
-                TokenTree::Ident(test) => {
-                    if struct_finded {
-                        name = Some(test);
-                        break;
-                    }
-                    if test == Ident::new("struct", Span::call_site()) {
-                        struct_finded = true
-                    }
+            if let TokenTree::Ident(test) = token {
+                if struct_finded {
+                    name = Some(test);
+                    break;
                 }
-                _ => {}
+                if test == Ident::new("struct", Span::call_site()) {
+                    struct_finded = true
+                }
             }
         }
     }

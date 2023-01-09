@@ -21,6 +21,8 @@ pub enum SessionError {
     Custom(String),
 }
 
+pub type Actions = Vec<(String, MInfo, Vec<(String, Value)>)>;
+
 pub trait TSession {
     //
     // Module
@@ -37,10 +39,7 @@ pub trait TSession {
         callback: fn(MInfo, values: Vec<Type>),
     ) -> Result<(), SessionError>;
     fn remove_action(&self, owner: &MInfo, name: String) -> Result<(), SessionError>;
-    fn get_actions(
-        &self,
-        range: Range<usize>,
-    ) -> Result<Vec<(String, MInfo, Vec<(String, Value)>)>, SessionError>;
+    fn get_actions(&self, range: Range<usize>) -> Result<Actions, SessionError>;
     fn get_actions_len(&self) -> Result<usize, SessionError>;
     fn run_action(&self, owner: MInfo, name: String, data: Vec<Type>) -> Result<(), SessionError>;
 

@@ -13,21 +13,11 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Hash)]
 pub struct Bytes {
     pub data: Vec<u8>,
     pub coursor: usize,
     pub fast_invert: bool,
-}
-
-impl Bytes {
-    pub fn new() -> Self {
-        Self {
-            data: Vec::new(),
-            coursor: 0,
-            fast_invert: false,
-        }
-    }
 }
 
 impl From<Vec<u8>> for Bytes {
@@ -71,7 +61,7 @@ impl std::io::Write for Bytes {
 impl std::io::Read for Bytes {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let mut readed = 0;
-        for i in 0..buf.len() {
+        for byte in buf.iter_mut() {
             if self.coursor == self.data.len() {
                 break;
             }
@@ -79,7 +69,7 @@ impl std::io::Read for Bytes {
                 break;
             }
 
-            buf[i] = if self.fast_invert {
+            *byte = if self.fast_invert {
                 self.data[self.data.len() - self.coursor]
             } else {
                 self.data[self.coursor]
@@ -103,7 +93,7 @@ impl std::io::Seek for Bytes {
     fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
         match pos {
             std::io::SeekFrom::Start(pos) => {
-                let res = 0 + pos;
+                let res = pos;
                 if res >= self.data.len() as u64 {
                     Err(std::io::Error::from_raw_os_error(25))
                 } else {

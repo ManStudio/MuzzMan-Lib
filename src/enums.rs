@@ -4,7 +4,7 @@ use std::hash::Hash;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct CustomEnum {
     data: Vec<String>,
     pub active: Option<usize>,
@@ -29,21 +29,13 @@ impl Clone for CustomEnum {
     fn clone(&self) -> Self {
         Self {
             data: self.data.clone(),
-            active: self.active.clone(),
+            active: self.active,
             locked: false,
         }
     }
 }
 
 impl CustomEnum {
-    pub fn new() -> Self {
-        Self {
-            data: Vec::new(),
-            active: None,
-            locked: false,
-        }
-    }
-
     pub fn add(&mut self, field: &str) {
         if !self.has(field) && !self.locked {
             self.data.push(field.to_owned());
@@ -95,7 +87,7 @@ mod test_custom_enum {
 
     #[test]
     fn add_field() {
-        let mut custom_enum = CustomEnum::new();
+        let mut custom_enum = CustomEnum::default();
         custom_enum.add("TestingField");
 
         assert_eq!(
@@ -110,7 +102,7 @@ mod test_custom_enum {
 
     #[test]
     fn set_active_field() {
-        let mut custom_enum = CustomEnum::new();
+        let mut custom_enum = CustomEnum::default();
         custom_enum.add("TestingField");
         custom_enum.add("FieldTesting");
 
@@ -127,7 +119,7 @@ mod test_custom_enum {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct AdvanceEnum {
     data: Vec<(String, bool)>,
     locked: bool,
@@ -164,11 +156,4 @@ impl Clone for AdvanceEnum {
     }
 }
 
-impl AdvanceEnum {
-    pub fn new() -> Self {
-        Self {
-            data: Vec::new(),
-            locked: false,
-        }
-    }
-}
+// TODO!: AdvanceEnum

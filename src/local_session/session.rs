@@ -6,19 +6,9 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-// use crate::{
-//     data::Data,
-//     element::{Element, ElementNotify, RowElement},
-//     location::{LocalLocation, Location, LocationInfo, LocationNotify, WhereIsLocation},
-//     module::{ControlFlow, Module, ModuleInfo},
-//     prelude::TModule,
-//     session::{EInfo, LInfo, MInfo, SessionError, TSession},
-// };
-
-// use signals_kman::prelude::*;
-
 use crate::prelude::*;
 
+#[derive(Default)]
 pub struct LocalSession {
     pub location: Option<LRow>,
     pub modules: Vec<MRow>,
@@ -26,12 +16,8 @@ pub struct LocalSession {
 }
 
 impl LocalSession {
-    pub fn new() -> Box<dyn TSession> {
-        let session = Self {
-            location: None,
-            modules: Vec::new(),
-            actions: Vec::new(),
-        };
+    pub fn new_session() -> Box<dyn TSession> {
+        let session = Self::default();
 
         let session = Arc::new(RwLock::new(session));
 
@@ -79,7 +65,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                 loc = tmp_loc
             }
 
-            return Ok(loc.clone());
+            return Ok(loc);
         }
         Err(SessionError::InvalidLocation)
     }
@@ -461,8 +447,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn module_step_location(
         &self,
-        module_info: &MInfo,
-        location_info: &LInfo,
+        _module_info: &MInfo,
+        _location_info: &LInfo,
     ) -> Result<(), SessionError> {
         todo!()
     }
@@ -690,7 +676,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             let mut storage = if let Some(storage) = storage {
                 storage
             } else {
-                Storage::new()
+                Storage::default()
             };
 
             loop {
@@ -732,19 +718,17 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         let mut module = None;
 
-        if let Some(have) = element_info.get_element_data().unwrap().get("url") {
-            if let Type::String(url) = have {
-                for tmp_module in self.get_modules(0..len)? {
-                    if self
-                        .get_module(&tmp_module)?
-                        .read()
-                        .unwrap()
-                        .module
-                        .accept_url(Url::parse(url).unwrap())
-                    {
-                        module = Some(tmp_module);
-                        break;
-                    }
+        if let Some(Type::String(url)) = element_info.get_element_data().unwrap().get("url") {
+            for tmp_module in self.get_modules(0..len)? {
+                if self
+                    .get_module(&tmp_module)?
+                    .read()
+                    .unwrap()
+                    .module
+                    .accept_url(Url::parse(url).unwrap())
+                {
+                    module = Some(tmp_module);
+                    break;
                 }
             }
         }

@@ -1,7 +1,7 @@
 use std::{
     any::Any,
     collections::HashMap,
-    fmt::Display,
+    fmt::{Debug, Display},
     hash::Hash,
     path::PathBuf,
     sync::{Arc, RwLock},
@@ -126,7 +126,7 @@ impl Type {
             Type::Path(_) => Path,
             Type::HashMapSS(_) => HashMapSS,
             Type::HashMapS(h) => {
-                let Some(ty) = h.iter().nth(0) else{return None;};
+                let Some(ty) = h.iter().next() else{return None;};
                 HashMapS(Box::new(ty.1.to_tag()))
             }
             Type::FileOrData(_) => FileOrData,
@@ -141,48 +141,49 @@ impl Type {
             Type::None => None,
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
+impl Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Type::U8(v) => v.to_string(),
-            Type::U16(v) => v.to_string(),
-            Type::U32(v) => v.to_string(),
-            Type::U64(v) => v.to_string(),
-            Type::U128(v) => v.to_string(),
-            Type::USize(v) => v.to_string(),
-            Type::I8(v) => v.to_string(),
-            Type::I16(v) => v.to_string(),
-            Type::I32(v) => v.to_string(),
-            Type::I64(v) => v.to_string(),
-            Type::I128(v) => v.to_string(),
-            Type::ISize(v) => v.to_string(),
-            Type::F32(v) => v.to_string(),
-            Type::F64(v) => v.to_string(),
-            Type::Bool(v) => v.to_string(),
-            Type::String(s) => s.clone(),
-            Type::Path(v) => {
-                if let Some(str) = v.to_str() {
-                    str.to_owned()
-                } else {
-                    String::from("Cannot parse")
-                }
-            }
+            Type::U8(v) => (v as &dyn Display).fmt(f),
+            Type::U16(v) => (v as &dyn Display).fmt(f),
+            Type::U32(v) => (v as &dyn Display).fmt(f),
+            Type::U64(v) => (v as &dyn Display).fmt(f),
+            Type::U128(v) => (v as &dyn Display).fmt(f),
+            Type::USize(v) => (v as &dyn Display).fmt(f),
+            Type::I8(v) => (v as &dyn Display).fmt(f),
+            Type::I16(v) => (v as &dyn Display).fmt(f),
+            Type::I32(v) => (v as &dyn Display).fmt(f),
+            Type::I64(v) => (v as &dyn Display).fmt(f),
+            Type::I128(v) => (v as &dyn Display).fmt(f),
+            Type::ISize(v) => (v as &dyn Display).fmt(f),
+            Type::F32(v) => (v as &dyn Display).fmt(f),
+            Type::F64(v) => (v as &dyn Display).fmt(f),
+            Type::Bool(v) => (v as &dyn Display).fmt(f),
+            Type::String(s) => f.write_str(s),
+            Type::Path(v) => f.write_str(if let Some(str) = v.to_str() {
+                str
+            } else {
+                "Cannot parse!"
+            }),
             Type::HashMapSS(v) => {
                 let mut buff = String::new();
                 for (k, v) in v.iter() {
                     buff.push_str(&format!("{}: {}", k, v));
                 }
-                buff
+                f.write_str(&buff)
             }
             Type::HashMapS(v) => {
                 let mut buff = String::new();
                 for (k, v) in v.iter() {
-                    buff.push_str(&format!("{}: {}", k, v.to_string()));
+                    buff.push_str(&format!("{}: {}", k, v));
                 }
-                buff
+                f.write_str(&buff)
             }
             Type::FileOrData(ford) => match ford {
-                FileOrData::File(file_path, _) => format!(
+                FileOrData::File(file_path, _) => write!(
+                    f,
                     "File: {}",
                     if let Some(path) = file_path.to_str() {
                         path
@@ -190,27 +191,27 @@ impl Type {
                         "Cannot parse path!"
                     }
                 ),
-                FileOrData::Bytes(b) => format!("{:?}", b),
+                FileOrData::Bytes(b) => b.fmt(f),
             },
-            Type::Any(_) => format!("Any"),
+            Type::Any(_) => f.write_str("Any"),
             Type::CustomEnum(e) => {
                 if let Some(e) = e.get_active() {
-                    e
+                    f.write_str(&e)
                 } else {
-                    format!("None")
+                    f.write_str("None")
                 }
             }
             Type::AdvancedEnum(_) => {
-                format!("Not implemented!")
+                f.write_str("Not Implemented")
                 // if let Some(e) = e.get_active() {
                 //     e
                 // } else {
                 //     format!("None")
                 // }
             }
-            Type::Vec(v) => format!("{:?}", v),
-            Type::Bytes(b) => format!("{:?}", b),
-            Type::None => format!(""),
+            Type::Vec(v) => v.fmt(f),
+            Type::Bytes(b) => (b as &dyn std::fmt::Debug).fmt(f),
+            Type::None => f.write_str(""),
         }
     }
 }
@@ -548,37 +549,37 @@ pub enum TypeTag {
     None,
 }
 
-impl TypeTag {
-    pub fn to_string(&self) -> String {
-        match self {
-            TypeTag::U8 => "u8".to_string(),
-            TypeTag::U16 => "u16".to_string(),
-            TypeTag::U32 => "u32".to_string(),
-            TypeTag::U64 => "u64".to_string(),
-            TypeTag::U128 => "u128".to_string(),
-            TypeTag::USize => "usize".to_string(),
-            TypeTag::I8 => "i8".to_string(),
-            TypeTag::I16 => "i16".to_string(),
-            TypeTag::I32 => "i32".to_string(),
-            TypeTag::I64 => "i64".to_string(),
-            TypeTag::I128 => "i128".to_string(),
-            TypeTag::ISize => "isize".to_string(),
-            TypeTag::F32 => "f32".to_string(),
-            TypeTag::F64 => "f64".to_string(),
-            TypeTag::Bool => "bool".to_string(),
-            TypeTag::String => "string".to_string(),
-            TypeTag::Url => "url".to_string(),
-            TypeTag::Path => "path".to_string(),
-            TypeTag::HashMapSS => "hashmap_string_string".to_string(),
-            TypeTag::HashMapS(h) => format!("hashmap_string({})", h.to_string()),
-            TypeTag::FileOrData => "file_or_data".to_string(),
-            TypeTag::Any => "any".to_string(),
-            TypeTag::CustomEnum(_) => "custom_enum".to_string(),
-            TypeTag::AdvancedEnum(_) => "advanced_enum".to_string(),
-            TypeTag::Vec(v) => format!("vec({})", v.to_string()),
-            TypeTag::Bytes => "bytes".to_string(),
-            TypeTag::None => "none".to_string(),
-        }
+impl Display for TypeTag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            TypeTag::U8 => "u8",
+            TypeTag::U16 => "u16",
+            TypeTag::U32 => "u32",
+            TypeTag::U64 => "u64",
+            TypeTag::U128 => "u128",
+            TypeTag::USize => "usize",
+            TypeTag::I8 => "i8",
+            TypeTag::I16 => "i16",
+            TypeTag::I32 => "i32",
+            TypeTag::I64 => "i64",
+            TypeTag::I128 => "i128",
+            TypeTag::ISize => "isize",
+            TypeTag::F32 => "f32",
+            TypeTag::F64 => "f64",
+            TypeTag::Bool => "bool",
+            TypeTag::String => "string",
+            TypeTag::Url => "url",
+            TypeTag::Path => "path",
+            TypeTag::HashMapSS => "hashmap_string_string",
+            TypeTag::HashMapS(h) => return write!(f, "hashmap_string({})", h),
+            TypeTag::FileOrData => "file_or_data",
+            TypeTag::Any => "any",
+            TypeTag::CustomEnum(_) => "custom_enum",
+            TypeTag::AdvancedEnum(_) => "advanced_enum",
+            TypeTag::Vec(v) => return write!(f, "vec({})", v),
+            TypeTag::Bytes => "bytes",
+            TypeTag::None => "none",
+        })
     }
 }
 

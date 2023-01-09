@@ -114,26 +114,26 @@ pub struct RawModule {
 }
 
 impl RawModule {
-    pub fn new(path: &str) -> Result<Box<dyn TModule>, RawLibraryError> {
-        match Self::new_raw(path) {
+    pub fn new_module(path: &str) -> Result<Box<dyn TModule>, RawLibraryError> {
+        match Self::new(path) {
             Ok(module) => Ok(Box::new(Arc::new(module))),
             Err(err) => Err(err),
         }
     }
-    pub fn new_raw(path: &str) -> Result<Self, RawLibraryError> {
+    pub fn new(path: &str) -> Result<Self, RawLibraryError> {
         let lib = unsafe { Library::new(path) };
         if lib.is_err() {
             return Err(RawLibraryError::NotFound);
         }
         let lib = Box::leak(Box::new(lib.unwrap()));
 
-        let fn_init = if let Ok(func) = unsafe { lib.get(b"init\0").into() } {
+        let fn_init = if let Ok(func) = unsafe { lib.get(b"init\0") } {
             func
         } else {
             return Err(RawLibraryError::DontHaveSymbolInit);
         };
 
-        let fn_get_name = if let Ok(func) = unsafe { lib.get(b"get_name\0").into() } {
+        let fn_get_name = if let Ok(func) = unsafe { lib.get(b"get_name\0") } {
             func
         } else {
             return Err(RawLibraryError::DontHaveSymbolGetName);
@@ -207,6 +207,7 @@ impl RawModule {
 impl Drop for RawModule {
     fn drop(&mut self) {
         let lib = unsafe { Box::from_raw((self.lib as *const _) as *mut Library) };
+        drop(lib)
     }
 }
 

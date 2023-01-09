@@ -2,15 +2,12 @@
 
 use std::any::Any;
 
+#[derive(Debug, Default)]
 pub struct Storage {
     pub data: Vec<Box<dyn Any + Send>>,
 }
 
 impl Storage {
-    pub fn new() -> Self {
-        Self { data: Vec::new() }
-    }
-
     pub fn get<T: 'static>(&self) -> Option<&T> {
         for element in self.data.iter() {
             if let Some(data) = element.downcast_ref::<T>() {
@@ -18,7 +15,7 @@ impl Storage {
             }
         }
 
-        return None;
+        None
     }
 
     pub fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
@@ -28,7 +25,7 @@ impl Storage {
             }
         }
 
-        return None;
+        None
     }
 
     pub fn set<T: 'static + Send>(&mut self, data: T) -> Option<Box<T>> {
@@ -40,7 +37,7 @@ impl Storage {
     pub fn remove<T: 'static>(&mut self) -> Option<Box<T>> {
         let mut finded = None;
         for (i, element) in self.data.iter().enumerate() {
-            if let Some(_) = element.downcast_ref::<T>() {
+            if element.downcast_ref::<T>().is_some() {
                 finded = Some(i);
                 break;
             }
@@ -64,17 +61,17 @@ mod test {
 
     #[test]
     fn storage() {
-        let mut storage = Storage::new();
+        let mut storage = Storage::default();
 
         let res = storage.set(Data { id: 21 });
 
-        assert!(!res.is_some());
+        assert!(res.is_none());
 
         assert_eq!(storage.get::<Data>().unwrap().id, 21);
 
         let res = storage.set(Data { id: 92 });
 
-        assert!(!res.is_none());
+        assert!(res.is_some());
 
         assert_eq!(res.unwrap().id, 21);
 
