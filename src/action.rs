@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 pub struct Action {
     pub name: String,
-    pub owner: MInfo,
+    pub owner: MRef,
     pub input: Vec<(String, Value)>,
-    pub callback: fn(MInfo, Vec<Type>),
+    pub callback: fn(MRef, Vec<Type>),
 }

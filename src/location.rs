@@ -13,7 +13,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub enum LocationNotify {
     ElementNotify(usize, ElementNotify),
-    ModuleChanged(Option<MInfo>),
+    ModuleChanged(Option<MRef>),
     ElementsAllCompleted,
     Completed,
     Custom(String),
@@ -92,13 +92,13 @@ pub struct Location {
     pub shoud_save: bool,
     pub elements: Vec<ERow>,
     pub locations: Vec<LRow>,
-    pub info: LInfo,
+    pub info: LRef,
     pub path: PathBuf,
     pub thread: Option<JoinHandle<()>>,
-    pub module: Option<MInfo>,
+    pub module: Option<MRef>,
 }
 
-impl TLocation for LInfo {
+impl TLocation for LRef {
     fn get_session(&self) -> Result<Box<dyn TSession>, SessionError> {
         if let Some(session) = &self.read().unwrap().session {
             return Ok(session.c());
@@ -148,7 +148,7 @@ impl TLocation for LInfo {
             .location_set_should_save(self, should_save)
     }
 
-    fn get_elements(&self, range: Range<usize>) -> Result<Vec<EInfo>, SessionError> {
+    fn get_elements(&self, range: Range<usize>) -> Result<Vec<ERef>, SessionError> {
         self.get_session()?.location_get_elements(self, range)
     }
 
@@ -156,7 +156,7 @@ impl TLocation for LInfo {
         self.get_session()?.location_get_elements_len(self)
     }
 
-    fn get_locations(&self, range: Range<usize>) -> Result<Vec<LInfo>, SessionError> {
+    fn get_locations(&self, range: Range<usize>) -> Result<Vec<LRef>, SessionError> {
         self.get_session()?.get_locations(self, range)
     }
 
@@ -168,11 +168,11 @@ impl TLocation for LInfo {
         self.get_session()?.location_get_location_info(self)
     }
 
-    fn create_element(&self, name: &str) -> Result<EInfo, SessionError> {
+    fn create_element(&self, name: &str) -> Result<ERef, SessionError> {
         self.get_session()?.create_element(name, self)
     }
 
-    fn create_location(&self, name: &str) -> Result<LInfo, SessionError> {
+    fn create_location(&self, name: &str) -> Result<LRef, SessionError> {
         self.get_session()?.create_location(name, self)
     }
 
@@ -180,7 +180,7 @@ impl TLocation for LInfo {
         self.get_session()?.destroy_location(self)
     }
 
-    fn _move(&self, to: &LInfo) -> Result<(), SessionError> {
+    fn _move(&self, to: &LRef) -> Result<(), SessionError> {
         self.get_session()?.move_location(self, to)
     }
 }
@@ -203,18 +203,18 @@ pub trait TLocation {
     fn get_should_save(&self) -> Result<bool, SessionError>;
     fn set_should_save(&self, should_save: bool) -> Result<(), SessionError>;
 
-    fn get_elements(&self, range: Range<usize>) -> Result<Vec<EInfo>, SessionError>;
+    fn get_elements(&self, range: Range<usize>) -> Result<Vec<ERef>, SessionError>;
     fn get_elements_len(&self) -> Result<usize, SessionError>;
-    fn get_locations(&self, range: Range<usize>) -> Result<Vec<LInfo>, SessionError>;
+    fn get_locations(&self, range: Range<usize>) -> Result<Vec<LRef>, SessionError>;
     fn get_locations_len(&self) -> Result<usize, SessionError>;
 
     fn get_location_info(&self) -> Result<LocationInfo, SessionError>;
 
-    fn create_element(&self, name: &str) -> Result<EInfo, SessionError>;
-    fn create_location(&self, name: &str) -> Result<LInfo, SessionError>;
+    fn create_element(&self, name: &str) -> Result<ERef, SessionError>;
+    fn create_location(&self, name: &str) -> Result<LRef, SessionError>;
 
     fn destroy(self) -> Result<LRow, SessionError>;
-    fn _move(&self, to: &LInfo) -> Result<(), SessionError>;
+    fn _move(&self, to: &LRef) -> Result<(), SessionError>;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Hash)]

@@ -7,9 +7,9 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-pub type LInfo = Arc<RwLock<RefLocation>>;
-pub type EInfo = Arc<RwLock<RefElement>>;
-pub type MInfo = Arc<RwLock<RefModule>>;
+pub type LRef = Arc<RwLock<RefLocation>>;
+pub type ERef = Arc<RwLock<RefElement>>;
+pub type MRef = Arc<RwLock<RefModule>>;
 
 pub type LRow = Arc<RwLock<Location>>;
 pub type ERow = Arc<RwLock<Element>>;

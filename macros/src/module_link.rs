@@ -33,7 +33,7 @@ pub fn module_link(
         static MODULE: #name = #name;
 
         #[no_mangle]
-        fn init(info: MInfo) -> Result<(), String> {
+        fn init(info: MRef) -> Result<(), String> {
             MODULE.init(info)
         }
 
@@ -77,7 +77,7 @@ pub fn module_link(
         }
 
         #[no_mangle]
-        fn init_location(location: LInfo, data: FileOrData) {
+        fn init_location(location: LRef, data: FileOrData) {
             MODULE.init_location(location, data)
         }
     }

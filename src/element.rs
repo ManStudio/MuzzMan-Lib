@@ -7,7 +7,7 @@ use crate::prelude::*;
 #[derive(Debug, Clone)]
 pub enum ElementNotify {
     Complited,
-    ModuleChanged(Option<MInfo>),
+    ModuleChanged(Option<MRef>),
     StatusChanged(usize),
     Progress(f32),
     Error(String),
@@ -19,7 +19,7 @@ impl_get_ref!(ElementNotify);
 
 pub struct RefElement {
     pub session: Option<Box<dyn TSession>>,
-    pub location: LInfo,
+    pub location: LRef,
     pub uid: usize,
 }
 
@@ -55,8 +55,8 @@ pub trait TElement {
     fn get_module_data(&self) -> Result<Data, SessionError>;
     fn set_module_data(&self, data: Data) -> Result<(), SessionError>;
 
-    fn get_module(&self) -> Result<Option<MInfo>, SessionError>;
-    fn set_module(&self, module: Option<MInfo>) -> Result<(), SessionError>;
+    fn get_module(&self) -> Result<Option<MRef>, SessionError>;
+    fn set_module(&self, module: Option<MRef>) -> Result<(), SessionError>;
 
     fn resolv_module(&self) -> Result<bool, SessionError>;
     fn init(&self) -> Result<bool, SessionError>;
@@ -93,7 +93,7 @@ pub struct Element {
     pub meta: String,
     pub element_data: Data,
     pub module_data: Data,
-    pub module: Option<MInfo>,
+    pub module: Option<MRef>,
     pub statuses: Vec<String>,
     pub status: usize,
     pub data: FileOrData,
@@ -101,7 +101,7 @@ pub struct Element {
     pub should_save: bool,
     pub enabled: bool,
     pub thread: Option<JoinHandle<()>>,
-    pub info: EInfo,
+    pub info: ERef,
 }
 
 unsafe impl Sync for Element {}
@@ -138,7 +138,7 @@ impl Debug for Element {
     }
 }
 
-impl TElement for EInfo {
+impl TElement for ERef {
     fn get_session(&self) -> Result<Box<dyn TSession>, SessionError> {
         if let Some(session) = &self.read().unwrap().session {
             return Ok(session.c());
@@ -186,11 +186,11 @@ impl TElement for EInfo {
         self.get_session()?.element_set_module_data(self, data)
     }
 
-    fn get_module(&self) -> Result<Option<MInfo>, SessionError> {
+    fn get_module(&self) -> Result<Option<MRef>, SessionError> {
         self.get_session()?.element_get_module(self)
     }
 
-    fn set_module(&self, module: Option<MInfo>) -> Result<(), SessionError> {
+    fn set_module(&self, module: Option<MRef>) -> Result<(), SessionError> {
         self.get_session()?.element_set_module(self, module)
     }
 

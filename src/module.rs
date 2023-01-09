@@ -38,7 +38,7 @@ pub struct Module {
     pub settings: Data,
     /// default element data/settings
     pub element_data: Data,
-    pub info: Option<MInfo>,
+    pub info: Option<MRef>,
 }
 
 impl Debug for Module {
@@ -54,7 +54,7 @@ impl Debug for Module {
 }
 
 pub trait TModule {
-    fn init(&self, info: MInfo) -> Result<(), String>;
+    fn init(&self, info: MRef) -> Result<(), String>;
 
     fn get_name(&self) -> String;
     fn get_desc(&self) -> String;
@@ -67,7 +67,7 @@ pub trait TModule {
 
     fn accept_extension(&self, filename: &str) -> bool;
     fn accept_url(&self, uri: Url) -> bool;
-    fn init_location(&self, location: LInfo, data: FileOrData);
+    fn init_location(&self, location: LRef, data: FileOrData);
 
     fn c(&self) -> Box<dyn TModule>;
 }
@@ -96,7 +96,7 @@ pub enum RawLibraryError {
 pub struct RawModule {
     lib: &'static Library,
 
-    fn_init: Symbol<'static, fn(MInfo) -> Result<(), String>>,
+    fn_init: Symbol<'static, fn(MRef) -> Result<(), String>>,
 
     fn_get_name: Symbol<'static, fn() -> String>,
     fn_get_desc: Symbol<'static, fn() -> String>,
@@ -105,7 +105,7 @@ pub struct RawModule {
     fn_init_element_settings: Symbol<'static, fn(&mut Data)>,
 
     fn_init_element: Symbol<'static, fn(ERow)>,
-    fn_init_location: Symbol<'static, fn(LInfo, FileOrData)>,
+    fn_init_location: Symbol<'static, fn(LRef, FileOrData)>,
 
     fn_step_element: Symbol<'static, fn(ERow, &mut ControlFlow, &mut Storage)>,
 
@@ -212,7 +212,7 @@ impl Drop for RawModule {
 }
 
 impl TModule for Arc<RawModule> {
-    fn init(&self, info: MInfo) -> Result<(), String> {
+    fn init(&self, info: MRef) -> Result<(), String> {
         (*self.fn_init)(info)
     }
 
@@ -248,7 +248,7 @@ impl TModule for Arc<RawModule> {
         (*self.fn_accept_url)(url)
     }
 
-    fn init_location(&self, location: LInfo, data: FileOrData) {
+    fn init_location(&self, location: LRef, data: FileOrData) {
         (*self.fn_init_location)(location, data)
     }
 
@@ -281,25 +281,25 @@ pub trait TModuleInfo {
         &self,
         name: String,
         values: Vec<(String, Value)>,
-        callback: fn(MInfo, values: Vec<Type>),
+        callback: fn(MRef, values: Vec<Type>),
     ) -> Result<(), SessionError>;
     fn remove_action(&self, name: String) -> Result<(), SessionError>;
     fn run_action(&self, name: String, data: Vec<Type>) -> Result<(), SessionError>;
 
     fn step_element(
         &self,
-        element_info: &EInfo,
+        element_info: &ERef,
         control_flow: &mut ControlFlow,
         storage: &mut Storage,
     ) -> Result<(), SessionError>;
     fn accept_url(&self, url: Url) -> Result<bool, SessionError>;
     fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError>;
 
-    fn init_element(&self, element_info: &EInfo) -> Result<(), SessionError>;
-    fn init_location(&self, location_info: &LInfo, data: FileOrData) -> Result<(), SessionError>;
+    fn init_element(&self, element_info: &ERef) -> Result<(), SessionError>;
+    fn init_location(&self, location_info: &LRef, data: FileOrData) -> Result<(), SessionError>;
 }
 
-impl TModuleInfo for MInfo {
+impl TModuleInfo for MRef {
     fn get_session(&self) -> Result<Box<dyn TSession>, SessionError> {
         if let Some(session) = &self.read().unwrap().session {
             return Ok(session.c());
@@ -360,7 +360,7 @@ impl TModuleInfo for MInfo {
         &self,
         name: String,
         values: Vec<(String, Value)>,
-        callback: fn(MInfo, values: Vec<Type>),
+        callback: fn(MRef, values: Vec<Type>),
     ) -> Result<(), SessionError> {
         self.get_session()?
             .register_action(self, name, values, callback)
@@ -376,7 +376,7 @@ impl TModuleInfo for MInfo {
 
     fn step_element(
         &self,
-        element_info: &EInfo,
+        element_info: &ERef,
         control_flow: &mut ControlFlow,
         storage: &mut Storage,
     ) -> Result<(), SessionError> {
@@ -393,11 +393,11 @@ impl TModuleInfo for MInfo {
             .module_accept_extension(self, &filename.into())
     }
 
-    fn init_element(&self, element_info: &EInfo) -> Result<(), SessionError> {
+    fn init_element(&self, element_info: &ERef) -> Result<(), SessionError> {
         self.get_session()?.module_init_element(self, element_info)
     }
 
-    fn init_location(&self, location_info: &LInfo, data: FileOrData) -> Result<(), SessionError> {
+    fn init_location(&self, location_info: &LRef, data: FileOrData) -> Result<(), SessionError> {
         self.get_session()?
             .module_init_location(self, location_info, data)
     }
