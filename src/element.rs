@@ -10,9 +10,6 @@ pub enum ElementNotify {
     ModuleChanged(Option<MRef>),
     StatusChanged(usize),
     Progress(f32),
-    Error(String),
-    Warning(String),
-    Custom(String),
 }
 
 impl_get_ref!(ElementNotify);
@@ -25,6 +22,15 @@ pub struct RefElement {
 
 unsafe impl Sync for RefElement {}
 unsafe impl Send for RefElement {}
+
+impl Debug for RefElement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RefElement")
+            .field("location", &self.location)
+            .field("uid", &self.uid)
+            .finish()
+    }
+}
 
 impl PartialEq for RefElement {
     fn eq(&self, other: &Self) -> bool {

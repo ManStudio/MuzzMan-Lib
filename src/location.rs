@@ -16,7 +16,6 @@ pub enum LocationNotify {
     ModuleChanged(Option<MRef>),
     ElementsAllCompleted,
     Completed,
-    Custom(String),
 }
 
 impl_get_ref!(LocationNotify);

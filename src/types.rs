@@ -15,11 +15,58 @@ pub type LRow = Arc<RwLock<Location>>;
 pub type ERow = Arc<RwLock<Element>>;
 pub type MRow = Arc<RwLock<Module>>;
 
+#[derive(Debug, Clone)]
+pub enum Ref {
+    Element(ERef),
+    Location(LRef),
+}
+
+impl Common for Ref {
+    fn get_name(&self) -> Result<String, crate::prelude::SessionError> {
+        match self {
+            Ref::Element(e) => e.get_name(),
+            Ref::Location(l) => l.get_name(),
+        }
+    }
+
+    fn set_name(&self, name: impl Into<String>) -> Result<(), crate::prelude::SessionError> {
+        match self {
+            Ref::Element(e) => e.set_name(name),
+            Ref::Location(l) => l.set_name(name),
+        }
+    }
+
+    fn get_desc(&self) -> Result<String, crate::prelude::SessionError> {
+        match self {
+            Ref::Element(e) => e.get_desc(),
+            Ref::Location(l) => l.get_desc(),
+        }
+    }
+
+    fn set_desc(&self, desc: impl Into<String>) -> Result<(), crate::prelude::SessionError> {
+        match self {
+            Ref::Element(e) => e.set_desc(desc),
+            Ref::Location(l) => l.set_desc(desc),
+        }
+    }
+
+    fn notify(&self, event: crate::events::Event) -> Result<(), crate::prelude::SessionError> {
+        match self {
+            Ref::Element(e) => e.notify(event),
+            Ref::Location(l) => l.notify(event),
+        }
+    }
+}
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    common::Common,
+    element::TElement,
     enums::{AdvanceEnum, CustomEnum},
-    prelude::{Element, FileOrData, Location, Module, RefElement, RefLocation, RefModule},
+    prelude::{
+        Element, FileOrData, Location, Module, RefElement, RefLocation, RefModule, TLocation,
+    },
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
