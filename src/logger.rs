@@ -27,6 +27,10 @@ pub trait TLogger {
     fn set_instant(&mut self, instant: bool);
 }
 
+pub trait TGetLogger {
+    fn get_logger(&self, dst: Option<Arc<Mutex<File>>>) -> Logger;
+}
+
 pub struct Logger {
     dst: Option<Arc<Mutex<File>>>,
     logs: Vec<Log>,

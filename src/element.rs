@@ -332,3 +332,16 @@ impl Hash for ElementInfo {
         (self.progress as i32).hash(state)
     }
 }
+
+impl TGetLogger for ERef {
+    fn get_logger(&self, dst: Option<Arc<std::sync::Mutex<std::fs::File>>>) -> Logger {
+        Logger::for_element(dst, self.clone())
+    }
+}
+
+impl TGetLogger for ERow {
+    fn get_logger(&self, dst: Option<Arc<std::sync::Mutex<std::fs::File>>>) -> Logger {
+        let info = self.read().unwrap().info.clone();
+        Logger::for_element(dst, info)
+    }
+}

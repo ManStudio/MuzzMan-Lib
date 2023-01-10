@@ -242,3 +242,16 @@ pub struct LocationInfo {
     pub path: PathBuf,
     pub module: Option<ModuleInfo>,
 }
+
+impl TGetLogger for LRef {
+    fn get_logger(&self, dst: Option<Arc<Mutex<std::fs::File>>>) -> Logger {
+        Logger::for_location(dst, self.clone())
+    }
+}
+
+impl TGetLogger for LRow {
+    fn get_logger(&self, dst: Option<Arc<Mutex<std::fs::File>>>) -> Logger {
+        let info = self.read().unwrap().info.clone();
+        Logger::for_location(dst, info)
+    }
+}
