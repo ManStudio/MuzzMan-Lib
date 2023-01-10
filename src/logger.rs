@@ -29,6 +29,9 @@ pub struct Logger {
     _ref: Ref,
 }
 
+unsafe impl Sync for Logger {}
+unsafe impl Send for Logger {}
+
 impl Logger {
     pub fn for_location(dst: Option<Arc<Mutex<File>>>, _ref: LRef) -> Self {
         Self {
