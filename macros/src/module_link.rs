@@ -67,7 +67,7 @@ pub fn module_link(
         }
 
         #[no_mangle]
-        fn step_location(location: ERow, control_flow: &mut ControlFlow, storage: &mut Storage){
+        fn step_location(location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage){
             MODULE.step_location(location, control_flow, storage)
         }
 

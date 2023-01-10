@@ -68,11 +68,11 @@ dependencies = [
 
 [[package]]
 name = "muzzman-lib"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "get_ref",
  "libloading",
- "muzzman-lib-macros 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "muzzman-lib-macros 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand",
  "serde",
  "serde_json",
@@ -81,7 +81,7 @@ dependencies = [
 
 [[package]]
 name = "muzzman-lib-macros"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -90,9 +90,9 @@ dependencies = [
 
 [[package]]
 name = "muzzman-lib-macros"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "263407039a62daf8c74f9b8daa024897fa76c99fc0ef8af144ca1aab82e2ac4b"
+checksum = "c75f77283fb634ada97b04ff9c4c7dfb0c61b881df7efa36c7bba220e51d156f"
 dependencies = [
  "proc-macro2",
  "quote",
