@@ -11,10 +11,21 @@ pub struct Events {
 }
 
 #[derive(Clone, Debug)]
+pub enum SessionEvent {
+    NewElement(ERef),
+    NewLocation(LRef),
+    NewModule(MRef),
+    DestroyedElement(ERef),
+    DestroyedLocation(LRef),
+    DestroyedModule(MRef),
+}
+
+#[derive(Clone, Debug)]
 pub enum Event {
     Element(ERef, ElementNotify),
     Location(LRef, LocationNotify),
     Log(Ref, Log),
+    SessionEvent(SessionEvent),
 }
 
 impl Events {

@@ -50,6 +50,8 @@ trait TLocalSession {
     fn get_location(&self, info: &LRef) -> Result<LRow, SessionError>;
     fn get_element(&self, info: &ERef) -> Result<ERow, SessionError>;
     fn get_module(&self, info: &MRef) -> Result<MRow, SessionError>;
+
+    fn notify_all(&self, event: SessionEvent) -> Result<(), SessionError>;
 }
 
 impl TLocalSession for Arc<RwLock<LocalSession>> {
@@ -93,6 +95,34 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
             Err(SessionError::InvalidModule)
         }
     }
+
+    fn notify_all(&self, event: SessionEvent) -> Result<(), SessionError> {
+        let mut locations = vec![self.get_default_location()?];
+        let mut new_range = 0..1;
+
+        while !new_range.is_empty() {
+            let start_pos = locations.len();
+            let locat = locations[new_range.clone()].to_vec();
+            for location in locat {
+                let len = location.get_locations_len()?;
+                for loc in location.get_locations(0..len)? {
+                    locations.push(loc);
+                }
+            }
+
+            new_range = start_pos..locations.len();
+        }
+
+        for location in locations {
+            let _ = location.notify(Event::SessionEvent(event.clone()));
+            let len = location.get_elements_len()?;
+            for element in location.get_elements(0..len)? {
+                let _ = element.notify(Event::SessionEvent(event.clone()));
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl TSession for Arc<RwLock<LocalSession>> {
@@ -123,10 +153,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .modules
             .push(Arc::new(RwLock::new(module)));
 
+        let _ = self.notify_all(SessionEvent::NewModule(info.clone()));
+
         Ok(info)
     }
 
     fn remove_module(&self, info: MRef) -> Result<MRow, SessionError> {
+        let _ = self.notify_all(SessionEvent::DestroyedModule(info.clone()));
+
         if let Some(index) = info.read().unwrap().uid {
             {
                 let module = self.read().unwrap().modules[index].clone();
@@ -499,6 +533,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .elements
             .push(element);
 
+        let _ = self.notify_all(SessionEvent::NewElement(element_info.clone()));
+
         Ok(element_info)
     }
 
@@ -516,6 +552,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn destroy_element(&self, element: ERef) -> Result<ERow, SessionError> {
+        let _ = self.notify_all(SessionEvent::DestroyedElement(element.clone()));
+
         let element = self
             .get_location(&element.read().unwrap().location)?
             .write()
@@ -804,6 +842,108 @@ impl TSession for Arc<RwLock<LocalSession>> {
         })
     }
 
+    fn element_notify(&self, element_info: &ERef, event: Event) -> Result<(), SessionError> {
+        let element = self.get_element(element_info)?;
+        let module;
+        {
+            let Some(__module) = &element.read().unwrap().module else{
+            return Err(SessionError::InvalidModule)
+        };
+
+            module = __module.clone();
+        }
+
+        let raw_module;
+        {
+            let __module = self.get_module(&module)?;
+            raw_module = __module.read().unwrap().module.c();
+        }
+
+        raw_module.notify(Ref::Element(element_info.clone()), event);
+
+        Ok(())
+    }
+
+    fn element_emit(&self, element_info: &ERef, event: Event) -> Result<(), SessionError> {
+        let element = self.get_element(element_info)?;
+        let events;
+        {
+            events = element.read().unwrap().events.clone()
+        }
+
+        let mut event = event;
+        match &mut event {
+            Event::Element(info, _) => *info = element_info.clone(),
+            Event::Location(_, _) => return Err(SessionError::IsNotLocation),
+            Event::Log(r, _) => *r = Ref::Element(element_info.clone()),
+            Event::SessionEvent(_) => return Ok(()),
+        }
+
+        events.write().unwrap().new_event(event);
+
+        Ok(())
+    }
+
+    fn element_subscribe(&self, element_info: &ERef, _ref: Ref) -> Result<(), SessionError> {
+        // validate if element is valid
+        {
+            let _ = self.get_element(element_info)?;
+        }
+
+        let events = match _ref {
+            Ref::Element(e_info) => {
+                let e = self.get_element(&e_info)?;
+                let d = e.read().unwrap().events.clone();
+                d
+            }
+            Ref::Location(l_info) => {
+                let l = self.get_location(&l_info)?;
+                let d = l.read().unwrap().events.clone();
+                d
+            }
+        };
+
+        if !events
+            .write()
+            .unwrap()
+            .subscribe(Ref::Element(element_info.clone()))
+        {
+            return Err(SessionError::AlreadySubscribed);
+        }
+
+        Ok(())
+    }
+
+    fn element_unsubscribe(&self, element_info: &ERef, _ref: Ref) -> Result<(), SessionError> {
+        // validate if element is valid
+        {
+            let _ = self.get_element(element_info)?;
+        }
+
+        let events = match _ref {
+            Ref::Element(e_info) => {
+                let e = self.get_element(&e_info)?;
+                let d = e.read().unwrap().events.clone();
+                d
+            }
+            Ref::Location(l_info) => {
+                let l = self.get_location(&l_info)?;
+                let d = l.read().unwrap().events.clone();
+                d
+            }
+        };
+
+        if !events
+            .write()
+            .unwrap()
+            .unsubscribe(Ref::Element(element_info.clone()))
+        {
+            return Err(SessionError::AlreadyUnsubscribed);
+        }
+
+        Ok(())
+    }
+
     fn create_location(&self, name: &str, location: &LRef) -> Result<LRef, SessionError> {
         let mut location_uid = location.read().unwrap().uid.clone();
         location_uid.push(self.get_locations_len(location)?);
@@ -836,6 +976,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .locations
             .push(Arc::new(RwLock::new(loc)));
 
+        let _ = self.notify_all(SessionEvent::NewLocation(location_info.clone()));
+
         Ok(location_info)
     }
 
@@ -857,6 +999,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn destroy_location(&self, location: LRef) -> Result<LRow, SessionError> {
+        let _ = self.notify_all(SessionEvent::DestroyedLocation(location.clone()));
+
         let mut location_uid = location.read().unwrap().uid.clone();
         if let Some(location_index) = location_uid.pop() {
             let parent_location = Arc::new(RwLock::new(RefLocation {
@@ -1058,32 +1202,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
         })
     }
 
-    fn c(&self) -> Box<dyn TSession> {
-        Box::new(self.clone())
-    }
-
-    fn element_notify(&self, element_info: &ERef, event: Event) -> Result<(), SessionError> {
-        let element = self.get_element(element_info)?;
-        let module;
-        {
-            let Some(__module) = &element.read().unwrap().module else{
-            return Err(SessionError::InvalidModule)
-        };
-
-            module = __module.clone();
-        }
-
-        let raw_module;
-        {
-            let __module = self.get_module(&module)?;
-            raw_module = __module.read().unwrap().module.c();
-        }
-
-        raw_module.notify(Ref::Element(element_info.clone()), event);
-
-        Ok(())
-    }
-
     fn location_notify(&self, location_info: &LRef, event: Event) -> Result<(), SessionError> {
         let location = self.get_location(location_info)?;
         let module;
@@ -1106,85 +1224,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(())
     }
 
-    fn element_emit(&self, element_info: &ERef, event: Event) -> Result<(), SessionError> {
-        let element = self.get_element(element_info)?;
-        let events;
-        {
-            events = element.read().unwrap().events.clone()
-        }
-
-        let mut event = event;
-        match &mut event {
-            Event::Element(info, _) => *info = element_info.clone(),
-            Event::Location(_, _) => return Err(SessionError::IsNotLocation),
-            Event::Log(r, _) => *r = Ref::Element(element_info.clone()),
-        }
-
-        events.write().unwrap().new_event(event);
-
-        Ok(())
-    }
-
-    fn element_subscribe(&self, element_info: &ERef, _ref: Ref) -> Result<(), SessionError> {
-        // validate if element is valid
-        {
-            let _ = self.get_element(element_info)?;
-        }
-
-        let events = match _ref {
-            Ref::Element(e_info) => {
-                let e = self.get_element(&e_info)?;
-                let d = e.read().unwrap().events.clone();
-                d
-            }
-            Ref::Location(l_info) => {
-                let l = self.get_location(&l_info)?;
-                let d = l.read().unwrap().events.clone();
-                d
-            }
-        };
-
-        if !events
-            .write()
-            .unwrap()
-            .subscribe(Ref::Element(element_info.clone()))
-        {
-            return Err(SessionError::AlreadySubscribed);
-        }
-
-        Ok(())
-    }
-
-    fn element_unsubscribe(&self, element_info: &ERef, _ref: Ref) -> Result<(), SessionError> {
-        // validate if element is valid
-        {
-            let _ = self.get_element(element_info)?;
-        }
-
-        let events = match _ref {
-            Ref::Element(e_info) => {
-                let e = self.get_element(&e_info)?;
-                let d = e.read().unwrap().events.clone();
-                d
-            }
-            Ref::Location(l_info) => {
-                let l = self.get_location(&l_info)?;
-                let d = l.read().unwrap().events.clone();
-                d
-            }
-        };
-
-        if !events
-            .write()
-            .unwrap()
-            .unsubscribe(Ref::Element(element_info.clone()))
-        {
-            return Err(SessionError::AlreadyUnsubscribed);
-        }
-
-        Ok(())
-    }
-
     fn location_emit(&self, location_info: &LRef, event: Event) -> Result<(), SessionError> {
         let location = self.get_location(location_info)?;
         let events;
@@ -1197,6 +1236,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             Event::Element(_, _) => return Err(SessionError::IsNotElement),
             Event::Location(info, _) => *info = location_info.clone(),
             Event::Log(r, _) => *r = Ref::Location(location_info.clone()),
+            Event::SessionEvent(_) => return Ok(()),
         }
 
         events.write().unwrap().new_event(event);
@@ -1262,5 +1302,9 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }
 
         Ok(())
+    }
+
+    fn c(&self) -> Box<dyn TSession> {
+        Box::new(self.clone())
     }
 }
