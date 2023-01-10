@@ -67,6 +67,11 @@ pub fn module_link(
         }
 
         #[no_mangle]
+        fn step_location(location: ERow, control_flow: &mut ControlFlow, storage: &mut Storage){
+            MODULE.step_location(location, control_flow, storage)
+        }
+
+        #[no_mangle]
         fn accept_extension(filename: &str) -> bool {
             MODULE.accept_extension(filename)
         }
@@ -79,6 +84,11 @@ pub fn module_link(
         #[no_mangle]
         fn init_location(location: LRef, data: FileOrData) {
             MODULE.init_location(location, data)
+        }
+
+        #[no_mangle]
+        fn notify(_ref: Ref, event: Event){
+            MODULE.notify(_ref, event)
         }
     }
     .into()
