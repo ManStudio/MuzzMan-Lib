@@ -1,4 +1,9 @@
-use std::{fmt::Debug, hash::Hash, thread::JoinHandle};
+use std::{
+    fmt::Debug,
+    hash::Hash,
+    sync::{Arc, RwLock},
+    thread::JoinHandle,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -45,12 +50,6 @@ impl PartialEq for RefElement {
 
 pub trait TElement {
     fn get_session(&self) -> Result<Box<dyn TSession>, SessionError>;
-
-    fn get_name(&self) -> Result<String, SessionError>;
-    fn set_name(&self, name: &str) -> Result<(), SessionError>;
-
-    fn get_desc(&self) -> Result<String, SessionError>;
-    fn set_desc(&self, desc: &str) -> Result<(), SessionError>;
 
     fn get_meta(&self) -> Result<String, SessionError>;
     fn set_meta(&self, meta: &str) -> Result<(), SessionError>;
@@ -107,6 +106,7 @@ pub struct Element {
     pub should_save: bool,
     pub enabled: bool,
     pub thread: Option<JoinHandle<()>>,
+    pub events: Arc<RwLock<Events>>,
     pub info: ERef,
 }
 
@@ -150,22 +150,6 @@ impl TElement for ERef {
             return Ok(session.c());
         }
         Err(SessionError::InvalidSession)
-    }
-
-    fn get_name(&self) -> Result<String, SessionError> {
-        self.get_session()?.element_get_name(self)
-    }
-
-    fn set_name(&self, name: &str) -> Result<(), SessionError> {
-        self.get_session()?.element_set_name(self, name)
-    }
-
-    fn get_desc(&self) -> Result<String, SessionError> {
-        self.get_session()?.element_get_desc(self)
-    }
-
-    fn set_desc(&self, desc: &str) -> Result<(), SessionError> {
-        self.get_session()?.element_set_desc(self, desc)
     }
 
     fn get_meta(&self) -> Result<String, SessionError> {
@@ -281,6 +265,40 @@ impl TElement for ERef {
 
     fn destroy(self) -> Result<ERow, SessionError> {
         self.get_session()?.destroy_element(self)
+    }
+}
+
+impl Common for ERef {
+    fn get_name(&self) -> Result<String, SessionError> {
+        self.get_session()?.element_get_name(self)
+    }
+
+    fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError> {
+        self.get_session()?.element_set_name(self, &name.into())
+    }
+
+    fn get_desc(&self) -> Result<String, SessionError> {
+        self.get_session()?.element_get_desc(self)
+    }
+
+    fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError> {
+        self.get_session()?.element_set_desc(self, &desc.into())
+    }
+
+    fn notify(&self, event: Event) -> Result<(), SessionError> {
+        self.get_session()?.element_notify(self, event)
+    }
+
+    fn emit(&self, event: Event) -> Result<(), SessionError> {
+        self.get_session()?.element_emit(self, event)
+    }
+
+    fn subscribe(&self, _ref: Ref) -> Result<(), SessionError> {
+        self.get_session()?.element_subscribe(self, _ref)
+    }
+
+    fn unsubscribe(&self, _ref: Ref) -> Result<(), SessionError> {
+        self.get_session()?.element_unsubscribe(self, _ref)
     }
 }
 

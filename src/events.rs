@@ -2,7 +2,7 @@ use std::time::SystemTime;
 
 use crate::prelude::*;
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct Events {
     pub events: [Option<(SystemTime, Event)>; 20],
     pub cursour: usize,
@@ -14,7 +14,7 @@ pub struct Events {
 pub enum Event {
     Element(ERef, ElementNotify),
     Location(LRef, LocationNotify),
-    Log(Log),
+    Log(Ref, Log),
 }
 
 impl Events {
@@ -26,7 +26,36 @@ impl Events {
         }
 
         for subscriber in self.subscribers.iter() {
-            subscriber.notify(event.clone());
+            let _ = subscriber.notify(event.clone());
         }
+    }
+
+    pub fn is_subscribed(&self, _ref: &Ref) -> bool {
+        for r in self.subscribers.iter() {
+            if r == _ref {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn subscribe(&mut self, _ref: Ref) -> bool {
+        if self.is_subscribed(&_ref) {
+            return false;
+        }
+
+        self.subscribers.push(_ref);
+
+        true
+    }
+
+    pub fn unsubscribe(&mut self, _ref: Ref) -> bool {
+        if !self.is_subscribed(&_ref) {
+            return false;
+        }
+
+        self.subscribers.retain(|e| *e != _ref);
+
+        true
     }
 }

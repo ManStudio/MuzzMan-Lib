@@ -67,7 +67,11 @@ pub trait TModule {
 
     fn accept_extension(&self, filename: &str) -> bool;
     fn accept_url(&self, uri: Url) -> bool;
+
     fn init_location(&self, location: LRef, data: FileOrData);
+    fn step_location(&self, location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage);
+
+    fn notify(&self, info: Ref, event: Event);
 
     fn c(&self) -> Box<dyn TModule>;
 }
@@ -91,6 +95,8 @@ pub enum RawLibraryError {
     DontHaveSymbolAcceptExtension,
     DontHaveSymbolAcceptUrl,
     DontHaveSymbolInitLocation,
+    DontHaveSymbolStepLocation,
+    DontHaveSymbolNotify,
 }
 
 pub struct RawModule {
@@ -108,9 +114,12 @@ pub struct RawModule {
     fn_init_location: Symbol<'static, fn(LRef, FileOrData)>,
 
     fn_step_element: Symbol<'static, fn(ERow, &mut ControlFlow, &mut Storage)>,
+    fn_step_location: Symbol<'static, fn(LRow, &mut ControlFlow, &mut Storage)>,
 
     fn_accept_extension: Symbol<'static, fn(&str) -> bool>,
     fn_accept_url: Symbol<'static, fn(Url) -> bool>,
+
+    fn_notify: Symbol<'static, fn(Ref, Event)>,
 }
 
 impl RawModule {
@@ -188,6 +197,18 @@ impl RawModule {
             return Err(RawLibraryError::DontHaveSymbolInitLocation);
         };
 
+        let fn_notify = if let Ok(func) = unsafe { lib.get(b"notify\0") } {
+            func
+        } else {
+            return Err(RawLibraryError::DontHaveSymbolNotify);
+        };
+
+        let fn_step_location = if let Ok(func) = unsafe { lib.get(b"step_location\0") } {
+            func
+        } else {
+            return Err(RawLibraryError::DontHaveSymbolStepLocation);
+        };
+
         Ok(Self {
             lib,
             fn_init,
@@ -200,6 +221,8 @@ impl RawModule {
             fn_step_element,
             fn_accept_extension,
             fn_accept_url,
+            fn_notify,
+            fn_step_location,
         })
     }
 }
@@ -252,6 +275,14 @@ impl TModule for Arc<RawModule> {
         (*self.fn_init_location)(location, data)
     }
 
+    fn notify(&self, info: Ref, event: Event) {
+        (*self.fn_notify)(info, event)
+    }
+
+    fn step_location(&self, location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage) {
+        (*self.fn_step_location)(location, control_flow, storage)
+    }
+
     fn c(&self) -> Box<dyn TModule> {
         Box::new(self.clone())
     }
@@ -292,11 +323,20 @@ pub trait TModuleInfo {
         control_flow: &mut ControlFlow,
         storage: &mut Storage,
     ) -> Result<(), SessionError>;
+    fn step_location(
+        &self,
+        location_info: &LRef,
+        control_flow: &mut ControlFlow,
+        storage: &mut Storage,
+    ) -> Result<(), SessionError>;
+
     fn accept_url(&self, url: Url) -> Result<bool, SessionError>;
     fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError>;
 
     fn init_element(&self, element_info: &ERef) -> Result<(), SessionError>;
     fn init_location(&self, location_info: &LRef, data: FileOrData) -> Result<(), SessionError>;
+
+    fn notify(&self, info: Ref, event: Event) -> Result<(), SessionError>;
 }
 
 impl TModuleInfo for MRef {
@@ -384,6 +424,16 @@ impl TModuleInfo for MRef {
             .module_step_element(self, element_info, control_flow, storage)
     }
 
+    fn step_location(
+        &self,
+        location_info: &LRef,
+        control_flow: &mut ControlFlow,
+        storage: &mut Storage,
+    ) -> Result<(), SessionError> {
+        self.get_session()?
+            .module_step_location(self, location_info, control_flow, storage)
+    }
+
     fn accept_url(&self, url: Url) -> Result<bool, SessionError> {
         self.get_session()?.moduie_accept_url(self, url)
     }
@@ -400,6 +450,14 @@ impl TModuleInfo for MRef {
     fn init_location(&self, location_info: &LRef, data: FileOrData) -> Result<(), SessionError> {
         self.get_session()?
             .module_init_location(self, location_info, data)
+    }
+
+    fn notify(&self, info: Ref, event: Event) -> Result<(), SessionError> {
+        let session = self.get_session()?;
+        match info {
+            Ref::Element(e) => session.element_notify(&e, event),
+            Ref::Location(l) => session.location_notify(&l, event),
+        }
     }
 }
 

@@ -18,6 +18,10 @@ pub enum SessionError {
     LocationAllreadyExist,
     InvalidModule,
     CannotInstallModule(String),
+    AlreadySubscribed,
+    AlreadyUnsubscribed,
+    IsNotElement,
+    IsNotLocation,
     Custom(String),
 }
 
@@ -100,6 +104,8 @@ pub trait TSession {
         &self,
         module_info: &MRef,
         location_info: &LRef,
+        control_flow: &mut ControlFlow,
+        storage: &mut Storage,
     ) -> Result<(), SessionError>;
 
     //
@@ -169,6 +175,11 @@ pub trait TSession {
     fn element_wait(&self, element: &ERef) -> Result<(), SessionError>;
 
     fn element_get_element_info(&self, element: &ERef) -> Result<ElementInfo, SessionError>;
+    fn element_notify(&self, element: &ERef, event: Event) -> Result<(), SessionError>;
+
+    fn element_emit(&self, element: &ERef, event: Event) -> Result<(), SessionError>;
+    fn element_subscribe(&self, element: &ERef, _ref: Ref) -> Result<(), SessionError>;
+    fn element_unsubscribe(&self, element: &ERef, _ref: Ref) -> Result<(), SessionError>;
 
     //
     // End Element
@@ -220,6 +231,11 @@ pub trait TSession {
     ) -> Result<Vec<ERef>, SessionError>;
 
     fn location_get_location_info(&self, location: &LRef) -> Result<LocationInfo, SessionError>;
+    fn location_notify(&self, location: &LRef, event: Event) -> Result<(), SessionError>;
+
+    fn location_emit(&self, location: &LRef, event: Event) -> Result<(), SessionError>;
+    fn location_subscribe(&self, location: &LRef, _ref: Ref) -> Result<(), SessionError>;
+    fn location_unsubscribe(&self, location: &LRef, _ref: Ref) -> Result<(), SessionError>;
 
     //
     // End Location

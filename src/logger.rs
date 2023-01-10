@@ -49,30 +49,36 @@ impl TLogger for Logger {
     fn info(&mut self, data: impl Into<String>) {
         let data: String = data.into();
 
-        if let Some(dst) = self.dst {
-            write!(dst.lock().unwrap(), "Info: {}", data);
+        if let Some(dst) = &self.dst {
+            let _ = write!(dst.lock().unwrap(), "Info: {}", data);
         }
 
-        self._ref.notify(Event::Log(Log::Info(data)));
+        let _ = self
+            ._ref
+            .notify(Event::Log(self._ref.clone(), Log::Info(data)));
     }
 
     fn warn(&mut self, data: impl Into<String>) {
         let data: String = data.into();
 
-        if let Some(dst) = self.dst {
-            write!(dst.lock().unwrap(), "Warning: {}", data);
+        if let Some(dst) = &self.dst {
+            let _ = write!(dst.lock().unwrap(), "Warning: {}", data);
         }
 
-        self._ref.notify(Event::Log(Log::Warning(data)));
+        let _ = self
+            ._ref
+            .notify(Event::Log(self._ref.clone(), Log::Warning(data)));
     }
 
     fn error(&mut self, data: impl Into<String>) {
         let data: String = data.into();
 
-        if let Some(dst) = self.dst {
-            write!(dst.lock().unwrap(), "Error: {}", data);
+        if let Some(dst) = &self.dst {
+            let _ = write!(dst.lock().unwrap(), "Error: {}", data);
         }
 
-        self._ref.notify(Event::Log(Log::Error(data)));
+        let _ = self
+            ._ref
+            .notify(Event::Log(self._ref.clone(), Log::Error(data)));
     }
 }

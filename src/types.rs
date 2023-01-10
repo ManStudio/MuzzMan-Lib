@@ -21,39 +21,23 @@ pub enum Ref {
     Location(LRef),
 }
 
-impl Common for Ref {
-    fn get_name(&self) -> Result<String, crate::prelude::SessionError> {
+impl PartialEq for Ref {
+    fn eq(&self, other: &Self) -> bool {
         match self {
-            Ref::Element(e) => e.get_name(),
-            Ref::Location(l) => l.get_name(),
-        }
-    }
-
-    fn set_name(&self, name: impl Into<String>) -> Result<(), crate::prelude::SessionError> {
-        match self {
-            Ref::Element(e) => e.set_name(name),
-            Ref::Location(l) => l.set_name(name),
-        }
-    }
-
-    fn get_desc(&self) -> Result<String, crate::prelude::SessionError> {
-        match self {
-            Ref::Element(e) => e.get_desc(),
-            Ref::Location(l) => l.get_desc(),
-        }
-    }
-
-    fn set_desc(&self, desc: impl Into<String>) -> Result<(), crate::prelude::SessionError> {
-        match self {
-            Ref::Element(e) => e.set_desc(desc),
-            Ref::Location(l) => l.set_desc(desc),
-        }
-    }
-
-    fn notify(&self, event: crate::events::Event) -> Result<(), crate::prelude::SessionError> {
-        match self {
-            Ref::Element(e) => e.notify(event),
-            Ref::Location(l) => l.notify(event),
+            Ref::Element(e) => {
+                if let Ref::Element(se) = other {
+                    e.read().unwrap().uid == se.read().unwrap().uid
+                } else {
+                    false
+                }
+            }
+            Ref::Location(l) => {
+                if let Ref::Location(sl) = other {
+                    l.read().unwrap().uid == sl.read().unwrap().uid
+                } else {
+                    false
+                }
+            }
         }
     }
 }
@@ -61,12 +45,8 @@ impl Common for Ref {
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::Common,
-    element::TElement,
     enums::{AdvanceEnum, CustomEnum},
-    prelude::{
-        Element, FileOrData, Location, Module, RefElement, RefLocation, RefModule, TLocation,
-    },
+    prelude::{Element, FileOrData, Location, Module, RefElement, RefLocation, RefModule},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

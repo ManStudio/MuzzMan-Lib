@@ -3,7 +3,7 @@ use std::hash::Hash;
 use std::net::{IpAddr, TcpStream};
 use std::ops::Range;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread::JoinHandle;
 
 use serde::{Deserialize, Serialize};
@@ -95,6 +95,7 @@ pub struct Location {
     pub path: PathBuf,
     pub thread: Option<JoinHandle<()>>,
     pub module: Option<MRef>,
+    pub events: Arc<RwLock<Events>>,
 }
 
 impl TLocation for LRef {
@@ -104,22 +105,6 @@ impl TLocation for LRef {
         }
 
         Err(SessionError::InvalidSession)
-    }
-
-    fn get_name(&self) -> Result<String, SessionError> {
-        self.get_session()?.location_get_name(self)
-    }
-
-    fn set_name(&self, name: &str) -> Result<(), SessionError> {
-        self.get_session()?.location_set_name(self, name)
-    }
-
-    fn get_desc(&self) -> Result<String, SessionError> {
-        self.get_session()?.location_get_desc(self)
-    }
-
-    fn set_desc(&self, desc: &str) -> Result<(), SessionError> {
-        self.get_session()?.location_set_desc(self, desc)
     }
 
     fn get_path(&self) -> Result<PathBuf, SessionError> {
@@ -184,14 +169,42 @@ impl TLocation for LRef {
     }
 }
 
+impl Common for LRef {
+    fn get_name(&self) -> Result<String, SessionError> {
+        self.get_session()?.location_get_name(self)
+    }
+
+    fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError> {
+        self.get_session()?.location_set_name(self, &name.into())
+    }
+
+    fn get_desc(&self) -> Result<String, SessionError> {
+        self.get_session()?.location_get_desc(self)
+    }
+
+    fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError> {
+        self.get_session()?.location_set_desc(self, &desc.into())
+    }
+
+    fn notify(&self, event: Event) -> Result<(), SessionError> {
+        self.get_session()?.location_notify(self, event)
+    }
+
+    fn emit(&self, event: Event) -> Result<(), SessionError> {
+        self.get_session()?.location_emit(self, event)
+    }
+
+    fn subscribe(&self, _ref: Ref) -> Result<(), SessionError> {
+        self.get_session()?.location_subscribe(self, _ref)
+    }
+
+    fn unsubscribe(&self, _ref: Ref) -> Result<(), SessionError> {
+        self.get_session()?.location_unsubscribe(self, _ref)
+    }
+}
+
 pub trait TLocation {
     fn get_session(&self) -> Result<Box<dyn TSession>, SessionError>;
-
-    fn get_name(&self) -> Result<String, SessionError>;
-    fn set_name(&self, name: &str) -> Result<(), SessionError>;
-
-    fn get_desc(&self) -> Result<String, SessionError>;
-    fn set_desc(&self, desc: &str) -> Result<(), SessionError>;
 
     fn get_path(&self) -> Result<PathBuf, SessionError>;
     fn set_path(&self, path: PathBuf) -> Result<(), SessionError>;
