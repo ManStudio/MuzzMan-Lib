@@ -2,7 +2,7 @@ use std::time::SystemTime;
 
 use crate::prelude::*;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct Events {
     pub events: [Option<(SystemTime, Event)>; 20],
     pub cursour: usize,
@@ -10,7 +10,7 @@ pub struct Events {
     pub subscribers: Vec<Ref>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Event {
     Element(ERef, ElementNotify),
     Location(LRef, LocationNotify),
