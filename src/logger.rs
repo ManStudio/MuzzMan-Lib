@@ -22,11 +22,16 @@ pub trait TLogger {
     fn info(&mut self, data: impl Into<String>);
     fn warn(&mut self, data: impl Into<String>);
     fn error(&mut self, data: impl Into<String>);
+
+    fn flush(&mut self);
+    fn set_instant(&mut self, instant: bool);
 }
 
 pub struct Logger {
     dst: Option<Arc<Mutex<File>>>,
+    logs: Vec<Log>,
     _ref: Ref,
+    instant: bool,
 }
 
 unsafe impl Sync for Logger {}
@@ -37,6 +42,8 @@ impl Logger {
         Self {
             dst,
             _ref: Ref::Location(_ref),
+            instant: false,
+            logs: Vec::new(),
         }
     }
 
@@ -44,6 +51,8 @@ impl Logger {
         Self {
             dst,
             _ref: Ref::Element(_ref),
+            instant: false,
+            logs: Vec::new(),
         }
     }
 }
@@ -56,9 +65,11 @@ impl TLogger for Logger {
             let _ = write!(dst.lock().unwrap(), "Info: {}", data);
         }
 
-        let _ = self
-            ._ref
-            .notify(Event::Log(self._ref.clone(), Log::Info(data)));
+        self.logs.push(Log::Info(data));
+
+        if self.instant {
+            self.flush()
+        }
     }
 
     fn warn(&mut self, data: impl Into<String>) {
@@ -68,9 +79,11 @@ impl TLogger for Logger {
             let _ = write!(dst.lock().unwrap(), "Warning: {}", data);
         }
 
-        let _ = self
-            ._ref
-            .notify(Event::Log(self._ref.clone(), Log::Warning(data)));
+        self.logs.push(Log::Warning(data));
+
+        if self.instant {
+            self.flush()
+        }
     }
 
     fn error(&mut self, data: impl Into<String>) {
@@ -80,8 +93,27 @@ impl TLogger for Logger {
             let _ = write!(dst.lock().unwrap(), "Error: {}", data);
         }
 
-        let _ = self
-            ._ref
-            .notify(Event::Log(self._ref.clone(), Log::Error(data)));
+        self.logs.push(Log::Error(data));
+
+        if self.instant {
+            self.flush()
+        }
+    }
+
+    fn flush(&mut self) {
+        for log in self.logs.iter() {
+            let _ = self._ref.emit(Event::Log(self._ref.clone(), log.clone()));
+        }
+        self.logs.clear();
+    }
+
+    fn set_instant(&mut self, instant: bool) {
+        self.instant = instant;
+    }
+}
+
+impl Drop for Logger {
+    fn drop(&mut self) {
+        self.flush();
     }
 }
