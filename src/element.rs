@@ -19,7 +19,9 @@ pub enum ElementNotify {
 
 impl_get_ref!(ElementNotify);
 
+#[derive(Serialize, Deserialize)]
 pub struct RefElement {
+    #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
     pub location: LRef,
     pub uid: usize,

@@ -11,8 +11,10 @@ pub enum ControlFlow {
     Break,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct RefModule {
     pub uid: Option<usize>,
+    #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
 }
 
