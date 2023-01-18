@@ -1,4 +1,8 @@
-use crate::{events::Event, prelude::SessionError, types::Ref};
+use crate::{
+    events::Event,
+    prelude::{Ref, SessionError},
+    types::ID,
+};
 
 pub trait Common {
     fn get_name(&self) -> Result<String, SessionError>;
@@ -10,8 +14,8 @@ pub trait Common {
     fn notify(&self, event: Event) -> Result<(), SessionError>;
 
     fn emit(&self, event: Event) -> Result<(), SessionError>;
-    fn subscribe(&self, _ref: Ref) -> Result<(), SessionError>;
-    fn unsubscribe(&self, _ref: Ref) -> Result<(), SessionError>;
+    fn subscribe(&self, _ref: ID) -> Result<(), SessionError>;
+    fn unsubscribe(&self, _ref: ID) -> Result<(), SessionError>;
 }
 
 impl Common for Ref {
@@ -57,14 +61,14 @@ impl Common for Ref {
         }
     }
 
-    fn subscribe(&self, _ref: Ref) -> Result<(), SessionError> {
+    fn subscribe(&self, _ref: ID) -> Result<(), SessionError> {
         match self {
             Ref::Element(e) => e.subscribe(_ref),
             Ref::Location(l) => l.subscribe(_ref),
         }
     }
 
-    fn unsubscribe(&self, _ref: Ref) -> Result<(), SessionError> {
+    fn unsubscribe(&self, _ref: ID) -> Result<(), SessionError> {
         match self {
             Ref::Element(e) => e.unsubscribe(_ref),
             Ref::Location(l) => l.unsubscribe(_ref),

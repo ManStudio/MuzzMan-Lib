@@ -11,11 +11,22 @@ pub enum ControlFlow {
     Break,
 }
 
+#[derive(
+    Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
+pub struct ModuleId(pub usize);
+
+impl From<MRef> for ModuleId {
+    fn from(value: MRef) -> Self {
+        value.read().unwrap().uid
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct RefModule {
-    pub uid: Option<usize>,
     #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
+    pub uid: ModuleId,
 }
 
 impl Debug for RefModule {
@@ -40,7 +51,7 @@ pub struct Module {
     pub settings: Data,
     /// default element data/settings
     pub element_data: Data,
-    pub info: Option<MRef>,
+    pub info: MRef,
 }
 
 impl Debug for Module {
@@ -73,7 +84,7 @@ pub trait TModule {
     fn init_location(&self, location: LRef, data: FileOrData);
     fn step_location(&self, location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage);
 
-    fn notify(&self, info: Ref, event: Event);
+    fn notify(&self, info: ID, event: Event);
 
     fn c(&self) -> Box<dyn TModule>;
 }
@@ -121,7 +132,7 @@ pub struct RawModule {
     fn_accept_extension: Symbol<'static, fn(&str) -> bool>,
     fn_accept_url: Symbol<'static, fn(Url) -> bool>,
 
-    fn_notify: Symbol<'static, fn(Ref, Event)>,
+    fn_notify: Symbol<'static, fn(ID, Event)>,
 }
 
 impl RawModule {
@@ -277,7 +288,7 @@ impl TModule for Arc<RawModule> {
         (*self.fn_init_location)(location, data)
     }
 
-    fn notify(&self, info: Ref, event: Event) {
+    fn notify(&self, info: ID, event: Event) {
         (*self.fn_notify)(info, event)
     }
 
@@ -321,13 +332,13 @@ pub trait TModuleInfo {
 
     fn step_element(
         &self,
-        element_info: &ERef,
+        element_info: &ElementId,
         control_flow: &mut ControlFlow,
         storage: &mut Storage,
     ) -> Result<(), SessionError>;
     fn step_location(
         &self,
-        location_info: &LRef,
+        location_info: &LocationId,
         control_flow: &mut ControlFlow,
         storage: &mut Storage,
     ) -> Result<(), SessionError>;
@@ -335,10 +346,16 @@ pub trait TModuleInfo {
     fn accept_url(&self, url: Url) -> Result<bool, SessionError>;
     fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError>;
 
-    fn init_element(&self, element_info: &ERef) -> Result<(), SessionError>;
-    fn init_location(&self, location_info: &LRef, data: FileOrData) -> Result<(), SessionError>;
+    fn init_element(&self, element_info: &ElementId) -> Result<(), SessionError>;
+    fn init_location(
+        &self,
+        location_info: &LocationId,
+        data: FileOrData,
+    ) -> Result<(), SessionError>;
 
-    fn notify(&self, info: Ref, event: Event) -> Result<(), SessionError>;
+    fn notify(&self, info: ID, event: Event) -> Result<(), SessionError>;
+
+    fn id(&self) -> ModuleId;
 }
 
 impl TModuleInfo for MRef {
@@ -350,52 +367,53 @@ impl TModuleInfo for MRef {
     }
 
     fn get_name(&self) -> Result<String, SessionError> {
-        return self.get_session()?.get_module_name(self);
+        return self.get_session()?.get_module_name(&self.id());
     }
 
     fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.set_module_name(self, name.into())
+        self.get_session()?.set_module_name(&self.id(), name.into())
     }
 
     fn set_default_name(&self) -> Result<(), SessionError> {
-        self.get_session()?.default_module_name(self)
+        self.get_session()?.default_module_name(&self.id())
     }
 
     fn get_desc(&self) -> Result<String, SessionError> {
-        self.get_session()?.get_module_desc(self)
+        self.get_session()?.get_module_desc(&self.id())
     }
 
     fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.set_module_desc(self, desc.into())
+        self.get_session()?.set_module_desc(&self.id(), desc.into())
     }
 
     fn set_default_desc(&self) -> Result<(), SessionError> {
-        self.get_session()?.default_module_desc(self)
+        self.get_session()?.default_module_desc(&self.id())
     }
 
     fn get_proxy(&self) -> Result<usize, SessionError> {
-        self.get_session()?.get_module_proxy(self)
+        self.get_session()?.get_module_proxy(&self.id())
     }
 
     fn set_proxy(&self, proxy: usize) -> Result<(), SessionError> {
-        self.get_session()?.set_module_proxy(self, proxy)
+        self.get_session()?.set_module_proxy(&self.id(), proxy)
     }
 
     fn get_settings(&self) -> Result<Data, SessionError> {
-        self.get_session()?.get_module_settings(self)
+        self.get_session()?.get_module_settings(&self.id())
     }
 
     fn set_settings(&self, settings: Data) -> Result<(), SessionError> {
-        self.get_session()?.set_module_settings(self, settings)
+        self.get_session()?
+            .set_module_settings(&self.id(), settings)
     }
 
     fn get_element_settings(&self) -> Result<Data, SessionError> {
-        self.get_session()?.get_module_element_settings(self)
+        self.get_session()?.get_module_element_settings(&self.id())
     }
 
     fn set_element_settings(&self, settings: Data) -> Result<(), SessionError> {
         self.get_session()?
-            .set_module_element_settings(self, settings)
+            .set_module_element_settings(&self.id(), settings)
     }
 
     fn register_action(
@@ -405,61 +423,70 @@ impl TModuleInfo for MRef {
         callback: fn(MRef, values: Vec<Type>),
     ) -> Result<(), SessionError> {
         self.get_session()?
-            .register_action(self, name, values, callback)
+            .register_action(&self.id(), name, values, callback)
     }
 
     fn remove_action(&self, name: String) -> Result<(), SessionError> {
-        self.get_session()?.remove_action(self, name)
+        self.get_session()?.remove_action(&self.id(), name)
     }
 
     fn run_action(&self, name: String, data: Vec<Type>) -> Result<(), SessionError> {
-        self.get_session()?.run_action(self.clone(), name, data)
+        self.get_session()?.run_action(&self.id(), name, data)
     }
 
     fn step_element(
         &self,
-        element_info: &ERef,
+        element_info: &ElementId,
         control_flow: &mut ControlFlow,
         storage: &mut Storage,
     ) -> Result<(), SessionError> {
         self.get_session()?
-            .module_step_element(self, element_info, control_flow, storage)
+            .module_step_element(&self.id(), element_info, control_flow, storage)
     }
 
     fn step_location(
         &self,
-        location_info: &LRef,
+        location_info: &LocationId,
         control_flow: &mut ControlFlow,
         storage: &mut Storage,
     ) -> Result<(), SessionError> {
         self.get_session()?
-            .module_step_location(self, location_info, control_flow, storage)
+            .module_step_location(&self.id(), location_info, control_flow, storage)
     }
 
     fn accept_url(&self, url: Url) -> Result<bool, SessionError> {
-        self.get_session()?.moduie_accept_url(self, url)
+        self.get_session()?.moduie_accept_url(&self.id(), url)
     }
 
     fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError> {
         self.get_session()?
-            .module_accept_extension(self, &filename.into())
+            .module_accept_extension(&self.id(), &filename.into())
     }
 
-    fn init_element(&self, element_info: &ERef) -> Result<(), SessionError> {
-        self.get_session()?.module_init_element(self, element_info)
-    }
-
-    fn init_location(&self, location_info: &LRef, data: FileOrData) -> Result<(), SessionError> {
+    fn init_element(&self, element_info: &ElementId) -> Result<(), SessionError> {
         self.get_session()?
-            .module_init_location(self, location_info, data)
+            .module_init_element(&self.id(), element_info)
     }
 
-    fn notify(&self, info: Ref, event: Event) -> Result<(), SessionError> {
+    fn init_location(
+        &self,
+        location_info: &LocationId,
+        data: FileOrData,
+    ) -> Result<(), SessionError> {
+        self.get_session()?
+            .module_init_location(&self.id(), location_info, data)
+    }
+
+    fn notify(&self, info: ID, event: Event) -> Result<(), SessionError> {
         let session = self.get_session()?;
         match info {
-            Ref::Element(e) => session.element_notify(&e, event),
-            Ref::Location(l) => session.location_notify(&l, event),
+            ID::Element(e) => session.element_notify(&e, event),
+            ID::Location(l) => session.location_notify(&l, event),
         }
+    }
+
+    fn id(&self) -> ModuleId {
+        self.read().unwrap().uid
     }
 }
 
@@ -469,6 +496,7 @@ pub struct ModuleInfo {
     pub desc: String,
     // module hash
     pub module: u64,
+    pub id: ModuleId,
     pub proxy: usize,
     pub settings: Data,
     pub element_data: Data,
