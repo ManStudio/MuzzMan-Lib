@@ -12,18 +12,24 @@ pub struct Events {
 
 #[derive(Clone, Debug)]
 pub enum SessionEvent {
-    NewElement(ERef),
-    NewLocation(LRef),
-    NewModule(MRef),
-    DestroyedElement(ERef),
-    DestroyedLocation(LRef),
-    DestroyedModule(MRef),
+    NewElement(ElementId),
+    NewLocation(LocationId),
+    NewModule(ModuleId),
+
+    DestroyedElement(ElementId),
+    DestroyedLocation(LocationId),
+    DestroyedModule(ModuleId),
+
+    // old, new
+    ElementIdChanged(ElementId, ElementId),
+    LocationIdChanged(LocationId, LocationId),
+    ModuleIdChanged(ModuleId, ModuleId),
 }
 
 #[derive(Clone, Debug)]
 pub enum Event {
-    Element(ERef, ElementNotify),
-    Location(LRef, LocationNotify),
+    Element(ElementId, ElementNotify),
+    Location(LocationId, LocationNotify),
     Log(Ref, Log),
     SessionEvent(SessionEvent),
 }

@@ -17,8 +17,8 @@ pub type MRow = Arc<RwLock<Module>>;
 
 #[derive(Debug, Clone)]
 pub enum Ref {
-    Element(ERef),
-    Location(LRef),
+    Element(ElementId),
+    Location(LocationId),
 }
 
 impl PartialEq for Ref {
@@ -26,14 +26,14 @@ impl PartialEq for Ref {
         match self {
             Ref::Element(e) => {
                 if let Ref::Element(se) = other {
-                    e.read().unwrap().uid == se.read().unwrap().uid
+                    e == se
                 } else {
                     false
                 }
             }
             Ref::Location(l) => {
                 if let Ref::Location(sl) = other {
-                    l.read().unwrap().uid == sl.read().unwrap().uid
+                    l == sl
                 } else {
                     false
                 }
@@ -45,8 +45,11 @@ impl PartialEq for Ref {
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    element::ElementId,
     enums::{AdvanceEnum, CustomEnum},
-    prelude::{Element, FileOrData, Location, Module, RefElement, RefLocation, RefModule},
+    prelude::{
+        Element, FileOrData, Location, LocationId, Module, RefElement, RefLocation, RefModule,
+    },
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

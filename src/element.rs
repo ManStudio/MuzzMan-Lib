@@ -19,12 +19,26 @@ pub enum ElementNotify {
 
 impl_get_ref!(ElementNotify);
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ElementId {
+    pub uid: usize,
+    pub location_id: LocationId,
+}
+
+impl ElementId {
+    pub fn into_ref(self, session: Box<dyn TSession>) -> RefElement {
+        RefElement {
+            session: Some(session),
+            id: self,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct RefElement {
     #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
-    pub location: LRef,
-    pub uid: usize,
+    pub id: ElementId,
 }
 
 unsafe impl Sync for RefElement {}
@@ -32,21 +46,13 @@ unsafe impl Send for RefElement {}
 
 impl Debug for RefElement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RefElement")
-            .field("location", &self.location)
-            .field("uid", &self.uid)
-            .finish()
+        f.debug_struct("RefElement").field("id", &self.id).finish()
     }
 }
 
 impl PartialEq for RefElement {
     fn eq(&self, other: &Self) -> bool {
-        self.uid.eq(&other.uid)
-            && self
-                .location
-                .read()
-                .unwrap()
-                .eq(&other.location.read().unwrap())
+        self.id.eq(&other.id) && self.id.location_id.eq(&other.id.location_id)
     }
 }
 

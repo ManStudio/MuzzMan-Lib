@@ -11,11 +11,20 @@ pub enum ControlFlow {
     Break,
 }
 
+#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ModuleId(pub usize);
+
+impl From<MRef> for ModuleId {
+    fn from(value: MRef) -> Self {
+        value.read().unwrap().uid
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct RefModule {
-    pub uid: Option<usize>,
     #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
+    pub uid: ModuleId,
 }
 
 impl Debug for RefModule {
@@ -40,7 +49,7 @@ pub struct Module {
     pub settings: Data,
     /// default element data/settings
     pub element_data: Data,
-    pub info: Option<MRef>,
+    pub info: MRef,
 }
 
 impl Debug for Module {

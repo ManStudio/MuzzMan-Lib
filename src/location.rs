@@ -50,17 +50,53 @@ pub enum WhereIsLocation {
     Local(LocalLocation),
 }
 
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub struct LocationId(pub Vec<usize>);
+
+impl std::ops::Deref for LocationId {
+    type Target = Vec<usize>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for LocationId {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl std::iter::IntoIterator for LocationId {
+    type Item = usize;
+
+    type IntoIter = std::vec::IntoIter<usize>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl LocationId {
+    pub fn into_ref(self, session: Box<dyn TSession>) -> RefLocation {
+        RefLocation {
+            session: Some(session),
+            id: self,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct RefLocation {
     #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
-    pub uid: Vec<usize>,
+    pub id: LocationId,
 }
 
 impl Debug for RefLocation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LocatioInfo")
-            .field("uid", &self.uid)
+            .field("uid", &self.id)
             .finish()
     }
 }
@@ -68,7 +104,7 @@ impl Debug for RefLocation {
 impl Clone for RefLocation {
     fn clone(&self) -> Self {
         Self {
-            uid: self.uid.clone(),
+            id: self.id.clone(),
             session: if let Some(session) = &self.session {
                 Some(session.c())
             } else {
@@ -80,7 +116,7 @@ impl Clone for RefLocation {
 
 impl PartialEq for RefLocation {
     fn eq(&self, other: &Self) -> bool {
-        self.uid.eq(&other.uid)
+        self.id.eq(&other.id)
     }
 }
 
