@@ -43,10 +43,10 @@ impl PartialEq for ID {
 }
 
 impl ID {
-    pub fn get_ref(&self, session: &Box<dyn TSession>) -> Result<Ref, SessionError> {
+    pub fn get_ref(&self, session: &dyn TSession) -> Result<Ref, SessionError> {
         match self {
-            ID::Element(e) => Ok(Ref::Element(session.get_element_ref(&e)?)),
-            ID::Location(l) => Ok(Ref::Location(session.get_location_ref(&l)?)),
+            ID::Element(e) => Ok(Ref::Element(session.get_element_ref(e)?)),
+            ID::Location(l) => Ok(Ref::Location(session.get_location_ref(l)?)),
         }
     }
 }

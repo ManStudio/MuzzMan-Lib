@@ -43,8 +43,8 @@ impl Events {
         }
 
         self.subscribers.retain(|subscriber| {
-            if let Ok(subscriber) = &subscriber.get_ref(&session) {
-                subscriber.notify(event.clone());
+            if let Ok(subscriber) = &subscriber.get_ref(session.as_ref()) {
+                let _ = subscriber.notify(event.clone());
                 true
             } else {
                 false

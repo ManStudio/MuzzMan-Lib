@@ -131,7 +131,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             session: Some(self.c()),
         }));
 
-        let mut module = Module {
+        let module = Module {
             name: module.get_name(),
             desc: module.get_desc(),
             module,
@@ -156,7 +156,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn remove_module(&self, info: ModuleId) -> Result<MRow, SessionError> {
-        let _ = self.notify_all(SessionEvent::DestroyedModule(info.clone()));
+        let _ = self.notify_all(SessionEvent::DestroyedModule(info));
 
         let index = info.0;
         {
@@ -175,7 +175,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             info.write().unwrap().uid.0 = i;
         }
 
-        return Ok(module);
+        Ok(module)
     }
 
     fn register_action(
@@ -192,7 +192,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                 name,
                 owner: Arc::new(RwLock::new(RefModule {
                     session: Some(self.c()),
-                    uid: module.clone(),
+                    uid: *module,
                 })),
                 input: values,
                 callback,
@@ -391,7 +391,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .unwrap()
             .module
             .init_location(location_info, data);
-        return Ok(());
+        Ok(())
     }
 
     fn module_init_element(
@@ -399,7 +399,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         module_info: &ModuleId,
         element_info: &ElementId,
     ) -> Result<(), SessionError> {
-        let mut module = self.get_module(module_info)?;
+        let module = self.get_module(module_info)?;
         let module = module.read().unwrap();
         let element = self.get_element(element_info)?;
         module
@@ -1003,7 +1003,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     fn destroy_location(&self, location: LocationId) -> Result<LRow, SessionError> {
         let _ = self.notify_all(SessionEvent::DestroyedLocation(location.clone()));
 
-        let mut location_uid = location.clone();
+        let mut location_uid = location;
         if let Some(location_index) = location_uid.pop() {
             let parent_location = self.get_location(&location_uid)?;
 

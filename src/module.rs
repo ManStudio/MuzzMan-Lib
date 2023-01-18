@@ -484,7 +484,7 @@ impl TModuleInfo for MRef {
     }
 
     fn id(&self) -> ModuleId {
-        self.read().unwrap().uid.clone()
+        self.read().unwrap().uid
     }
 }
 
