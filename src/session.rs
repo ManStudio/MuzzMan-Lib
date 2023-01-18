@@ -188,8 +188,8 @@ pub trait TSession {
     fn element_notify(&self, element: &ElementId, event: Event) -> Result<(), SessionError>;
 
     fn element_emit(&self, element: &ElementId, event: Event) -> Result<(), SessionError>;
-    fn element_subscribe(&self, element: &ElementId, _ref: Ref) -> Result<(), SessionError>;
-    fn element_unsubscribe(&self, element: &ElementId, _ref: Ref) -> Result<(), SessionError>;
+    fn element_subscribe(&self, element: &ElementId, _ref: ID) -> Result<(), SessionError>;
+    fn element_unsubscribe(&self, element: &ElementId, _ref: ID) -> Result<(), SessionError>;
 
     //
     // End Element
@@ -248,12 +248,16 @@ pub trait TSession {
     fn location_notify(&self, location: &LocationId, event: Event) -> Result<(), SessionError>;
 
     fn location_emit(&self, location: &LocationId, event: Event) -> Result<(), SessionError>;
-    fn location_subscribe(&self, location: &LocationId, _ref: Ref) -> Result<(), SessionError>;
-    fn location_unsubscribe(&self, location: &LocationId, _ref: Ref) -> Result<(), SessionError>;
+    fn location_subscribe(&self, location: &LocationId, _ref: ID) -> Result<(), SessionError>;
+    fn location_unsubscribe(&self, location: &LocationId, _ref: ID) -> Result<(), SessionError>;
 
     //
     // End Location
     //
+
+    fn get_module_ref(&self, id: &ModuleId) -> Result<MRef, SessionError>;
+    fn get_element_ref(&self, id: &ElementId) -> Result<ERef, SessionError>;
+    fn get_location_ref(&self, id: &LocationId) -> Result<LRef, SessionError>;
 
     fn c(&self) -> Box<dyn TSession>;
 }

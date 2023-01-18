@@ -144,98 +144,105 @@ impl TLocation for LRef {
     }
 
     fn get_path(&self) -> Result<PathBuf, SessionError> {
-        self.get_session()?.location_get_path(self)
+        self.get_session()?.location_get_path(&self.id())
     }
 
     fn set_path(&self, path: PathBuf) -> Result<(), SessionError> {
-        self.get_session()?.location_set_path(self, path)
+        self.get_session()?.location_set_path(&self.id(), path)
     }
 
     fn get_where_is(&self) -> Result<WhereIsLocation, SessionError> {
-        self.get_session()?.location_get_where_is(self)
+        self.get_session()?.location_get_where_is(&self.id())
     }
 
     fn set_where_is(&self, where_is: WhereIsLocation) -> Result<(), SessionError> {
-        self.get_session()?.location_set_where_is(self, where_is)
+        self.get_session()?
+            .location_set_where_is(&self.id(), where_is)
     }
 
     fn get_should_save(&self) -> Result<bool, SessionError> {
-        self.get_session()?.location_get_should_save(self)
+        self.get_session()?.location_get_should_save(&self.id())
     }
 
     fn set_should_save(&self, should_save: bool) -> Result<(), SessionError> {
         self.get_session()?
-            .location_set_should_save(self, should_save)
+            .location_set_should_save(&self.id(), should_save)
     }
 
     fn get_elements(&self, range: Range<usize>) -> Result<Vec<ERef>, SessionError> {
-        self.get_session()?.location_get_elements(self, range)
+        self.get_session()?.location_get_elements(&self.id(), range)
     }
 
     fn get_elements_len(&self) -> Result<usize, SessionError> {
-        self.get_session()?.location_get_elements_len(self)
+        self.get_session()?.location_get_elements_len(&self.id())
     }
 
     fn get_locations(&self, range: Range<usize>) -> Result<Vec<LRef>, SessionError> {
-        self.get_session()?.get_locations(self, range)
+        self.get_session()?.get_locations(&self.id(), range)
     }
 
     fn get_locations_len(&self) -> Result<usize, SessionError> {
-        self.get_session()?.get_locations_len(self)
+        self.get_session()?.get_locations_len(&self.id())
     }
 
     fn get_location_info(&self) -> Result<LocationInfo, SessionError> {
-        self.get_session()?.location_get_location_info(self)
+        self.get_session()?.location_get_location_info(&self.id())
     }
 
     fn create_element(&self, name: &str) -> Result<ERef, SessionError> {
-        self.get_session()?.create_element(name, self)
+        self.get_session()?.create_element(name, &self.id())
     }
 
     fn create_location(&self, name: &str) -> Result<LRef, SessionError> {
-        self.get_session()?.create_location(name, self)
+        self.get_session()?.create_location(name, &self.id())
     }
 
     fn destroy(self) -> Result<LRow, SessionError> {
-        self.get_session()?.destroy_location(self)
+        self.get_session()?.destroy_location(self.id())
     }
 
-    fn _move(&self, to: &LRef) -> Result<(), SessionError> {
-        self.get_session()?.move_location(self, to)
+    fn _move(&self, to: &LocationId) -> Result<(), SessionError> {
+        self.get_session()?.move_location(&self.id(), to)
+    }
+
+    fn id(&self) -> LocationId {
+        self.read().unwrap().id.clone()
     }
 }
 
 impl Common for LRef {
     fn get_name(&self) -> Result<String, SessionError> {
-        self.get_session()?.location_get_name(self)
+        self.get_session()?.location_get_name(&self.id())
     }
 
     fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.location_set_name(self, &name.into())
+        self.get_session()?
+            .location_set_name(&self.id(), &name.into())
     }
 
     fn get_desc(&self) -> Result<String, SessionError> {
-        self.get_session()?.location_get_desc(self)
+        self.get_session()?.location_get_desc(&self.id())
     }
 
     fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.location_set_desc(self, &desc.into())
+        self.get_session()?
+            .location_set_desc(&self.id(), &desc.into())
     }
 
     fn notify(&self, event: Event) -> Result<(), SessionError> {
-        self.get_session()?.location_notify(self, event)
+        self.get_session()?.location_notify(&self.id(), event)
     }
 
     fn emit(&self, event: Event) -> Result<(), SessionError> {
-        self.get_session()?.location_emit(self, event)
+        self.get_session()?.location_emit(&self.id(), event)
     }
 
-    fn subscribe(&self, _ref: Ref) -> Result<(), SessionError> {
-        self.get_session()?.location_subscribe(self, _ref)
+    fn subscribe(&self, _ref: ID) -> Result<(), SessionError> {
+        self.get_session()?.location_subscribe(&self.id(), _ref)
     }
 
-    fn unsubscribe(&self, _ref: Ref) -> Result<(), SessionError> {
-        self.get_session()?.location_unsubscribe(self, _ref)
+    fn unsubscribe(&self, _ref: ID) -> Result<(), SessionError> {
+        self.get_session()?.location_unsubscribe(&self.id(), _ref)
     }
 }
 
@@ -262,7 +269,9 @@ pub trait TLocation {
     fn create_location(&self, name: &str) -> Result<LRef, SessionError>;
 
     fn destroy(self) -> Result<LRow, SessionError>;
-    fn _move(&self, to: &LRef) -> Result<(), SessionError>;
+    fn _move(&self, to: &LocationId) -> Result<(), SessionError>;
+
+    fn id(&self) -> LocationId;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Hash)]

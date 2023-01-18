@@ -7,7 +7,7 @@ pub struct Events {
     pub events: [Option<(SystemTime, Event)>; 20],
     pub cursour: usize,
 
-    pub subscribers: Vec<Ref>,
+    pub subscribers: Vec<ID>,
 }
 
 #[derive(Clone, Debug)]
@@ -30,24 +30,29 @@ pub enum SessionEvent {
 pub enum Event {
     Element(ElementId, ElementNotify),
     Location(LocationId, LocationNotify),
-    Log(Ref, Log),
+    Log(ID, Log),
     SessionEvent(SessionEvent),
 }
 
 impl Events {
-    pub fn new_event(&mut self, event: Event) {
+    pub fn new_event(&mut self, event: Event, session: Box<dyn TSession>) {
         self.events[self.cursour] = Some((SystemTime::now(), event.clone()));
         self.cursour += 1;
         if self.cursour > 19 {
             self.cursour = 0;
         }
 
-        for subscriber in self.subscribers.iter() {
-            let _ = subscriber.notify(event.clone());
-        }
+        self.subscribers.retain(|subscriber| {
+            if let Ok(subscriber) = &subscriber.get_ref(&session) {
+                subscriber.notify(event.clone());
+                true
+            } else {
+                false
+            }
+        })
     }
 
-    pub fn is_subscribed(&self, _ref: &Ref) -> bool {
+    pub fn is_subscribed(&self, _ref: &ID) -> bool {
         for r in self.subscribers.iter() {
             if r == _ref {
                 return true;
@@ -56,7 +61,7 @@ impl Events {
         false
     }
 
-    pub fn subscribe(&mut self, _ref: Ref) -> bool {
+    pub fn subscribe(&mut self, _ref: ID) -> bool {
         if self.is_subscribed(&_ref) {
             return false;
         }
@@ -66,7 +71,7 @@ impl Events {
         true
     }
 
-    pub fn unsubscribe(&mut self, _ref: Ref) -> bool {
+    pub fn unsubscribe(&mut self, _ref: ID) -> bool {
         if !self.is_subscribed(&_ref) {
             return false;
         }

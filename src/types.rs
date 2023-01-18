@@ -16,28 +16,37 @@ pub type ERow = Arc<RwLock<Element>>;
 pub type MRow = Arc<RwLock<Module>>;
 
 #[derive(Debug, Clone)]
-pub enum Ref {
+pub enum ID {
     Element(ElementId),
     Location(LocationId),
 }
 
-impl PartialEq for Ref {
+impl PartialEq for ID {
     fn eq(&self, other: &Self) -> bool {
         match self {
-            Ref::Element(e) => {
-                if let Ref::Element(se) = other {
+            ID::Element(e) => {
+                if let ID::Element(se) = other {
                     e == se
                 } else {
                     false
                 }
             }
-            Ref::Location(l) => {
-                if let Ref::Location(sl) = other {
+            ID::Location(l) => {
+                if let ID::Location(sl) = other {
                     l == sl
                 } else {
                     false
                 }
             }
+        }
+    }
+}
+
+impl ID {
+    pub fn get_ref(&self, session: &Box<dyn TSession>) -> Result<Ref, SessionError> {
+        match self {
+            ID::Element(e) => Ok(Ref::Element(session.get_element_ref(&e)?)),
+            ID::Location(l) => Ok(Ref::Location(session.get_location_ref(&l)?)),
         }
     }
 }
@@ -48,7 +57,8 @@ use crate::{
     element::ElementId,
     enums::{AdvanceEnum, CustomEnum},
     prelude::{
-        Element, FileOrData, Location, LocationId, Module, RefElement, RefLocation, RefModule,
+        Element, FileOrData, Location, LocationId, Module, Ref, RefElement, RefLocation, RefModule,
+        SessionError, TSession,
     },
 };
 
