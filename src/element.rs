@@ -337,6 +337,7 @@ pub struct ElementInfo {
     pub progress: f32,
     pub should_save: bool,
     pub enabled: bool,
+    pub id: ElementId,
 }
 
 impl Hash for ElementInfo {

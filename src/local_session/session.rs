@@ -822,6 +822,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     proxy: __module.proxy,
                     settings: __module.settings.clone(),
                     element_data: __module.element_data.clone(),
+                    id: __module.info.id(),
                 });
             }
         }
@@ -839,6 +840,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             progress: element.progress,
             should_save: element.should_save,
             enabled: element.enabled,
+            id: element.info.id(),
         })
     }
 
@@ -1159,6 +1161,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     proxy: __module.proxy,
                     settings: __module.settings.clone(),
                     element_data: __module.element_data.clone(),
+                    id: __module.info.id(),
                 });
             }
         }

@@ -11,7 +11,9 @@ pub enum ControlFlow {
     Break,
 }
 
-#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
 pub struct ModuleId(pub usize);
 
 impl From<MRef> for ModuleId {
@@ -494,6 +496,7 @@ pub struct ModuleInfo {
     pub desc: String,
     // module hash
     pub module: u64,
+    pub id: ModuleId,
     pub proxy: usize,
     pub settings: Data,
     pub element_data: Data,
