@@ -1189,17 +1189,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let location = self.get_location(location)?;
         let location = location.read().unwrap();
 
-        let mut hasher = DefaultHasher::new();
-        let hasher = &mut hasher;
-        location.name.hash(hasher);
-        location.desc.hash(hasher);
-
-        let id = hasher.finish();
-
         Ok(LocationInfo {
             name: location.name.clone(),
             desc: location.desc.clone(),
-            id,
+            id: location.info.id(),
             where_is: location.where_is.clone(),
             shoud_save: location.shoud_save,
             elements,

@@ -50,7 +50,7 @@ pub enum WhereIsLocation {
     Local(LocalLocation),
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LocationId(pub Vec<usize>);
 
 impl std::ops::Deref for LocationId {
@@ -279,7 +279,7 @@ pub struct LocationInfo {
     pub name: String,
     pub desc: String,
     // hash
-    pub id: u64,
+    pub id: LocationId,
     pub where_is: WhereIsLocation,
     pub shoud_save: bool,
     pub elements: Vec<ElementInfo>,
