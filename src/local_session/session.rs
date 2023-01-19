@@ -172,7 +172,11 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         for (i, module) in self.write().unwrap().modules.iter().enumerate() {
             let info = &module.write().unwrap().info;
-            info.write().unwrap().uid.0 = i;
+            let last = info.read().unwrap().uid;
+            let mut new = last;
+            new.0 = i;
+            info.write().unwrap().uid = new;
+            let _ = self.notify_all(SessionEvent::ModuleIdChanged(last, new));
         }
 
         Ok(module)
@@ -522,14 +526,22 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn move_element(&self, element: &ElementId, location: &LocationId) -> Result<(), SessionError> {
         let elem = self.destroy_element(element.clone())?;
+        let info = elem.read().unwrap().info.clone();
         let new_uid = self.get_location(location)?.read().unwrap().elements.len();
-        elem.read().unwrap().info.write().unwrap().id.uid = new_uid;
-        elem.read().unwrap().info.write().unwrap().id.location_id = location.clone();
+        let last = info.read().unwrap().id.clone();
+        let new = ElementId {
+            uid: new_uid,
+            location_id: location.clone(),
+        };
+
+        elem.read().unwrap().info.write().unwrap().id = new.clone();
         self.get_location(location)?
             .write()
             .unwrap()
             .elements
             .push(elem);
+
+        let _ = self.notify_all(SessionEvent::ElementIdChanged(last, new));
         Ok(())
     }
 
@@ -542,6 +554,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .unwrap()
             .elements
             .remove(element.uid);
+
+        let mut notifications = Vec::new();
         for (i, element) in self
             .get_location(&element.read().unwrap().info.read().unwrap().id.location_id)?
             .read()
@@ -550,7 +564,20 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .iter()
             .enumerate()
         {
-            element.read().unwrap().info.write().unwrap().id.uid = i
+            let info = element.read().unwrap().info.clone();
+            let last = info.read().unwrap().id.clone();
+            info.write().unwrap().id.uid = i;
+
+            notifications.push(SessionEvent::ElementIdChanged(
+                last,
+                ElementId {
+                    uid: i,
+                    location_id: info.read().unwrap().id.location_id.clone(),
+                },
+            ));
+        }
+        for notification in notifications {
+            let _ = self.notify_all(notification);
         }
         Ok(element)
     }
@@ -1015,15 +1042,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
                 .locations
                 .remove(location_index);
             for (i, location) in parent_location.read().unwrap().locations.iter().enumerate() {
-                *location
-                    .read()
-                    .unwrap()
-                    .info
-                    .write()
-                    .unwrap()
-                    .id
-                    .last_mut()
-                    .unwrap() = i
+                let info = location.read().unwrap().info.clone();
+                let last = info.id();
+                let mut new = last.clone();
+                *new.last_mut().unwrap() = i;
+
+                info.write().unwrap().id = new.clone();
+
+                let _ = self.notify_all(SessionEvent::LocationIdChanged(last, new));
             }
             return Ok(removed_location);
         }
@@ -1039,18 +1065,18 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn move_location(&self, location: &LocationId, to: &LocationId) -> Result<(), SessionError> {
         let location = self.destroy_location(location.clone())?;
-        let mut location_uid = to.clone();
-        location_uid.push(self.get_locations_len(to)?);
-        let location_info = Arc::new(RwLock::new(RefLocation {
-            session: Some(self.c()),
-            id: location_uid,
-        }));
-        location.write().unwrap().info = location_info;
+        let mut new = to.clone();
+        new.push(self.get_locations_len(to)?);
+        let info = location.read().unwrap().info.clone();
+        let last = info.read().unwrap().id.clone();
+        location.write().unwrap().info.write().unwrap().id = new.clone();
         self.get_location(to)?
             .write()
             .unwrap()
             .locations
             .push(location);
+
+        let _ = self.notify_all(SessionEvent::LocationIdChanged(last, new));
 
         Ok(())
     }
