@@ -170,13 +170,19 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }
         let module = self.write().unwrap().modules.remove(index);
 
+        let mut notifications = Vec::new();
+
         for (i, module) in self.write().unwrap().modules.iter().enumerate() {
             let info = &module.write().unwrap().info;
             let last = info.read().unwrap().uid;
             let mut new = last;
             new.0 = i;
             info.write().unwrap().uid = new;
-            let _ = self.notify_all(SessionEvent::ModuleIdChanged(last, new));
+            notifications.push(SessionEvent::ModuleIdChanged(last, new));
+        }
+
+        for notification in notifications {
+            let _ = self.notify_all(notification);
         }
 
         Ok(module)
@@ -1041,6 +1047,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
                 .unwrap()
                 .locations
                 .remove(location_index);
+
+            let mut notifications = Vec::new();
             for (i, location) in parent_location.read().unwrap().locations.iter().enumerate() {
                 let info = location.read().unwrap().info.clone();
                 let last = info.id();
@@ -1049,8 +1057,13 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
                 info.write().unwrap().id = new.clone();
 
-                let _ = self.notify_all(SessionEvent::LocationIdChanged(last, new));
+                notifications.push(SessionEvent::LocationIdChanged(last, new));
             }
+
+            for notification in notifications {
+                let _ = self.notify_all(notification);
+            }
+
             return Ok(removed_location);
         }
         Err(SessionError::InvalidLocation)
