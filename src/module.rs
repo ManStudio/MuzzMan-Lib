@@ -75,16 +75,26 @@ pub trait TModule {
     fn init_settings(&self, data: &mut Data);
     fn init_element_settings(&self, data: &mut Data);
 
-    fn init_element(&self, element: ERow);
-    fn step_element(&self, element: ERow, control_flow: &mut ControlFlow, storage: &mut Storage);
+    fn init_element(&self, element_row: ERow);
+    fn step_element(
+        &self,
+        element_row: ERow,
+        control_flow: &mut ControlFlow,
+        storage: &mut Storage,
+    );
 
     fn accept_extension(&self, filename: &str) -> bool;
-    fn accept_url(&self, uri: Url) -> bool;
+    fn accept_url(&self, url: Url) -> bool;
 
-    fn init_location(&self, location: LRef, data: FileOrData);
-    fn step_location(&self, location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage);
+    fn init_location(&self, location_ref: LRef, data: FileOrData);
+    fn step_location(
+        &self,
+        location_row: LRow,
+        control_flow: &mut ControlFlow,
+        storage: &mut Storage,
+    );
 
-    fn notify(&self, info: Ref, event: Event);
+    fn notify(&self, _ref: Ref, event: Event);
 
     fn c(&self) -> Box<dyn TModule>;
 }
