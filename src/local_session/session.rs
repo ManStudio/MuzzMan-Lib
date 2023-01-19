@@ -51,6 +51,8 @@ trait TLocalSession {
     fn get_element(&self, info: &ElementId) -> Result<ERow, SessionError>;
     fn get_module(&self, info: &ModuleId) -> Result<MRow, SessionError>;
 
+    fn add_module(&self, module: Box<dyn TModule>) -> Result<MRef, SessionError>;
+
     fn notify_all(&self, event: SessionEvent) -> Result<(), SessionError>;
 }
 
@@ -95,6 +97,36 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         }
     }
 
+    fn add_module(&self, module: Box<dyn TModule>) -> Result<MRef, SessionError> {
+        let info = Arc::new(RwLock::new(RefModule {
+            uid: ModuleId(self.get_modules_len()?),
+            session: Some(self.c()),
+        }));
+
+        let module = Module {
+            name: module.get_name(),
+            desc: module.get_desc(),
+            module,
+            proxy: 0,
+            settings: Data::new(),
+            element_data: Data::new(),
+            info: info.clone(),
+        };
+
+        if let Err(error) = module.module.init(info.clone()) {
+            return Err(SessionError::CannotInstallModule(error));
+        }
+
+        self.write()
+            .unwrap()
+            .modules
+            .push(Arc::new(RwLock::new(module)));
+
+        let _ = self.notify_all(SessionEvent::NewModule(info.read().unwrap().uid));
+
+        Ok(info)
+    }
+
     fn notify_all(&self, event: SessionEvent) -> Result<(), SessionError> {
         let mut locations = vec![self.get_default_location()?];
         let mut new_range = 0..1;
@@ -125,34 +157,13 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
 }
 
 impl TSession for Arc<RwLock<LocalSession>> {
-    fn add_module(&self, module: Box<dyn TModule>) -> Result<MRef, SessionError> {
-        let info = Arc::new(RwLock::new(RefModule {
-            uid: ModuleId(self.get_modules_len()?),
-            session: Some(self.c()),
-        }));
+    fn load_module(&self, path: PathBuf) -> Result<MRef, SessionError> {
+        let module = RawModule::new_module(&path);
 
-        let module = Module {
-            name: module.get_name(),
-            desc: module.get_desc(),
-            module,
-            proxy: 0,
-            settings: Data::new(),
-            element_data: Data::new(),
-            info: info.clone(),
-        };
-
-        if let Err(error) = module.module.init(info.clone()) {
-            return Err(SessionError::CannotInstallModule(error));
+        match module {
+            Ok(module) => Ok(self.add_module(module)?),
+            Err(err) => Err(SessionError::RawModule(err)),
         }
-
-        self.write()
-            .unwrap()
-            .modules
-            .push(Arc::new(RwLock::new(module)));
-
-        let _ = self.notify_all(SessionEvent::NewModule(info.read().unwrap().uid));
-
-        Ok(info)
     }
 
     fn remove_module(&self, info: ModuleId) -> Result<MRow, SessionError> {

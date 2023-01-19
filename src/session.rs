@@ -22,6 +22,7 @@ pub enum SessionError {
     AlreadyUnsubscribed,
     IsNotElement,
     IsNotLocation,
+    RawModule(RawLibraryError),
     Custom(String),
 }
 
@@ -32,7 +33,7 @@ pub trait TSession {
     // Module
     //
 
-    fn add_module(&self, module: Box<dyn TModule>) -> Result<MRef, SessionError>;
+    fn load_module(&self, path: PathBuf) -> Result<MRef, SessionError>;
     fn remove_module(&self, id: ModuleId) -> Result<MRow, SessionError>;
 
     fn register_action(

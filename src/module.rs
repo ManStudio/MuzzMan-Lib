@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::Arc};
+use std::{fmt::Debug, path::Path, sync::Arc};
 
 use crate::prelude::*;
 use libloading::{Library, Symbol};
@@ -105,7 +105,7 @@ impl Clone for Box<dyn TModule> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RawLibraryError {
     NotFound,
     DontHaveSymbolGetName,
@@ -146,13 +146,13 @@ pub struct RawModule {
 }
 
 impl RawModule {
-    pub fn new_module(path: &str) -> Result<Box<dyn TModule>, RawLibraryError> {
+    pub fn new_module(path: &Path) -> Result<Box<dyn TModule>, RawLibraryError> {
         match Self::new(path) {
             Ok(module) => Ok(Box::new(Arc::new(module))),
             Err(err) => Err(err),
         }
     }
-    pub fn new(path: &str) -> Result<Self, RawLibraryError> {
+    pub fn new(path: &Path) -> Result<Self, RawLibraryError> {
         let lib = unsafe { Library::new(path) };
         if lib.is_err() {
             return Err(RawLibraryError::NotFound);
