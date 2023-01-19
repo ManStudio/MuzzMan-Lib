@@ -157,7 +157,7 @@ pub trait TSession {
     fn element_set_module(
         &self,
         element: &ElementId,
-        module: Option<MRef>,
+        module: Option<ModuleId>,
     ) -> Result<(), SessionError>;
 
     fn element_get_statuses(&self, element_id: &ElementId) -> Result<Vec<String>, SessionError>;

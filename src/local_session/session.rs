@@ -668,10 +668,13 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn element_set_module(
         &self,
-        element: &ElementId,
-        module: Option<MRef>,
+        element_id: &ElementId,
+        module: Option<ModuleId>,
     ) -> Result<(), SessionError> {
-        self.get_element(element)?.write().unwrap().module = module;
+        self.get_element(element_id)?.write().unwrap().module = match &module {
+            Some(module_id) => Some(self.get_module_ref(module_id)?),
+            None => None,
+        };
         Ok(())
     }
 
@@ -825,7 +828,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }
 
         if let Some(module) = module {
-            self.element_set_module(element_info, Some(module))?;
+            self.element_set_module(element_info, Some(module.id()))?;
             return Ok(true);
         }
 

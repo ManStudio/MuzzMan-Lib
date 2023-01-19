@@ -69,7 +69,7 @@ pub trait TElement {
     fn set_module_data(&self, data: Data) -> Result<(), SessionError>;
 
     fn get_module(&self) -> Result<Option<MRef>, SessionError>;
-    fn set_module(&self, module: Option<MRef>) -> Result<(), SessionError>;
+    fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError>;
 
     fn resolv_module(&self) -> Result<bool, SessionError>;
     fn init(&self) -> Result<bool, SessionError>;
@@ -192,7 +192,7 @@ impl TElement for ERef {
         self.get_session()?.element_get_module(&self.id())
     }
 
-    fn set_module(&self, module: Option<MRef>) -> Result<(), SessionError> {
+    fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError> {
         self.get_session()?.element_set_module(&self.id(), module)
     }
 
