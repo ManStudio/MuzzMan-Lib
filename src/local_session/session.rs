@@ -62,7 +62,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
             let mut loc = location.clone();
             for i in info.0.clone() {
                 let tmp_loc;
-                if let Some(location) = loc.read().unwrap().locations.get(i) {
+                if let Some(location) = loc.read().unwrap().locations.get(i as usize) {
                     tmp_loc = location.clone()
                 } else {
                     return Err(SessionError::InvalidLocation);
@@ -81,7 +81,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
             .read()
             .unwrap()
             .elements
-            .get(info.uid)
+            .get(info.uid as usize)
         {
             Ok(element.clone())
         } else {
@@ -90,7 +90,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
     }
 
     fn get_module(&self, info: &ModuleId) -> Result<MRow, SessionError> {
-        if let Some(module) = self.read().unwrap().modules.get(info.0) {
+        if let Some(module) = self.read().unwrap().modules.get(info.0 as usize) {
             Ok(module.clone())
         } else {
             Err(SessionError::InvalidModule)
@@ -99,7 +99,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
 
     fn add_module(&self, module: Box<dyn TModule>) -> Result<MRef, SessionError> {
         let info = Arc::new(RwLock::new(RefModule {
-            uid: ModuleId(self.get_modules_len()?),
+            uid: ModuleId(self.get_modules_len()? as u64),
             session: Some(self.c()),
         }));
 
@@ -171,7 +171,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         let index = info.0;
         {
-            let module = self.read().unwrap().modules[index].clone();
+            let module = self.read().unwrap().modules[index as usize].clone();
             let module = module.read().unwrap();
             let info = module.info.clone();
             self.write()
@@ -179,7 +179,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                 .actions
                 .retain(|e| *e.read().unwrap().owner.read().unwrap() != *info.read().unwrap());
         }
-        let module = self.write().unwrap().modules.remove(index);
+        let module = self.write().unwrap().modules.remove(index as usize);
 
         let mut notifications = Vec::new();
 
@@ -187,7 +187,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             let info = &module.write().unwrap().info;
             let last = info.read().unwrap().uid;
             let mut new = last;
-            new.0 = i;
+            new.0 = i as u64;
             info.write().unwrap().uid = new;
             notifications.push(SessionEvent::ModuleIdChanged(last, new));
         }
@@ -296,70 +296,42 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(modules)
     }
 
-    fn get_module_name(&self, info: &ModuleId) -> Result<String, SessionError> {
-        if let Some(module) = self.read().unwrap().modules.get(info.0) {
-            return Ok(module.read().unwrap().name.clone());
-        }
-
-        Err(SessionError::InvalidModule)
+    fn get_module_name(&self, module_id: &ModuleId) -> Result<String, SessionError> {
+        Ok(self.get_module(module_id)?.read().unwrap().name.clone())
     }
 
-    fn set_module_name(&self, info: &ModuleId, name: String) -> Result<(), SessionError> {
-        if let Some(module) = self.read().unwrap().modules.get(info.0) {
-            module.write().unwrap().name = name;
-            return Ok(());
-        }
-
-        Err(SessionError::InvalidModule)
+    fn set_module_name(&self, module_id: &ModuleId, name: String) -> Result<(), SessionError> {
+        self.get_module(module_id)?.write().unwrap().name = name;
+        Ok(())
     }
 
-    fn default_module_name(&self, info: &ModuleId) -> Result<(), SessionError> {
-        if let Some(module) = self.read().unwrap().modules.get(info.0) {
-            module.write().unwrap().name = module.read().unwrap().module.get_name();
-            return Ok(());
-        }
-
-        Err(SessionError::InvalidModule)
+    fn default_module_name(&self, module_id: &ModuleId) -> Result<(), SessionError> {
+        let module = self.get_module(module_id)?;
+        module.write().unwrap().name = module.read().unwrap().module.get_name();
+        Ok(())
     }
 
-    fn get_module_desc(&self, info: &ModuleId) -> Result<String, SessionError> {
-        if let Some(module) = self.read().unwrap().modules.get(info.0) {
-            return Ok(module.read().unwrap().desc.clone());
-        }
-
-        Err(SessionError::InvalidModule)
+    fn get_module_desc(&self, module_id: &ModuleId) -> Result<String, SessionError> {
+        Ok(self.get_module(module_id)?.read().unwrap().desc.clone())
     }
 
-    fn set_module_desc(&self, info: &ModuleId, desc: String) -> Result<(), SessionError> {
-        if let Some(module) = self.read().unwrap().modules.get(info.0) {
-            module.write().unwrap().desc = desc;
-            return Ok(());
-        }
-
-        Err(SessionError::InvalidModule)
+    fn set_module_desc(&self, module_id: &ModuleId, desc: String) -> Result<(), SessionError> {
+        self.get_module(module_id)?.write().unwrap().desc = desc;
+        Ok(())
     }
 
-    fn default_module_desc(&self, info: &ModuleId) -> Result<(), SessionError> {
-        if let Some(module) = self.read().unwrap().modules.get(info.0) {
-            module.write().unwrap().desc = module.read().unwrap().module.get_desc();
-            return Ok(());
-        }
-
-        Err(SessionError::InvalidModule)
+    fn default_module_desc(&self, module_id: &ModuleId) -> Result<(), SessionError> {
+        let module = self.get_module(module_id)?;
+        module.write().unwrap().desc = module.read().unwrap().module.get_desc();
+        Ok(())
     }
 
-    fn get_module_proxy(&self, info: &ModuleId) -> Result<usize, SessionError> {
-        if let Some(module) = self.read().unwrap().modules.get(info.0) {
-            return Ok(module.read().unwrap().proxy);
-        }
-        Err(SessionError::InvalidModule)
+    fn get_module_proxy(&self, module_id: &ModuleId) -> Result<usize, SessionError> {
+        Ok(self.get_module(module_id)?.read().unwrap().proxy)
     }
 
-    fn set_module_proxy(&self, info: &ModuleId, proxy: usize) -> Result<(), SessionError> {
-        if let Some(module) = self.read().unwrap().modules.get(info.0) {
-            module.write().unwrap().proxy = proxy;
-            return Ok(());
-        }
+    fn set_module_proxy(&self, module_id: &ModuleId, proxy: usize) -> Result<(), SessionError> {
+        self.get_module(module_id)?.write().unwrap().proxy = proxy;
         Err(SessionError::InvalidModule)
     }
 
@@ -504,7 +476,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             session: Some(self.c()),
             id: ElementId {
                 location_id: location.clone(),
-                uid: element_uid,
+                uid: element_uid as u64,
             },
         }));
 
@@ -547,7 +519,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let new_uid = self.get_location(location)?.read().unwrap().elements.len();
         let last = info.read().unwrap().id.clone();
         let new = ElementId {
-            uid: new_uid,
+            uid: new_uid as u64,
             location_id: location.clone(),
         };
 
@@ -570,7 +542,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .write()
             .unwrap()
             .elements
-            .remove(element.uid);
+            .remove(element.uid as usize);
 
         let mut notifications = Vec::new();
         for (i, element) in self
@@ -583,12 +555,12 @@ impl TSession for Arc<RwLock<LocalSession>> {
         {
             let info = element.read().unwrap().info.clone();
             let last = info.read().unwrap().id.clone();
-            info.write().unwrap().id.uid = i;
+            info.write().unwrap().id.uid = i as u64;
 
             notifications.push(SessionEvent::ElementIdChanged(
                 last,
                 ElementId {
-                    uid: i,
+                    uid: i as u64,
                     location_id: info.read().unwrap().id.location_id.clone(),
                 },
             ));
@@ -996,7 +968,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn create_location(&self, name: &str, location: &LocationId) -> Result<LRef, SessionError> {
         let mut location_uid = location.clone();
-        location_uid.push(self.get_locations_len(location)?);
+        location_uid.push(self.get_locations_len(location)? as u64);
         let location_info = Arc::new(RwLock::new(RefLocation {
             session: Some(self.c()),
             id: location_uid,
@@ -1061,14 +1033,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
                 .write()
                 .unwrap()
                 .locations
-                .remove(location_index);
+                .remove(location_index as usize);
 
             let mut notifications = Vec::new();
             for (i, location) in parent_location.read().unwrap().locations.iter().enumerate() {
                 let info = location.read().unwrap().info.clone();
                 let last = info.id();
                 let mut new = last.clone();
-                *new.last_mut().unwrap() = i;
+                *new.last_mut().unwrap() = i as u64;
 
                 info.write().unwrap().id = new.clone();
 
@@ -1094,7 +1066,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     fn move_location(&self, location: &LocationId, to: &LocationId) -> Result<(), SessionError> {
         let location = self.destroy_location(location.clone())?;
         let mut new = to.clone();
-        new.push(self.get_locations_len(to)?);
+        new.push(self.get_locations_len(to)? as u64);
         let info = location.read().unwrap().info.clone();
         let last = info.read().unwrap().id.clone();
         location.write().unwrap().info.write().unwrap().id = new.clone();

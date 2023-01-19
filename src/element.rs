@@ -19,9 +19,13 @@ pub enum ElementNotify {
 
 impl_get_ref!(ElementNotify);
 
+#[cfg(feature = "zvariant")]
+use zvariant::Type;
+
+#[cfg_attr(feature = "zvariant", derive(Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ElementId {
-    pub uid: usize,
+    pub uid: u64,
     pub location_id: LocationId,
 }
 

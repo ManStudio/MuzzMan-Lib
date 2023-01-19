@@ -11,10 +11,11 @@ pub enum ControlFlow {
     Break,
 }
 
+#[cfg_attr(feature = "zvariant", derive(zvariant::Type))]
 #[derive(
     Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash,
 )]
-pub struct ModuleId(pub usize);
+pub struct ModuleId(pub u64);
 
 impl From<MRef> for ModuleId {
     fn from(value: MRef) -> Self {

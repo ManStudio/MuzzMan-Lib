@@ -50,11 +50,15 @@ pub enum WhereIsLocation {
     Local(LocalLocation),
 }
 
+#[cfg(feature = "zvariant")]
+use zvariant::Type;
+
+#[cfg_attr(feature = "zvariant", derive(Type))]
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct LocationId(pub Vec<usize>);
+pub struct LocationId(pub Vec<u64>);
 
 impl std::ops::Deref for LocationId {
-    type Target = Vec<usize>;
+    type Target = Vec<u64>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -68,9 +72,9 @@ impl std::ops::DerefMut for LocationId {
 }
 
 impl std::iter::IntoIterator for LocationId {
-    type Item = usize;
+    type Item = u64;
 
-    type IntoIter = std::vec::IntoIter<usize>;
+    type IntoIter = std::vec::IntoIter<u64>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
