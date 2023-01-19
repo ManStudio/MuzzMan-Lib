@@ -894,7 +894,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
             raw_module = __module.read().unwrap().module.c();
         }
 
-        raw_module.notify(ID::Element(element_info.clone()), event);
+        let element_ref = self.get_element_ref(element_info)?;
+        raw_module.notify(Ref::Element(element_ref), event);
 
         Ok(())
     }
@@ -1262,7 +1263,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
             raw_module = __module.read().unwrap().module.c();
         }
 
-        raw_module.notify(ID::Location(location_info.clone()), event);
+        let location_ref = self.get_location_ref(location_info)?;
+        raw_module.notify(Ref::Location(location_ref), event);
 
         Ok(())
     }

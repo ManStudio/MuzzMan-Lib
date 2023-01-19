@@ -84,7 +84,7 @@ pub trait TModule {
     fn init_location(&self, location: LRef, data: FileOrData);
     fn step_location(&self, location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage);
 
-    fn notify(&self, info: ID, event: Event);
+    fn notify(&self, info: Ref, event: Event);
 
     fn c(&self) -> Box<dyn TModule>;
 }
@@ -132,7 +132,7 @@ pub struct RawModule {
     fn_accept_extension: Symbol<'static, fn(&str) -> bool>,
     fn_accept_url: Symbol<'static, fn(Url) -> bool>,
 
-    fn_notify: Symbol<'static, fn(ID, Event)>,
+    fn_notify: Symbol<'static, fn(Ref, Event)>,
 }
 
 impl RawModule {
@@ -288,7 +288,7 @@ impl TModule for Arc<RawModule> {
         (*self.fn_init_location)(location, data)
     }
 
-    fn notify(&self, info: ID, event: Event) {
+    fn notify(&self, info: Ref, event: Event) {
         (*self.fn_notify)(info, event)
     }
 
