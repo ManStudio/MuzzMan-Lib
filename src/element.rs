@@ -8,8 +8,9 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::*;
+use bytes_kman::TBytes;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum ElementNotify {
     Complited,
     ModuleChanged(Option<ModuleId>),
@@ -19,7 +20,9 @@ pub enum ElementNotify {
 
 impl_get_ref!(ElementNotify);
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, bytes_kman::Bytes,
+)]
 pub struct ElementId {
     pub uid: u64,
     pub location_id: LocationId,
@@ -323,7 +326,7 @@ impl Common for ERef {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, bytes_kman::Bytes)]
 pub struct ElementInfo {
     pub name: String,
     pub desc: String,

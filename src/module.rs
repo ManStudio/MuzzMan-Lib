@@ -1,6 +1,7 @@
 use std::{fmt::Debug, path::Path, sync::Arc};
 
 use crate::prelude::*;
+use bytes_kman::TBytes;
 use libloading::{Library, Symbol};
 use serde::{Deserialize, Serialize};
 
@@ -12,7 +13,18 @@ pub enum ControlFlow {
 }
 
 #[derive(
-    Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash,
+    Default,
+    Debug,
+    Clone,
+    Copy,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    bytes_kman::Bytes,
 )]
 pub struct ModuleId(pub u64);
 
@@ -500,7 +512,7 @@ impl TModuleInfo for MRef {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub struct ModuleInfo {
     pub name: String,
     pub desc: String,

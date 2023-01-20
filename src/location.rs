@@ -1,8 +1,10 @@
+use bytes_kman::TBytes;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::net::{IpAddr, TcpStream};
 use std::ops::Range;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread::JoinHandle;
 
@@ -30,6 +32,46 @@ pub struct ServerLocation {
     pub conn: Option<Arc<Mutex<TcpStream>>>,
 }
 
+impl TBytes for ServerLocation {
+    fn size(&self) -> usize {
+        self.ip.to_string().size()
+            + self.port.size()
+            + self.indentification.size()
+            + self.server_cert.size()
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buff = Vec::with_capacity(self.size());
+
+        buff.append(&mut self.ip.to_string().to_bytes());
+        buff.append(&mut self.port.to_bytes());
+        buff.append(&mut self.indentification.to_bytes());
+        buff.append(&mut self.server_cert.to_bytes());
+
+        buff
+    }
+
+    fn from_bytes(buffer: &mut Vec<u8>) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        let ip = String::from_bytes(buffer)?;
+        let port = u16::from_bytes(buffer)?;
+        let indentification = String::from_bytes(buffer)?;
+        let server_cert = <Option<String>>::from_bytes(buffer)?;
+
+        let ip = IpAddr::from_str(&ip).unwrap();
+
+        Some(Self {
+            ip,
+            port,
+            indentification,
+            server_cert,
+            conn: None,
+        })
+    }
+}
+
 impl Hash for ServerLocation {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.ip.hash(state);
@@ -39,18 +81,30 @@ impl Hash for ServerLocation {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub struct LocalLocation {
     pub path: PathBuf,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub enum WhereIsLocation {
     Server(ServerLocation),
     Local(LocalLocation),
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Default,
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    bytes_kman::Bytes,
+)]
 pub struct LocationId(pub Vec<u64>);
 
 impl std::ops::Deref for LocationId {
@@ -274,7 +328,7 @@ pub trait TLocation {
     fn id(&self) -> LocationId;
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Hash)]
+#[derive(Clone, Debug, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub struct LocationInfo {
     pub name: String,
     pub desc: String,

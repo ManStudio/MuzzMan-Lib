@@ -3,6 +3,26 @@
 version = 3
 
 [[package]]
+name = "bytes-kman"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "134a8df35d187d855746448034b8d8a0555f3e8fcd1c87ade41e8e417e353d73"
+dependencies = [
+ "bytes-kman-derive",
+]
+
+[[package]]
+name = "bytes-kman-derive"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "033ccf35e8d2892d12ae2fd92ee58fc3d1936c9e78aeb07a3b38ecef2bb4f59e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -64,6 +84,7 @@ dependencies = [
 name = "muzzman-lib"
 version = "0.3.0"
 dependencies = [
+ "bytes-kman",
  "get_ref",
  "libloading",
  "muzzman-lib-macros 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",

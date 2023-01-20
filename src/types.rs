@@ -1,11 +1,12 @@
 use std::{
-    any::Any,
     collections::HashMap,
     fmt::{Debug, Display},
     hash::Hash,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
+
+use bytes_kman::TBytes;
 
 pub type LRef = Arc<RwLock<RefLocation>>;
 pub type ERef = Arc<RwLock<RefElement>>;
@@ -15,7 +16,7 @@ pub type LRow = Arc<RwLock<Location>>;
 pub type ERow = Arc<RwLock<Element>>;
 pub type MRow = Arc<RwLock<Module>>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bytes_kman::Bytes)]
 pub enum ID {
     Element(ElementId),
     Location(LocationId),
@@ -62,7 +63,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum Type {
     U8(u8),
     U16(u16),
@@ -89,8 +90,6 @@ pub enum Type {
     HashMapS(HashMap<String, Type>),
     // HashMap(HashMap<Type, Type>),
     FileOrData(FileOrData),
-    #[serde(skip)]
-    Any(Arc<RwLock<Box<dyn Any>>>),
     CustomEnum(CustomEnum),
     AdvancedEnum(AdvanceEnum),
     // Fields(Box<dyn Fields>),
@@ -132,7 +131,6 @@ impl Hash for Type {
                 }
             }
             Type::FileOrData(ford) => ford.hash(state),
-            Type::Any(_) => 21.hash(state),
             Type::CustomEnum(e) => e.hash(state),
             Type::AdvancedEnum(e) => e.hash(state),
             Type::Vec(v) => v.hash(state),
@@ -170,7 +168,6 @@ impl Type {
                 HashMapS(Box::new(ty.1.to_tag()))
             }
             Type::FileOrData(_) => FileOrData,
-            Type::Any(_) => TypeTag::Any,
             Type::CustomEnum(e) => CustomEnum(e.clone()),
             Type::AdvancedEnum(e) => AdvancedEnum(e.clone()),
             Type::Vec(v) => {
@@ -233,7 +230,6 @@ impl Display for Type {
                 ),
                 FileOrData::Bytes(b) => b.fmt(f),
             },
-            Type::Any(_) => f.write_str("Any"),
             Type::CustomEnum(e) => {
                 if let Some(e) = e.get_active() {
                     f.write_str(&e)
@@ -550,7 +546,7 @@ impl TryInto<String> for Type {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub enum TypeTag {
     U8,
     U16,
@@ -623,7 +619,7 @@ impl Display for TypeTag {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub enum TypeValidation {
     Range(usize, usize),
 }

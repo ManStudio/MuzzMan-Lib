@@ -2,9 +2,10 @@
 
 use std::{collections::HashMap, hash::Hash};
 
+use bytes_kman::TBytes;
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize, bytes_kman::Bytes)]
 pub struct CustomEnum {
     data: Vec<String>,
     pub active: Option<usize>,
@@ -119,7 +120,7 @@ mod test_custom_enum {
     }
 }
 
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize, bytes_kman::Bytes)]
 pub struct AdvanceEnum {
     pub data: HashMap<String, bool>,
 }
