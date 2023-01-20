@@ -11,7 +11,7 @@ pub enum SessionError {
     ElementDoNotExist,
     InsufficientPermissions,
     InvalidLocation,
-    ServerTimeOut(RefLocation),
+    ServerTimeOut,
     CannotConnectToServer,
     ServerInvalidIndentification,
     InvalidElementStatus,
