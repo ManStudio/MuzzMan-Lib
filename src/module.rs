@@ -11,7 +11,6 @@ pub enum ControlFlow {
     Break,
 }
 
-#[cfg_attr(feature = "zvariant", derive(zvariant::Type))]
 #[derive(
     Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash,
 )]

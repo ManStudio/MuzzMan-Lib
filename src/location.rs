@@ -10,10 +10,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum LocationNotify {
     ElementNotify(usize, ElementNotify),
-    ModuleChanged(Option<MRef>),
+    ModuleChanged(Option<ModuleId>),
     ElementsAllCompleted,
     Completed,
 }
@@ -50,10 +50,6 @@ pub enum WhereIsLocation {
     Local(LocalLocation),
 }
 
-#[cfg(feature = "zvariant")]
-use zvariant::Type;
-
-#[cfg_attr(feature = "zvariant", derive(Type))]
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LocationId(pub Vec<u64>);
 

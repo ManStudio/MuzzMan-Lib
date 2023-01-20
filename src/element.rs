@@ -9,20 +9,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ElementNotify {
     Complited,
-    ModuleChanged(Option<MRef>),
+    ModuleChanged(Option<ModuleId>),
     StatusChanged(usize),
     Progress(f32),
 }
 
 impl_get_ref!(ElementNotify);
 
-#[cfg(feature = "zvariant")]
-use zvariant::Type;
-
-#[cfg_attr(feature = "zvariant", derive(Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ElementId {
     pub uid: u64,
