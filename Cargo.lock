@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "bytes-kman"
-version = "0.1.14"
+version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "134a8df35d187d855746448034b8d8a0555f3e8fcd1c87ade41e8e417e353d73"
+checksum = "8d0b36fc4fe2316db53422a9392d8e95367f36e0b26f1c9be8d0745062aad850"
 dependencies = [
  "bytes-kman-derive",
 ]
