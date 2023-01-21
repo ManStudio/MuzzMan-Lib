@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+use bytes_kman::TBytes;
+
+#[derive(Clone, Debug, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum SessionError {
     InvalidSession,
     ElementDoNotExist,

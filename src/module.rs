@@ -117,7 +117,7 @@ impl Clone for Box<dyn TModule> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum RawLibraryError {
     NotFound,
     DontHaveSymbolGetName,
