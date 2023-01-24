@@ -13,11 +13,12 @@ pub struct LocalSession {
     pub location: Option<LRow>,
     pub modules: Vec<MRow>,
     pub actions: Vec<Arc<RwLock<Action>>>,
+    pub callback: Option<fn(SessionEvent)>,
 }
 
 impl LocalSession {
-    pub fn new_session() -> Box<dyn TSession> {
-        let session = Self::default();
+    pub fn new_session(self) -> Box<dyn TSession> {
+        let session = self;
 
         let session = Arc::new(RwLock::new(session));
 
@@ -150,6 +151,10 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
             for element in location.get_elements(0..len)? {
                 let _ = element.notify(Event::SessionEvent(event.clone()));
             }
+        }
+
+        if let Some(callback) = &self.read().unwrap().callback {
+            callback(event)
         }
 
         Ok(())
