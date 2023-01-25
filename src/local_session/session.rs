@@ -13,7 +13,7 @@ pub struct LocalSession {
     pub location: Option<LRow>,
     pub modules: Vec<MRow>,
     pub actions: Vec<Arc<RwLock<Action>>>,
-    pub callback: Option<fn(SessionEvent)>,
+    pub callback: Option<Box<dyn Fn(SessionEvent)>>,
 }
 
 impl LocalSession {
