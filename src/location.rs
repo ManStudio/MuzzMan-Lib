@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum LocationNotify {
     ElementNotify(usize, ElementNotify),
     ModuleChanged(Option<ModuleId>),

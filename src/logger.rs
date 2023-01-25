@@ -11,7 +11,9 @@ use crate::{
     types::ID,
 };
 
-#[derive(Clone, Debug)]
+use bytes_kman::TBytes;
+
+#[derive(Clone, Debug, bytes_kman::Bytes)]
 pub enum Log {
     Info(String),
     Warning(String),

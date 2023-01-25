@@ -1,6 +1,7 @@
 use std::time::SystemTime;
 
 use crate::prelude::*;
+use bytes_kman::TBytes;
 
 #[derive(Default, Clone, Debug)]
 pub struct Events {
@@ -10,7 +11,7 @@ pub struct Events {
     pub subscribers: Vec<ID>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, bytes_kman::Bytes)]
 pub enum SessionEvent {
     NewElement(ElementId),
     NewLocation(LocationId),
@@ -26,7 +27,7 @@ pub enum SessionEvent {
     ModuleIdChanged(ModuleId, ModuleId),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, bytes_kman::Bytes)]
 pub enum Event {
     Element(ElementId, ElementNotify),
     Location(LocationId, LocationNotify),
