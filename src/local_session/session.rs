@@ -301,46 +301,46 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(modules)
     }
 
-    fn get_module_name(&self, module_id: &ModuleId) -> Result<String, SessionError> {
+    fn module_get_name(&self, module_id: &ModuleId) -> Result<String, SessionError> {
         Ok(self.get_module(module_id)?.read().unwrap().name.clone())
     }
 
-    fn set_module_name(&self, module_id: &ModuleId, name: String) -> Result<(), SessionError> {
+    fn module_set_name(&self, module_id: &ModuleId, name: String) -> Result<(), SessionError> {
         self.get_module(module_id)?.write().unwrap().name = name;
         Ok(())
     }
 
-    fn default_module_name(&self, module_id: &ModuleId) -> Result<(), SessionError> {
+    fn module_get_default_name(&self, module_id: &ModuleId) -> Result<(), SessionError> {
         let module = self.get_module(module_id)?;
         module.write().unwrap().name = module.read().unwrap().module.get_name();
         Ok(())
     }
 
-    fn get_module_desc(&self, module_id: &ModuleId) -> Result<String, SessionError> {
+    fn module_get_desc(&self, module_id: &ModuleId) -> Result<String, SessionError> {
         Ok(self.get_module(module_id)?.read().unwrap().desc.clone())
     }
 
-    fn set_module_desc(&self, module_id: &ModuleId, desc: String) -> Result<(), SessionError> {
+    fn module_set_desc(&self, module_id: &ModuleId, desc: String) -> Result<(), SessionError> {
         self.get_module(module_id)?.write().unwrap().desc = desc;
         Ok(())
     }
 
-    fn default_module_desc(&self, module_id: &ModuleId) -> Result<(), SessionError> {
+    fn module_get_default_desc(&self, module_id: &ModuleId) -> Result<(), SessionError> {
         let module = self.get_module(module_id)?;
         module.write().unwrap().desc = module.read().unwrap().module.get_desc();
         Ok(())
     }
 
-    fn get_module_proxy(&self, module_id: &ModuleId) -> Result<usize, SessionError> {
+    fn module_get_proxy(&self, module_id: &ModuleId) -> Result<usize, SessionError> {
         Ok(self.get_module(module_id)?.read().unwrap().proxy)
     }
 
-    fn set_module_proxy(&self, module_id: &ModuleId, proxy: usize) -> Result<(), SessionError> {
+    fn module_set_proxy(&self, module_id: &ModuleId, proxy: usize) -> Result<(), SessionError> {
         self.get_module(module_id)?.write().unwrap().proxy = proxy;
         Err(SessionError::InvalidModule)
     }
 
-    fn get_module_settings(&self, module_info: &ModuleId) -> Result<Data, SessionError> {
+    fn module_get_settings(&self, module_info: &ModuleId) -> Result<Data, SessionError> {
         Ok(self
             .get_module(module_info)?
             .read()
@@ -349,12 +349,12 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .clone())
     }
 
-    fn set_module_settings(&self, module_info: &ModuleId, data: Data) -> Result<(), SessionError> {
+    fn module_set_settings(&self, module_info: &ModuleId, data: Data) -> Result<(), SessionError> {
         self.get_module(module_info)?.write().unwrap().settings = data;
         Ok(())
     }
 
-    fn get_module_element_settings(&self, module_info: &ModuleId) -> Result<Data, SessionError> {
+    fn module_get_element_settings(&self, module_info: &ModuleId) -> Result<Data, SessionError> {
         Ok(self
             .get_module(module_info)?
             .read()
@@ -363,7 +363,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .clone())
     }
 
-    fn set_module_element_settings(
+    fn module_set_element_settings(
         &self,
         module_info: &ModuleId,
         data: Data,

@@ -58,22 +58,22 @@ pub trait TSession {
     fn get_modules_len(&self) -> Result<usize, SessionError>;
     fn get_modules(&self, range: Range<usize>) -> Result<Vec<MRef>, SessionError>;
 
-    fn get_module_name(&self, module_id: &ModuleId) -> Result<String, SessionError>;
-    fn set_module_name(&self, module_id: &ModuleId, name: String) -> Result<(), SessionError>;
-    fn default_module_name(&self, module_id: &ModuleId) -> Result<(), SessionError>;
+    fn module_get_name(&self, module_id: &ModuleId) -> Result<String, SessionError>;
+    fn module_set_name(&self, module_id: &ModuleId, name: String) -> Result<(), SessionError>;
+    fn module_get_default_name(&self, module_id: &ModuleId) -> Result<(), SessionError>;
 
-    fn get_module_desc(&self, module_id: &ModuleId) -> Result<String, SessionError>;
-    fn set_module_desc(&self, module_id: &ModuleId, desc: String) -> Result<(), SessionError>;
-    fn default_module_desc(&self, module_id: &ModuleId) -> Result<(), SessionError>;
+    fn module_get_desc(&self, module_id: &ModuleId) -> Result<String, SessionError>;
+    fn module_set_desc(&self, module_id: &ModuleId, desc: String) -> Result<(), SessionError>;
+    fn module_get_default_desc(&self, module_id: &ModuleId) -> Result<(), SessionError>;
 
-    fn get_module_proxy(&self, module_id: &ModuleId) -> Result<usize, SessionError>;
-    fn set_module_proxy(&self, module_id: &ModuleId, proxy: usize) -> Result<(), SessionError>;
+    fn module_get_proxy(&self, module_id: &ModuleId) -> Result<usize, SessionError>;
+    fn module_set_proxy(&self, module_id: &ModuleId, proxy: usize) -> Result<(), SessionError>;
 
-    fn get_module_settings(&self, module_id: &ModuleId) -> Result<Data, SessionError>;
-    fn set_module_settings(&self, module_id: &ModuleId, data: Data) -> Result<(), SessionError>;
+    fn module_get_settings(&self, module_id: &ModuleId) -> Result<Data, SessionError>;
+    fn module_set_settings(&self, module_id: &ModuleId, data: Data) -> Result<(), SessionError>;
 
-    fn get_module_element_settings(&self, module_id: &ModuleId) -> Result<Data, SessionError>;
-    fn set_module_element_settings(
+    fn module_get_element_settings(&self, module_id: &ModuleId) -> Result<Data, SessionError>;
+    fn module_set_element_settings(
         &self,
         module_id: &ModuleId,
         data: Data,

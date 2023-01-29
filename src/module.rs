@@ -389,53 +389,53 @@ impl TModuleInfo for MRef {
     }
 
     fn get_name(&self) -> Result<String, SessionError> {
-        return self.get_session()?.get_module_name(&self.id());
+        return self.get_session()?.module_get_name(&self.id());
     }
 
     fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.set_module_name(&self.id(), name.into())
+        self.get_session()?.module_set_name(&self.id(), name.into())
     }
 
     fn set_default_name(&self) -> Result<(), SessionError> {
-        self.get_session()?.default_module_name(&self.id())
+        self.get_session()?.module_get_default_name(&self.id())
     }
 
     fn get_desc(&self) -> Result<String, SessionError> {
-        self.get_session()?.get_module_desc(&self.id())
+        self.get_session()?.module_get_desc(&self.id())
     }
 
     fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.set_module_desc(&self.id(), desc.into())
+        self.get_session()?.module_set_desc(&self.id(), desc.into())
     }
 
     fn set_default_desc(&self) -> Result<(), SessionError> {
-        self.get_session()?.default_module_desc(&self.id())
+        self.get_session()?.module_get_default_desc(&self.id())
     }
 
     fn get_proxy(&self) -> Result<usize, SessionError> {
-        self.get_session()?.get_module_proxy(&self.id())
+        self.get_session()?.module_get_proxy(&self.id())
     }
 
     fn set_proxy(&self, proxy: usize) -> Result<(), SessionError> {
-        self.get_session()?.set_module_proxy(&self.id(), proxy)
+        self.get_session()?.module_set_proxy(&self.id(), proxy)
     }
 
     fn get_settings(&self) -> Result<Data, SessionError> {
-        self.get_session()?.get_module_settings(&self.id())
+        self.get_session()?.module_get_settings(&self.id())
     }
 
     fn set_settings(&self, settings: Data) -> Result<(), SessionError> {
         self.get_session()?
-            .set_module_settings(&self.id(), settings)
+            .module_set_settings(&self.id(), settings)
     }
 
     fn get_element_settings(&self) -> Result<Data, SessionError> {
-        self.get_session()?.get_module_element_settings(&self.id())
+        self.get_session()?.module_get_element_settings(&self.id())
     }
 
     fn set_element_settings(&self, settings: Data) -> Result<(), SessionError> {
         self.get_session()?
-            .set_module_element_settings(&self.id(), settings)
+            .module_set_element_settings(&self.id(), settings)
     }
 
     fn register_action(
