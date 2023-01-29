@@ -83,7 +83,7 @@ impl TLogger for Logger {
         let data: String = data.into();
 
         if let Some(dst) = &self.dst {
-            let _ = write!(dst.lock().unwrap(), "Info: {}", data);
+            let _ = write!(dst.lock().unwrap(), "Info: {data}");
         }
 
         self.logs.push(Log::Info(data));
@@ -97,7 +97,7 @@ impl TLogger for Logger {
         let data: String = data.into();
 
         if let Some(dst) = &self.dst {
-            let _ = write!(dst.lock().unwrap(), "Warning: {}", data);
+            let _ = write!(dst.lock().unwrap(), "Warning: {data}");
         }
 
         self.logs.push(Log::Warning(data));
@@ -111,7 +111,7 @@ impl TLogger for Logger {
         let data: String = data.into();
 
         if let Some(dst) = &self.dst {
-            let _ = write!(dst.lock().unwrap(), "Error: {}", data);
+            let _ = write!(dst.lock().unwrap(), "Error: {data}");
         }
 
         self.logs.push(Log::Error(data));

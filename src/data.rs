@@ -236,7 +236,7 @@ impl Data {
             }
 
             if !has_correct_type {
-                let mut buff = format!("`{}` should be: ", key);
+                let mut buff = format!("`{key}` should be: ");
                 for (i, should_be) in value.should_be.iter().enumerate() {
                     if i > 0 {
                         buff.push(',');

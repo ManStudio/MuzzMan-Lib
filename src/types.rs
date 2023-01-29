@@ -207,14 +207,14 @@ impl Display for Type {
             Type::HashMapSS(v) => {
                 let mut buff = String::new();
                 for (k, v) in v.iter() {
-                    buff.push_str(&format!("{}: {}", k, v));
+                    buff.push_str(&format!("{k}: {v}"));
                 }
                 f.write_str(&buff)
             }
             Type::HashMapS(v) => {
                 let mut buff = String::new();
                 for (k, v) in v.iter() {
-                    buff.push_str(&format!("{}: {}", k, v));
+                    buff.push_str(&format!("{k}: {v}"));
                 }
                 f.write_str(&buff)
             }
@@ -607,12 +607,12 @@ impl Display for TypeTag {
             TypeTag::Url => "url",
             TypeTag::Path => "path",
             TypeTag::HashMapSS => "hashmap_string_string",
-            TypeTag::HashMapS(h) => return write!(f, "hashmap_string({})", h),
+            TypeTag::HashMapS(h) => return write!(f, "hashmap_string({h})"),
             TypeTag::FileOrData => "file_or_data",
             TypeTag::Any => "any",
             TypeTag::CustomEnum(_) => "custom_enum",
             TypeTag::AdvancedEnum(_) => "advanced_enum",
-            TypeTag::Vec(v) => return write!(f, "vec({})", v),
+            TypeTag::Vec(v) => return write!(f, "vec({v})"),
             TypeTag::Bytes => "bytes",
             TypeTag::None => "none",
         })
