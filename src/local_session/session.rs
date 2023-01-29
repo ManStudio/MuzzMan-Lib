@@ -310,10 +310,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(())
     }
 
-    fn module_get_default_name(&self, module_id: &ModuleId) -> Result<(), SessionError> {
+    fn module_get_default_name(&self, module_id: &ModuleId) -> Result<String, SessionError> {
         let module = self.get_module(module_id)?;
-        module.write().unwrap().name = module.read().unwrap().module.get_name();
-        Ok(())
+        let name = module.read().unwrap().module.get_name();
+        Ok(name)
     }
 
     fn module_get_desc(&self, module_id: &ModuleId) -> Result<String, SessionError> {
@@ -325,10 +325,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(())
     }
 
-    fn module_get_default_desc(&self, module_id: &ModuleId) -> Result<(), SessionError> {
+    fn module_get_default_desc(&self, module_id: &ModuleId) -> Result<String, SessionError> {
         let module = self.get_module(module_id)?;
-        module.write().unwrap().desc = module.read().unwrap().module.get_desc();
-        Ok(())
+        let desc = module.read().unwrap().module.get_desc();
+        Ok(desc)
     }
 
     fn module_get_proxy(&self, module_id: &ModuleId) -> Result<usize, SessionError> {

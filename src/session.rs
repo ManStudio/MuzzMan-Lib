@@ -60,11 +60,11 @@ pub trait TSession {
 
     fn module_get_name(&self, module_id: &ModuleId) -> Result<String, SessionError>;
     fn module_set_name(&self, module_id: &ModuleId, name: String) -> Result<(), SessionError>;
-    fn module_get_default_name(&self, module_id: &ModuleId) -> Result<(), SessionError>;
+    fn module_get_default_name(&self, module_id: &ModuleId) -> Result<String, SessionError>;
 
     fn module_get_desc(&self, module_id: &ModuleId) -> Result<String, SessionError>;
     fn module_set_desc(&self, module_id: &ModuleId, desc: String) -> Result<(), SessionError>;
-    fn module_get_default_desc(&self, module_id: &ModuleId) -> Result<(), SessionError>;
+    fn module_get_default_desc(&self, module_id: &ModuleId) -> Result<String, SessionError>;
 
     fn module_get_proxy(&self, module_id: &ModuleId) -> Result<usize, SessionError>;
     fn module_set_proxy(&self, module_id: &ModuleId, proxy: usize) -> Result<(), SessionError>;

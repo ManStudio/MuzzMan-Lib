@@ -328,11 +328,11 @@ pub trait TModuleInfo {
 
     fn get_name(&self) -> Result<String, SessionError>;
     fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError>;
-    fn set_default_name(&self) -> Result<(), SessionError>;
+    fn get_default_name(&self) -> Result<String, SessionError>;
 
     fn get_desc(&self) -> Result<String, SessionError>;
     fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError>;
-    fn set_default_desc(&self) -> Result<(), SessionError>;
+    fn get_default_desc(&self) -> Result<String, SessionError>;
 
     fn get_proxy(&self) -> Result<usize, SessionError>;
     fn set_proxy(&self, proxy: usize) -> Result<(), SessionError>;
@@ -396,7 +396,7 @@ impl TModuleInfo for MRef {
         self.get_session()?.module_set_name(&self.id(), name.into())
     }
 
-    fn set_default_name(&self) -> Result<(), SessionError> {
+    fn get_default_name(&self) -> Result<String, SessionError> {
         self.get_session()?.module_get_default_name(&self.id())
     }
 
@@ -408,7 +408,7 @@ impl TModuleInfo for MRef {
         self.get_session()?.module_set_desc(&self.id(), desc.into())
     }
 
-    fn set_default_desc(&self) -> Result<(), SessionError> {
+    fn get_default_desc(&self) -> Result<String, SessionError> {
         self.get_session()?.module_get_default_desc(&self.id())
     }
 
