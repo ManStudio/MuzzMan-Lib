@@ -355,15 +355,15 @@ pub trait TModuleInfo {
     fn step_element(
         &self,
         element_info: &ElementId,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError>;
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError>;
     fn step_location(
         &self,
         location_info: &LocationId,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError>;
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError>;
 
     fn accept_url(&self, url: Url) -> Result<bool, SessionError>;
     fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError>;
@@ -459,9 +459,9 @@ impl TModuleInfo for MRef {
     fn step_element(
         &self,
         element_info: &ElementId,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError> {
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError> {
         self.get_session()?
             .module_step_element(&self.id(), element_info, control_flow, storage)
     }
@@ -469,9 +469,9 @@ impl TModuleInfo for MRef {
     fn step_location(
         &self,
         location_info: &LocationId,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError> {
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError> {
         self.get_session()?
             .module_step_location(&self.id(), location_info, control_flow, storage)
     }

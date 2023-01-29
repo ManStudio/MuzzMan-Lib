@@ -441,9 +441,9 @@ impl TSession for Arc<RwLock<LocalSession>> {
         &self,
         module_info: &ModuleId,
         element_info: &ElementId,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError> {
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError> {
         let module;
         {
             let m = self.get_module(module_info)?;
@@ -452,17 +452,20 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         let element = self.get_element(element_info)?;
 
-        module.step_element(element, control_flow, storage);
-        Ok(())
+        let mut control_flow = control_flow;
+        let mut storage = storage;
+
+        module.step_element(element, &mut control_flow, &mut storage);
+        Ok((control_flow, storage))
     }
 
     fn module_step_location(
         &self,
         module_info: &ModuleId,
         location_info: &LocationId,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError> {
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError> {
         let module;
         {
             let m = self.get_module(module_info)?;
@@ -471,8 +474,11 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         let location = self.get_location(location_info)?;
 
-        module.step_location(location, control_flow, storage);
-        Ok(())
+        let mut control_flow = control_flow;
+        let mut storage = storage;
+
+        module.step_location(location, &mut control_flow, &mut storage);
+        Ok((control_flow, storage))
     }
 
     fn create_element(&self, name: &str, location: &LocationId) -> Result<ERef, SessionError> {
@@ -759,11 +765,11 @@ impl TSession for Arc<RwLock<LocalSession>> {
                         continue;
                     }
                     if let Some(module) = module {
-                        module
+                        (control_flow, storage) = module
                             .step_element(
                                 &element_info.read().unwrap().id.clone(),
-                                &mut control_flow,
-                                &mut storage,
+                                control_flow,
+                                storage,
                             )
                             .unwrap();
                     }

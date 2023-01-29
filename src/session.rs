@@ -104,17 +104,17 @@ pub trait TSession {
         &self,
         module_id: &ModuleId,
         element_id: &ElementId,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError>;
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError>;
 
     fn module_step_location(
         &self,
         module_id: &ModuleId,
         location_id: &LocationId,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError>;
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError>;
 
     //
     // End Module
