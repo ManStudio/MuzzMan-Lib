@@ -1,8 +1,10 @@
+use bytes_kman::TBytes;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::net::{IpAddr, TcpStream};
 use std::ops::Range;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread::JoinHandle;
 
@@ -10,10 +12,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum LocationNotify {
     ElementNotify(usize, ElementNotify),
-    ModuleChanged(Option<MRef>),
+    ModuleChanged(Option<ModuleId>),
     ElementsAllCompleted,
     Completed,
 }
@@ -30,6 +32,46 @@ pub struct ServerLocation {
     pub conn: Option<Arc<Mutex<TcpStream>>>,
 }
 
+impl TBytes for ServerLocation {
+    fn size(&self) -> usize {
+        self.ip.to_string().size()
+            + self.port.size()
+            + self.indentification.size()
+            + self.server_cert.size()
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buff = Vec::with_capacity(self.size());
+
+        buff.append(&mut self.ip.to_string().to_bytes());
+        buff.append(&mut self.port.to_bytes());
+        buff.append(&mut self.indentification.to_bytes());
+        buff.append(&mut self.server_cert.to_bytes());
+
+        buff
+    }
+
+    fn from_bytes(buffer: &mut Vec<u8>) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        let ip = String::from_bytes(buffer)?;
+        let port = u16::from_bytes(buffer)?;
+        let indentification = String::from_bytes(buffer)?;
+        let server_cert = <Option<String>>::from_bytes(buffer)?;
+
+        let ip = IpAddr::from_str(&ip).unwrap();
+
+        Some(Self {
+            ip,
+            port,
+            indentification,
+            server_cert,
+            conn: None,
+        })
+    }
+}
+
 impl Hash for ServerLocation {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.ip.hash(state);
@@ -39,28 +81,76 @@ impl Hash for ServerLocation {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub struct LocalLocation {
     pub path: PathBuf,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub enum WhereIsLocation {
     Server(ServerLocation),
     Local(LocalLocation),
+}
+
+#[derive(
+    Default,
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    bytes_kman::Bytes,
+)]
+pub struct LocationId(pub Vec<u64>);
+
+impl std::ops::Deref for LocationId {
+    type Target = Vec<u64>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for LocationId {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl std::iter::IntoIterator for LocationId {
+    type Item = u64;
+
+    type IntoIter = std::vec::IntoIter<u64>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl LocationId {
+    pub fn into_ref(self, session: Box<dyn TSession>) -> RefLocation {
+        RefLocation {
+            session: Some(session),
+            id: self,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct RefLocation {
     #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
-    pub uid: Vec<usize>,
+    pub id: LocationId,
 }
 
 impl Debug for RefLocation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LocatioInfo")
-            .field("uid", &self.uid)
+            .field("uid", &self.id)
             .finish()
     }
 }
@@ -68,7 +158,7 @@ impl Debug for RefLocation {
 impl Clone for RefLocation {
     fn clone(&self) -> Self {
         Self {
-            uid: self.uid.clone(),
+            id: self.id.clone(),
             session: if let Some(session) = &self.session {
                 Some(session.c())
             } else {
@@ -80,7 +170,7 @@ impl Clone for RefLocation {
 
 impl PartialEq for RefLocation {
     fn eq(&self, other: &Self) -> bool {
-        self.uid.eq(&other.uid)
+        self.id.eq(&other.id)
     }
 }
 
@@ -108,98 +198,105 @@ impl TLocation for LRef {
     }
 
     fn get_path(&self) -> Result<PathBuf, SessionError> {
-        self.get_session()?.location_get_path(self)
+        self.get_session()?.location_get_path(&self.id())
     }
 
     fn set_path(&self, path: PathBuf) -> Result<(), SessionError> {
-        self.get_session()?.location_set_path(self, path)
+        self.get_session()?.location_set_path(&self.id(), path)
     }
 
     fn get_where_is(&self) -> Result<WhereIsLocation, SessionError> {
-        self.get_session()?.location_get_where_is(self)
+        self.get_session()?.location_get_where_is(&self.id())
     }
 
     fn set_where_is(&self, where_is: WhereIsLocation) -> Result<(), SessionError> {
-        self.get_session()?.location_set_where_is(self, where_is)
+        self.get_session()?
+            .location_set_where_is(&self.id(), where_is)
     }
 
     fn get_should_save(&self) -> Result<bool, SessionError> {
-        self.get_session()?.location_get_should_save(self)
+        self.get_session()?.location_get_should_save(&self.id())
     }
 
     fn set_should_save(&self, should_save: bool) -> Result<(), SessionError> {
         self.get_session()?
-            .location_set_should_save(self, should_save)
+            .location_set_should_save(&self.id(), should_save)
     }
 
     fn get_elements(&self, range: Range<usize>) -> Result<Vec<ERef>, SessionError> {
-        self.get_session()?.location_get_elements(self, range)
+        self.get_session()?.location_get_elements(&self.id(), range)
     }
 
     fn get_elements_len(&self) -> Result<usize, SessionError> {
-        self.get_session()?.location_get_elements_len(self)
+        self.get_session()?.location_get_elements_len(&self.id())
     }
 
     fn get_locations(&self, range: Range<usize>) -> Result<Vec<LRef>, SessionError> {
-        self.get_session()?.get_locations(self, range)
+        self.get_session()?.get_locations(&self.id(), range)
     }
 
     fn get_locations_len(&self) -> Result<usize, SessionError> {
-        self.get_session()?.get_locations_len(self)
+        self.get_session()?.get_locations_len(&self.id())
     }
 
     fn get_location_info(&self) -> Result<LocationInfo, SessionError> {
-        self.get_session()?.location_get_location_info(self)
+        self.get_session()?.location_get_location_info(&self.id())
     }
 
     fn create_element(&self, name: &str) -> Result<ERef, SessionError> {
-        self.get_session()?.create_element(name, self)
+        self.get_session()?.create_element(name, &self.id())
     }
 
     fn create_location(&self, name: &str) -> Result<LRef, SessionError> {
-        self.get_session()?.create_location(name, self)
+        self.get_session()?.create_location(name, &self.id())
     }
 
     fn destroy(self) -> Result<LRow, SessionError> {
-        self.get_session()?.destroy_location(self)
+        self.get_session()?.destroy_location(self.id())
     }
 
-    fn _move(&self, to: &LRef) -> Result<(), SessionError> {
-        self.get_session()?.move_location(self, to)
+    fn _move(&self, to: &LocationId) -> Result<(), SessionError> {
+        self.get_session()?.move_location(&self.id(), to)
+    }
+
+    fn id(&self) -> LocationId {
+        self.read().unwrap().id.clone()
     }
 }
 
 impl Common for LRef {
     fn get_name(&self) -> Result<String, SessionError> {
-        self.get_session()?.location_get_name(self)
+        self.get_session()?.location_get_name(&self.id())
     }
 
     fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.location_set_name(self, &name.into())
+        self.get_session()?
+            .location_set_name(&self.id(), &name.into())
     }
 
     fn get_desc(&self) -> Result<String, SessionError> {
-        self.get_session()?.location_get_desc(self)
+        self.get_session()?.location_get_desc(&self.id())
     }
 
     fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.location_set_desc(self, &desc.into())
+        self.get_session()?
+            .location_set_desc(&self.id(), &desc.into())
     }
 
     fn notify(&self, event: Event) -> Result<(), SessionError> {
-        self.get_session()?.location_notify(self, event)
+        self.get_session()?.location_notify(&self.id(), event)
     }
 
     fn emit(&self, event: Event) -> Result<(), SessionError> {
-        self.get_session()?.location_emit(self, event)
+        self.get_session()?.location_emit(&self.id(), event)
     }
 
-    fn subscribe(&self, _ref: Ref) -> Result<(), SessionError> {
-        self.get_session()?.location_subscribe(self, _ref)
+    fn subscribe(&self, _ref: ID) -> Result<(), SessionError> {
+        self.get_session()?.location_subscribe(&self.id(), _ref)
     }
 
-    fn unsubscribe(&self, _ref: Ref) -> Result<(), SessionError> {
-        self.get_session()?.location_unsubscribe(self, _ref)
+    fn unsubscribe(&self, _ref: ID) -> Result<(), SessionError> {
+        self.get_session()?.location_unsubscribe(&self.id(), _ref)
     }
 }
 
@@ -226,15 +323,17 @@ pub trait TLocation {
     fn create_location(&self, name: &str) -> Result<LRef, SessionError>;
 
     fn destroy(self) -> Result<LRow, SessionError>;
-    fn _move(&self, to: &LRef) -> Result<(), SessionError>;
+    fn _move(&self, to: &LocationId) -> Result<(), SessionError>;
+
+    fn id(&self) -> LocationId;
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Hash)]
+#[derive(Clone, Debug, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub struct LocationInfo {
     pub name: String,
     pub desc: String,
     // hash
-    pub id: u64,
+    pub id: LocationId,
     pub where_is: WhereIsLocation,
     pub shoud_save: bool,
     pub elements: Vec<ElementInfo>,

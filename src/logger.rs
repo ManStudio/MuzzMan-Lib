@@ -8,10 +8,12 @@ use crate::{
     common::Common,
     events::Event,
     prelude::{ERef, LRef},
-    types::Ref,
+    types::ID,
 };
 
-#[derive(Clone, Debug)]
+use bytes_kman::TBytes;
+
+#[derive(Clone, Debug, bytes_kman::Bytes)]
 pub enum Log {
     Info(String),
     Warning(String),
@@ -29,6 +31,21 @@ pub trait TLogger {
 
 pub trait TGetLogger {
     fn get_logger(&self, dst: Option<Arc<Mutex<File>>>) -> Logger;
+}
+
+#[derive(Clone)]
+pub enum Ref {
+    Element(ERef),
+    Location(LRef),
+}
+
+impl From<Ref> for ID {
+    fn from(value: Ref) -> Self {
+        match value {
+            Ref::Element(e) => ID::Element(e.read().unwrap().id.clone()),
+            Ref::Location(l) => ID::Location(l.read().unwrap().id.clone()),
+        }
+    }
 }
 
 pub struct Logger {
@@ -66,7 +83,7 @@ impl TLogger for Logger {
         let data: String = data.into();
 
         if let Some(dst) = &self.dst {
-            let _ = write!(dst.lock().unwrap(), "Info: {}", data);
+            let _ = write!(dst.lock().unwrap(), "Info: {data}");
         }
 
         self.logs.push(Log::Info(data));
@@ -80,7 +97,7 @@ impl TLogger for Logger {
         let data: String = data.into();
 
         if let Some(dst) = &self.dst {
-            let _ = write!(dst.lock().unwrap(), "Warning: {}", data);
+            let _ = write!(dst.lock().unwrap(), "Warning: {data}");
         }
 
         self.logs.push(Log::Warning(data));
@@ -94,7 +111,7 @@ impl TLogger for Logger {
         let data: String = data.into();
 
         if let Some(dst) = &self.dst {
-            let _ = write!(dst.lock().unwrap(), "Error: {}", data);
+            let _ = write!(dst.lock().unwrap(), "Error: {data}");
         }
 
         self.logs.push(Log::Error(data));
@@ -106,7 +123,9 @@ impl TLogger for Logger {
 
     fn flush(&mut self) {
         for log in self.logs.iter() {
-            let _ = self._ref.emit(Event::Log(self._ref.clone(), log.clone()));
+            let _ = self
+                ._ref
+                .emit(Event::Log(self._ref.clone().into(), log.clone()));
         }
         self.logs.clear();
     }

@@ -5,6 +5,8 @@ use crate::{
     types::Type,
 };
 
+use bytes_kman::TBytes;
+
 use std::{
     collections::HashMap,
     fs::File,
@@ -13,7 +15,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, Hash)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub struct Bytes {
     pub data: Vec<u8>,
     pub coursor: usize,
@@ -123,7 +125,7 @@ impl std::io::Seek for Bytes {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub struct Value {
     pub value: Type,
     pub should_be: Vec<TypeTag>,
@@ -165,7 +167,7 @@ impl From<Type> for Value {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, bytes_kman::Bytes)]
 pub struct Data {
     pub data: HashMap<String, Value>,
     pub locked: bool,
@@ -234,7 +236,7 @@ impl Data {
             }
 
             if !has_correct_type {
-                let mut buff = format!("`{}` should be: ", key);
+                let mut buff = format!("`{key}` should be: ");
                 for (i, should_be) in value.should_be.iter().enumerate() {
                     if i > 0 {
                         buff.push(',');
@@ -300,6 +302,49 @@ impl Data {
 pub enum FileOrData {
     File(PathBuf, #[serde(skip)] Option<Arc<Mutex<std::fs::File>>>),
     Bytes(Bytes),
+}
+
+impl TBytes for FileOrData {
+    fn size(&self) -> usize {
+        match self {
+            FileOrData::File(p, _) => p.size() + 1,
+            FileOrData::Bytes(v) => v.size() + 1,
+        }
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        match self {
+            FileOrData::File(path, _) => {
+                let mut buff = Vec::with_capacity(self.size());
+
+                buff.push(0);
+                buff.append(&mut path.to_bytes());
+
+                buff
+            }
+            FileOrData::Bytes(bytes) => {
+                let mut buff = Vec::with_capacity(self.size());
+
+                buff.push(1);
+                buff.append(&mut bytes.to_bytes());
+
+                buff
+            }
+        }
+    }
+
+    fn from_bytes(buffer: &mut Vec<u8>) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        let variant = buffer.pop()?;
+
+        match variant {
+            0 => Some(Self::File(PathBuf::from_bytes(buffer)?, None)),
+            1 => Some(Self::Bytes(Bytes::from_bytes(buffer)?)),
+            _ => None,
+        }
+    }
 }
 
 impl Hash for FileOrData {

@@ -5,13 +5,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+use bytes_kman::TBytes;
+
+#[derive(Clone, Debug, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum SessionError {
     InvalidSession,
     ElementDoNotExist,
     InsufficientPermissions,
     InvalidLocation,
-    ServerTimeOut(RefLocation),
+    ServerTimeOut,
     CannotConnectToServer,
     ServerInvalidIndentification,
     InvalidElementStatus,
@@ -22,6 +24,7 @@ pub enum SessionError {
     AlreadyUnsubscribed,
     IsNotElement,
     IsNotLocation,
+    RawModule(RawLibraryError),
     Custom(String),
 }
 
@@ -32,81 +35,86 @@ pub trait TSession {
     // Module
     //
 
-    fn add_module(&self, module: Box<dyn TModule>) -> Result<MRef, SessionError>;
-    fn remove_module(&self, info: MRef) -> Result<MRow, SessionError>;
+    fn load_module(&self, path: PathBuf) -> Result<MRef, SessionError>;
+    fn remove_module(&self, id: ModuleId) -> Result<MRow, SessionError>;
 
     fn register_action(
         &self,
-        module: &MRef,
+        module_id: &ModuleId,
         name: String,
         values: Vec<(String, Value)>,
         callback: fn(MRef, values: Vec<Type>),
     ) -> Result<(), SessionError>;
-    fn remove_action(&self, owner: &MRef, name: String) -> Result<(), SessionError>;
+    fn remove_action(&self, module_id: &ModuleId, name: String) -> Result<(), SessionError>;
     fn get_actions(&self, range: Range<usize>) -> Result<Actions, SessionError>;
     fn get_actions_len(&self) -> Result<usize, SessionError>;
-    fn run_action(&self, owner: MRef, name: String, data: Vec<Type>) -> Result<(), SessionError>;
+    fn run_action(
+        &self,
+        module_id: &ModuleId,
+        name: String,
+        data: Vec<Type>,
+    ) -> Result<(), SessionError>;
 
     fn get_modules_len(&self) -> Result<usize, SessionError>;
     fn get_modules(&self, range: Range<usize>) -> Result<Vec<MRef>, SessionError>;
 
-    fn get_module_name(&self, info: &MRef) -> Result<String, SessionError>;
-    fn set_module_name(&self, info: &MRef, name: String) -> Result<(), SessionError>;
-    fn default_module_name(&self, info: &MRef) -> Result<(), SessionError>;
+    fn module_get_name(&self, module_id: &ModuleId) -> Result<String, SessionError>;
+    fn module_set_name(&self, module_id: &ModuleId, name: String) -> Result<(), SessionError>;
+    fn module_get_default_name(&self, module_id: &ModuleId) -> Result<String, SessionError>;
 
-    fn get_module_desc(&self, info: &MRef) -> Result<String, SessionError>;
-    fn set_module_desc(&self, info: &MRef, desc: String) -> Result<(), SessionError>;
-    fn default_module_desc(&self, info: &MRef) -> Result<(), SessionError>;
+    fn module_get_desc(&self, module_id: &ModuleId) -> Result<String, SessionError>;
+    fn module_set_desc(&self, module_id: &ModuleId, desc: String) -> Result<(), SessionError>;
+    fn module_get_default_desc(&self, module_id: &ModuleId) -> Result<String, SessionError>;
 
-    fn get_module_proxy(&self, info: &MRef) -> Result<usize, SessionError>;
-    fn set_module_proxy(&self, info: &MRef, proxy: usize) -> Result<(), SessionError>;
+    fn module_get_proxy(&self, module_id: &ModuleId) -> Result<usize, SessionError>;
+    fn module_set_proxy(&self, module_id: &ModuleId, proxy: usize) -> Result<(), SessionError>;
 
-    fn get_module_settings(&self, module_info: &MRef) -> Result<Data, SessionError>;
-    fn set_module_settings(&self, module_info: &MRef, data: Data) -> Result<(), SessionError>;
+    fn module_get_settings(&self, module_id: &ModuleId) -> Result<Data, SessionError>;
+    fn module_set_settings(&self, module_id: &ModuleId, data: Data) -> Result<(), SessionError>;
 
-    fn get_module_element_settings(&self, module_info: &MRef) -> Result<Data, SessionError>;
-    fn set_module_element_settings(
+    fn module_get_element_settings(&self, module_id: &ModuleId) -> Result<Data, SessionError>;
+    fn module_set_element_settings(
         &self,
-        module_info: &MRef,
+        module_id: &ModuleId,
         data: Data,
     ) -> Result<(), SessionError>;
 
     fn module_init_location(
         &self,
-        module_info: &MRef,
-        location_info: &LRef,
+        module_id: &ModuleId,
+        location_id: &LocationId,
         data: FileOrData,
     ) -> Result<(), SessionError>;
 
     fn module_init_element(
         &self,
-        module_info: &MRef,
-        element_info: &ERef,
+        module_id: &ModuleId,
+        element_id: &ElementId,
     ) -> Result<(), SessionError>;
 
-    fn moduie_accept_url(&self, module_info: &MRef, url: Url) -> Result<bool, SessionError>;
+    fn moduie_accept_url(&self, module_id: &ModuleId, url: Url) -> Result<bool, SessionError>;
 
     fn module_accept_extension(
         &self,
-        module_info: &MRef,
+        module_id: &ModuleId,
         filename: &str,
     ) -> Result<bool, SessionError>;
 
     fn module_step_element(
         &self,
-        module_info: &MRef,
-        element_info: &ERef,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError>;
+        module_id: &ModuleId,
+        element_id: &ElementId,
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError>;
 
     fn module_step_location(
         &self,
-        module_info: &MRef,
-        location_info: &LRef,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError>;
+        module_id: &ModuleId,
+        location_id: &LocationId,
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError>;
 
     //
     // End Module
@@ -116,70 +124,96 @@ pub trait TSession {
     // Element
     //
 
-    fn create_element(&self, name: &str, location: &LRef) -> Result<ERef, SessionError>;
-    fn move_element(&self, element: &ERef, location: &LRef) -> Result<(), SessionError>;
-    fn destroy_element(&self, element: ERef) -> Result<ERow, SessionError>;
+    fn create_element(&self, name: &str, location_id: &LocationId) -> Result<ERef, SessionError>;
+    fn move_element(
+        &self,
+        element: &ElementId,
+        location_id: &LocationId,
+    ) -> Result<(), SessionError>;
+    fn destroy_element(&self, element_id: ElementId) -> Result<ERow, SessionError>;
 
-    fn element_get_name(&self, element: &ERef) -> Result<String, SessionError>;
-    fn element_set_name(&self, element: &ERef, name: &str) -> Result<(), SessionError>;
+    fn element_get_name(&self, element_id: &ElementId) -> Result<String, SessionError>;
+    fn element_set_name(&self, element_id: &ElementId, name: &str) -> Result<(), SessionError>;
 
-    fn element_get_desc(&self, element: &ERef) -> Result<String, SessionError>;
-    fn element_set_desc(&self, element: &ERef, desc: &str) -> Result<(), SessionError>;
+    fn element_get_desc(&self, element_id: &ElementId) -> Result<String, SessionError>;
+    fn element_set_desc(&self, element_id: &ElementId, desc: &str) -> Result<(), SessionError>;
 
-    fn element_get_meta(&self, element: &ERef) -> Result<String, SessionError>;
-    fn element_set_meta(&self, element: &ERef, meta: &str) -> Result<(), SessionError>;
+    fn element_get_meta(&self, element_id: &ElementId) -> Result<String, SessionError>;
+    fn element_set_meta(&self, element_id: &ElementId, meta: &str) -> Result<(), SessionError>;
 
-    fn element_get_element_data(&self, element: &ERef) -> Result<Data, SessionError>;
-    fn element_set_element_data(&self, element: &ERef, data: Data) -> Result<(), SessionError>;
+    fn element_get_element_data(&self, element_id: &ElementId) -> Result<Data, SessionError>;
+    fn element_set_element_data(
+        &self,
+        element_id: &ElementId,
+        data: Data,
+    ) -> Result<(), SessionError>;
 
-    fn element_get_module_data(&self, element: &ERef) -> Result<Data, SessionError>;
-    fn element_set_module_data(&self, element: &ERef, data: Data) -> Result<(), SessionError>;
+    fn element_get_module_data(&self, element_id: &ElementId) -> Result<Data, SessionError>;
+    fn element_set_module_data(
+        &self,
+        element_id: &ElementId,
+        data: Data,
+    ) -> Result<(), SessionError>;
 
-    fn element_get_module(&self, element: &ERef) -> Result<Option<MRef>, SessionError>;
-    fn element_set_module(&self, element: &ERef, module: Option<MRef>) -> Result<(), SessionError>;
+    fn element_get_module(&self, element_id: &ElementId) -> Result<Option<MRef>, SessionError>;
+    fn element_set_module(
+        &self,
+        element: &ElementId,
+        module: Option<ModuleId>,
+    ) -> Result<(), SessionError>;
 
-    fn element_get_statuses(&self, element: &ERef) -> Result<Vec<String>, SessionError>;
+    fn element_get_statuses(&self, element_id: &ElementId) -> Result<Vec<String>, SessionError>;
     fn element_set_statuses(
         &self,
-        element: &ERef,
+        element: &ElementId,
         statuses: Vec<String>,
     ) -> Result<(), SessionError>;
 
-    fn element_get_status(&self, element: &ERef) -> Result<usize, SessionError>;
-    fn element_set_status(&self, element: &ERef, status: usize) -> Result<(), SessionError>;
+    fn element_get_status(&self, element_id: &ElementId) -> Result<usize, SessionError>;
+    fn element_set_status(&self, element_id: &ElementId, status: usize)
+        -> Result<(), SessionError>;
 
-    fn element_get_data(&self, element: &ERef) -> Result<FileOrData, SessionError>;
-    fn element_set_data(&self, element: &ERef, data: FileOrData) -> Result<(), SessionError>;
+    fn element_get_data(&self, element_id: &ElementId) -> Result<FileOrData, SessionError>;
+    fn element_set_data(
+        &self,
+        element_id: &ElementId,
+        data: FileOrData,
+    ) -> Result<(), SessionError>;
 
-    fn element_get_progress(&self, element: &ERef) -> Result<f32, SessionError>;
-    fn element_set_progress(&self, element: &ERef, progress: f32) -> Result<(), SessionError>;
+    fn element_get_progress(&self, element_id: &ElementId) -> Result<f32, SessionError>;
+    fn element_set_progress(
+        &self,
+        element_id: &ElementId,
+        progress: f32,
+    ) -> Result<(), SessionError>;
 
-    fn element_get_should_save(&self, element: &ERef) -> Result<bool, SessionError>;
+    fn element_get_should_save(&self, element_id: &ElementId) -> Result<bool, SessionError>;
     fn element_set_should_save(
         &self,
-        element: &ERef,
+        element: &ElementId,
         should_save: bool,
     ) -> Result<(), SessionError>;
 
-    fn element_get_enabled(&self, element: &ERef) -> Result<bool, SessionError>;
+    fn element_get_enabled(&self, element_id: &ElementId) -> Result<bool, SessionError>;
     fn element_set_enabled(
         &self,
-        element: &ERef,
+        element_id: &ElementId,
         enabled: bool,
         storage: Option<Storage>,
     ) -> Result<(), SessionError>;
 
-    fn element_resolv_module(&self, element_info: &ERef) -> Result<bool, SessionError>;
+    fn element_resolv_module(&self, element_id: &ElementId) -> Result<bool, SessionError>;
 
     /// Blocking the current thread until is done!
-    fn element_wait(&self, element: &ERef) -> Result<(), SessionError>;
+    fn element_wait(&self, element_id: &ElementId) -> Result<(), SessionError>;
 
-    fn element_get_element_info(&self, element: &ERef) -> Result<ElementInfo, SessionError>;
-    fn element_notify(&self, element: &ERef, event: Event) -> Result<(), SessionError>;
+    fn element_get_element_info(&self, element_id: &ElementId)
+        -> Result<ElementInfo, SessionError>;
+    fn element_notify(&self, element_id: &ElementId, event: Event) -> Result<(), SessionError>;
 
-    fn element_emit(&self, element: &ERef, event: Event) -> Result<(), SessionError>;
-    fn element_subscribe(&self, element: &ERef, _ref: Ref) -> Result<(), SessionError>;
-    fn element_unsubscribe(&self, element: &ERef, _ref: Ref) -> Result<(), SessionError>;
+    fn element_emit(&self, element_id: &ElementId, event: Event) -> Result<(), SessionError>;
+    fn element_subscribe(&self, element_id: &ElementId, _ref: ID) -> Result<(), SessionError>;
+    fn element_unsubscribe(&self, element_id: &ElementId, _ref: ID) -> Result<(), SessionError>;
 
     //
     // End Element
@@ -189,57 +223,71 @@ pub trait TSession {
     // Location
     //
 
-    fn create_location(&self, name: &str, location: &LRef) -> Result<LRef, SessionError>;
-    fn get_locations_len(&self, location: &LRef) -> Result<usize, SessionError>;
+    fn create_location(&self, name: &str, location_id: &LocationId) -> Result<LRef, SessionError>;
+    fn get_locations_len(&self, location_id: &LocationId) -> Result<usize, SessionError>;
     fn get_locations(
         &self,
-        location: &LRef,
+        location_id: &LocationId,
         range: Range<usize>,
     ) -> Result<Vec<LRef>, SessionError>;
-    fn destroy_location(&self, location: LRef) -> Result<LRow, SessionError>;
+    fn destroy_location(&self, location_id: LocationId) -> Result<LRow, SessionError>;
     fn get_default_location(&self) -> Result<LRef, SessionError>;
-    fn move_location(&self, location: &LRef, to: &LRef) -> Result<(), SessionError>;
+    fn move_location(&self, location_id: &LocationId, to: &LocationId) -> Result<(), SessionError>;
 
-    fn location_get_name(&self, location: &LRef) -> Result<String, SessionError>;
-    fn location_set_name(&self, location: &LRef, name: &str) -> Result<(), SessionError>;
+    fn location_get_name(&self, location_id: &LocationId) -> Result<String, SessionError>;
+    fn location_set_name(&self, location_id: &LocationId, name: &str) -> Result<(), SessionError>;
 
-    fn location_get_desc(&self, location: &LRef) -> Result<String, SessionError>;
-    fn location_set_desc(&self, location: &LRef, desc: &str) -> Result<(), SessionError>;
+    fn location_get_desc(&self, location_id: &LocationId) -> Result<String, SessionError>;
+    fn location_set_desc(&self, location_id: &LocationId, desc: &str) -> Result<(), SessionError>;
 
-    fn location_get_path(&self, location: &LRef) -> Result<PathBuf, SessionError>;
-    fn location_set_path(&self, location: &LRef, path: PathBuf) -> Result<(), SessionError>;
+    fn location_get_path(&self, location_id: &LocationId) -> Result<PathBuf, SessionError>;
+    fn location_set_path(
+        &self,
+        location_id: &LocationId,
+        path: PathBuf,
+    ) -> Result<(), SessionError>;
 
-    fn location_get_where_is(&self, location: &LRef) -> Result<WhereIsLocation, SessionError>;
+    fn location_get_where_is(
+        &self,
+        location_id: &LocationId,
+    ) -> Result<WhereIsLocation, SessionError>;
     fn location_set_where_is(
         &self,
-        location: &LRef,
+        location_id: &LocationId,
         where_is: WhereIsLocation,
     ) -> Result<(), SessionError>;
 
-    fn location_get_should_save(&self, location: &LRef) -> Result<bool, SessionError>;
+    fn location_get_should_save(&self, location_id: &LocationId) -> Result<bool, SessionError>;
     fn location_set_should_save(
         &self,
-        location: &LRef,
+        location_id: &LocationId,
         should_save: bool,
     ) -> Result<(), SessionError>;
 
-    fn location_get_elements_len(&self, location: &LRef) -> Result<usize, SessionError>;
+    fn location_get_elements_len(&self, location_id: &LocationId) -> Result<usize, SessionError>;
     fn location_get_elements(
         &self,
-        location: &LRef,
+        location_id: &LocationId,
         range: Range<usize>,
     ) -> Result<Vec<ERef>, SessionError>;
 
-    fn location_get_location_info(&self, location: &LRef) -> Result<LocationInfo, SessionError>;
-    fn location_notify(&self, location: &LRef, event: Event) -> Result<(), SessionError>;
+    fn location_get_location_info(
+        &self,
+        location_id: &LocationId,
+    ) -> Result<LocationInfo, SessionError>;
+    fn location_notify(&self, location_id: &LocationId, event: Event) -> Result<(), SessionError>;
 
-    fn location_emit(&self, location: &LRef, event: Event) -> Result<(), SessionError>;
-    fn location_subscribe(&self, location: &LRef, _ref: Ref) -> Result<(), SessionError>;
-    fn location_unsubscribe(&self, location: &LRef, _ref: Ref) -> Result<(), SessionError>;
+    fn location_emit(&self, location_id: &LocationId, event: Event) -> Result<(), SessionError>;
+    fn location_subscribe(&self, location_id: &LocationId, _ref: ID) -> Result<(), SessionError>;
+    fn location_unsubscribe(&self, location_id: &LocationId, _ref: ID) -> Result<(), SessionError>;
 
     //
     // End Location
     //
+
+    fn get_module_ref(&self, id: &ModuleId) -> Result<MRef, SessionError>;
+    fn get_element_ref(&self, id: &ElementId) -> Result<ERef, SessionError>;
+    fn get_location_ref(&self, id: &LocationId) -> Result<LRef, SessionError>;
 
     fn c(&self) -> Box<dyn TSession>;
 }

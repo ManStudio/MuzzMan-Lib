@@ -1,6 +1,7 @@
-use std::{fmt::Debug, sync::Arc};
+use std::{fmt::Debug, path::Path, sync::Arc};
 
 use crate::prelude::*;
+use bytes_kman::TBytes;
 use libloading::{Library, Symbol};
 use serde::{Deserialize, Serialize};
 
@@ -11,11 +12,33 @@ pub enum ControlFlow {
     Break,
 }
 
+#[derive(
+    Default,
+    Debug,
+    Clone,
+    Copy,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    bytes_kman::Bytes,
+)]
+pub struct ModuleId(pub u64);
+
+impl From<MRef> for ModuleId {
+    fn from(value: MRef) -> Self {
+        value.read().unwrap().uid
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct RefModule {
-    pub uid: Option<usize>,
     #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
+    pub uid: ModuleId,
 }
 
 impl Debug for RefModule {
@@ -40,7 +63,7 @@ pub struct Module {
     pub settings: Data,
     /// default element data/settings
     pub element_data: Data,
-    pub info: Option<MRef>,
+    pub info: MRef,
 }
 
 impl Debug for Module {
@@ -64,16 +87,26 @@ pub trait TModule {
     fn init_settings(&self, data: &mut Data);
     fn init_element_settings(&self, data: &mut Data);
 
-    fn init_element(&self, element: ERow);
-    fn step_element(&self, element: ERow, control_flow: &mut ControlFlow, storage: &mut Storage);
+    fn init_element(&self, element_row: ERow);
+    fn step_element(
+        &self,
+        element_row: ERow,
+        control_flow: &mut ControlFlow,
+        storage: &mut Storage,
+    );
 
     fn accept_extension(&self, filename: &str) -> bool;
-    fn accept_url(&self, uri: Url) -> bool;
+    fn accept_url(&self, url: Url) -> bool;
 
-    fn init_location(&self, location: LRef, data: FileOrData);
-    fn step_location(&self, location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage);
+    fn init_location(&self, location_ref: LRef, data: FileOrData);
+    fn step_location(
+        &self,
+        location_row: LRow,
+        control_flow: &mut ControlFlow,
+        storage: &mut Storage,
+    );
 
-    fn notify(&self, info: Ref, event: Event);
+    fn notify(&self, _ref: Ref, event: Event);
 
     fn c(&self) -> Box<dyn TModule>;
 }
@@ -84,7 +117,7 @@ impl Clone for Box<dyn TModule> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum RawLibraryError {
     NotFound,
     DontHaveSymbolGetName,
@@ -125,13 +158,13 @@ pub struct RawModule {
 }
 
 impl RawModule {
-    pub fn new_module(path: &str) -> Result<Box<dyn TModule>, RawLibraryError> {
+    pub fn new_module(path: &Path) -> Result<Box<dyn TModule>, RawLibraryError> {
         match Self::new(path) {
             Ok(module) => Ok(Box::new(Arc::new(module))),
             Err(err) => Err(err),
         }
     }
-    pub fn new(path: &str) -> Result<Self, RawLibraryError> {
+    pub fn new(path: &Path) -> Result<Self, RawLibraryError> {
         let lib = unsafe { Library::new(path) };
         if lib.is_err() {
             return Err(RawLibraryError::NotFound);
@@ -295,11 +328,11 @@ pub trait TModuleInfo {
 
     fn get_name(&self) -> Result<String, SessionError>;
     fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError>;
-    fn set_default_name(&self) -> Result<(), SessionError>;
+    fn get_default_name(&self) -> Result<String, SessionError>;
 
     fn get_desc(&self) -> Result<String, SessionError>;
     fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError>;
-    fn set_default_desc(&self) -> Result<(), SessionError>;
+    fn get_default_desc(&self) -> Result<String, SessionError>;
 
     fn get_proxy(&self) -> Result<usize, SessionError>;
     fn set_proxy(&self, proxy: usize) -> Result<(), SessionError>;
@@ -321,24 +354,30 @@ pub trait TModuleInfo {
 
     fn step_element(
         &self,
-        element_info: &ERef,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError>;
+        element_info: &ElementId,
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError>;
     fn step_location(
         &self,
-        location_info: &LRef,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError>;
+        location_info: &LocationId,
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError>;
 
     fn accept_url(&self, url: Url) -> Result<bool, SessionError>;
     fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError>;
 
-    fn init_element(&self, element_info: &ERef) -> Result<(), SessionError>;
-    fn init_location(&self, location_info: &LRef, data: FileOrData) -> Result<(), SessionError>;
+    fn init_element(&self, element_info: &ElementId) -> Result<(), SessionError>;
+    fn init_location(
+        &self,
+        location_info: &LocationId,
+        data: FileOrData,
+    ) -> Result<(), SessionError>;
 
-    fn notify(&self, info: Ref, event: Event) -> Result<(), SessionError>;
+    fn notify(&self, info: ID, event: Event) -> Result<(), SessionError>;
+
+    fn id(&self) -> ModuleId;
 }
 
 impl TModuleInfo for MRef {
@@ -350,52 +389,53 @@ impl TModuleInfo for MRef {
     }
 
     fn get_name(&self) -> Result<String, SessionError> {
-        return self.get_session()?.get_module_name(self);
+        return self.get_session()?.module_get_name(&self.id());
     }
 
     fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.set_module_name(self, name.into())
+        self.get_session()?.module_set_name(&self.id(), name.into())
     }
 
-    fn set_default_name(&self) -> Result<(), SessionError> {
-        self.get_session()?.default_module_name(self)
+    fn get_default_name(&self) -> Result<String, SessionError> {
+        self.get_session()?.module_get_default_name(&self.id())
     }
 
     fn get_desc(&self) -> Result<String, SessionError> {
-        self.get_session()?.get_module_desc(self)
+        self.get_session()?.module_get_desc(&self.id())
     }
 
     fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.set_module_desc(self, desc.into())
+        self.get_session()?.module_set_desc(&self.id(), desc.into())
     }
 
-    fn set_default_desc(&self) -> Result<(), SessionError> {
-        self.get_session()?.default_module_desc(self)
+    fn get_default_desc(&self) -> Result<String, SessionError> {
+        self.get_session()?.module_get_default_desc(&self.id())
     }
 
     fn get_proxy(&self) -> Result<usize, SessionError> {
-        self.get_session()?.get_module_proxy(self)
+        self.get_session()?.module_get_proxy(&self.id())
     }
 
     fn set_proxy(&self, proxy: usize) -> Result<(), SessionError> {
-        self.get_session()?.set_module_proxy(self, proxy)
+        self.get_session()?.module_set_proxy(&self.id(), proxy)
     }
 
     fn get_settings(&self) -> Result<Data, SessionError> {
-        self.get_session()?.get_module_settings(self)
+        self.get_session()?.module_get_settings(&self.id())
     }
 
     fn set_settings(&self, settings: Data) -> Result<(), SessionError> {
-        self.get_session()?.set_module_settings(self, settings)
+        self.get_session()?
+            .module_set_settings(&self.id(), settings)
     }
 
     fn get_element_settings(&self) -> Result<Data, SessionError> {
-        self.get_session()?.get_module_element_settings(self)
+        self.get_session()?.module_get_element_settings(&self.id())
     }
 
     fn set_element_settings(&self, settings: Data) -> Result<(), SessionError> {
         self.get_session()?
-            .set_module_element_settings(self, settings)
+            .module_set_element_settings(&self.id(), settings)
     }
 
     fn register_action(
@@ -405,70 +445,80 @@ impl TModuleInfo for MRef {
         callback: fn(MRef, values: Vec<Type>),
     ) -> Result<(), SessionError> {
         self.get_session()?
-            .register_action(self, name, values, callback)
+            .register_action(&self.id(), name, values, callback)
     }
 
     fn remove_action(&self, name: String) -> Result<(), SessionError> {
-        self.get_session()?.remove_action(self, name)
+        self.get_session()?.remove_action(&self.id(), name)
     }
 
     fn run_action(&self, name: String, data: Vec<Type>) -> Result<(), SessionError> {
-        self.get_session()?.run_action(self.clone(), name, data)
+        self.get_session()?.run_action(&self.id(), name, data)
     }
 
     fn step_element(
         &self,
-        element_info: &ERef,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError> {
+        element_info: &ElementId,
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError> {
         self.get_session()?
-            .module_step_element(self, element_info, control_flow, storage)
+            .module_step_element(&self.id(), element_info, control_flow, storage)
     }
 
     fn step_location(
         &self,
-        location_info: &LRef,
-        control_flow: &mut ControlFlow,
-        storage: &mut Storage,
-    ) -> Result<(), SessionError> {
+        location_info: &LocationId,
+        control_flow: ControlFlow,
+        storage: Storage,
+    ) -> Result<(ControlFlow, Storage), SessionError> {
         self.get_session()?
-            .module_step_location(self, location_info, control_flow, storage)
+            .module_step_location(&self.id(), location_info, control_flow, storage)
     }
 
     fn accept_url(&self, url: Url) -> Result<bool, SessionError> {
-        self.get_session()?.moduie_accept_url(self, url)
+        self.get_session()?.moduie_accept_url(&self.id(), url)
     }
 
     fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError> {
         self.get_session()?
-            .module_accept_extension(self, &filename.into())
+            .module_accept_extension(&self.id(), &filename.into())
     }
 
-    fn init_element(&self, element_info: &ERef) -> Result<(), SessionError> {
-        self.get_session()?.module_init_element(self, element_info)
-    }
-
-    fn init_location(&self, location_info: &LRef, data: FileOrData) -> Result<(), SessionError> {
+    fn init_element(&self, element_info: &ElementId) -> Result<(), SessionError> {
         self.get_session()?
-            .module_init_location(self, location_info, data)
+            .module_init_element(&self.id(), element_info)
     }
 
-    fn notify(&self, info: Ref, event: Event) -> Result<(), SessionError> {
+    fn init_location(
+        &self,
+        location_info: &LocationId,
+        data: FileOrData,
+    ) -> Result<(), SessionError> {
+        self.get_session()?
+            .module_init_location(&self.id(), location_info, data)
+    }
+
+    fn notify(&self, info: ID, event: Event) -> Result<(), SessionError> {
         let session = self.get_session()?;
         match info {
-            Ref::Element(e) => session.element_notify(&e, event),
-            Ref::Location(l) => session.location_notify(&l, event),
+            ID::Element(e) => session.element_notify(&e, event),
+            ID::Location(l) => session.location_notify(&l, event),
         }
+    }
+
+    fn id(&self) -> ModuleId {
+        self.read().unwrap().uid
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub struct ModuleInfo {
     pub name: String,
     pub desc: String,
     // module hash
     pub module: u64,
+    pub id: ModuleId,
     pub proxy: usize,
     pub settings: Data,
     pub element_data: Data,

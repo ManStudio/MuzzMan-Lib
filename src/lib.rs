@@ -14,6 +14,8 @@ pub mod types;
 
 pub extern crate muzzman_lib_macros;
 
+pub use local_session::LocalSession;
+
 pub mod prelude {
     pub use crate::{
         action::*, common::*, data::*, element::*, enums::*, events::*, location::*, logger::*,

@@ -8,23 +8,40 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::*;
+use bytes_kman::TBytes;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum ElementNotify {
     Complited,
-    ModuleChanged(Option<MRef>),
+    ModuleChanged(Option<ModuleId>),
     StatusChanged(usize),
     Progress(f32),
 }
 
 impl_get_ref!(ElementNotify);
 
+#[derive(
+    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, bytes_kman::Bytes,
+)]
+pub struct ElementId {
+    pub uid: u64,
+    pub location_id: LocationId,
+}
+
+impl ElementId {
+    pub fn into_ref(self, session: Box<dyn TSession>) -> RefElement {
+        RefElement {
+            session: Some(session),
+            id: self,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct RefElement {
     #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
-    pub location: LRef,
-    pub uid: usize,
+    pub id: ElementId,
 }
 
 unsafe impl Sync for RefElement {}
@@ -32,21 +49,13 @@ unsafe impl Send for RefElement {}
 
 impl Debug for RefElement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RefElement")
-            .field("location", &self.location)
-            .field("uid", &self.uid)
-            .finish()
+        f.debug_struct("RefElement").field("id", &self.id).finish()
     }
 }
 
 impl PartialEq for RefElement {
     fn eq(&self, other: &Self) -> bool {
-        self.uid.eq(&other.uid)
-            && self
-                .location
-                .read()
-                .unwrap()
-                .eq(&other.location.read().unwrap())
+        self.id.eq(&other.id) && self.id.location_id.eq(&other.id.location_id)
     }
 }
 
@@ -63,7 +72,7 @@ pub trait TElement {
     fn set_module_data(&self, data: Data) -> Result<(), SessionError>;
 
     fn get_module(&self) -> Result<Option<MRef>, SessionError>;
-    fn set_module(&self, module: Option<MRef>) -> Result<(), SessionError>;
+    fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError>;
 
     fn resolv_module(&self) -> Result<bool, SessionError>;
     fn init(&self) -> Result<bool, SessionError>;
@@ -92,6 +101,8 @@ pub trait TElement {
     fn wait(&self) -> Result<(), SessionError>;
 
     fn destroy(self) -> Result<ERow, SessionError>;
+
+    fn id(&self) -> ElementId;
 }
 
 pub struct Element {
@@ -155,44 +166,47 @@ impl TElement for ERef {
     }
 
     fn get_meta(&self) -> Result<String, SessionError> {
-        self.get_session()?.element_get_meta(self)
+        self.get_session()?.element_get_meta(&self.id())
     }
 
     fn set_meta(&self, meta: &str) -> Result<(), SessionError> {
-        self.get_session()?.element_set_meta(self, meta)
+        self.get_session()?.element_set_meta(&self.id(), meta)
     }
 
     fn get_element_data(&self) -> Result<Data, SessionError> {
-        self.get_session()?.element_get_element_data(self)
+        self.get_session()?.element_get_element_data(&self.id())
     }
 
     fn set_element_data(&self, data: Data) -> Result<(), SessionError> {
-        self.get_session()?.element_set_element_data(self, data)
+        self.get_session()?
+            .element_set_element_data(&self.id(), data)
     }
 
     fn get_module_data(&self) -> Result<Data, SessionError> {
-        self.get_session()?.element_get_module_data(self)
+        self.get_session()?.element_get_module_data(&self.id())
     }
 
     fn set_module_data(&self, data: Data) -> Result<(), SessionError> {
-        self.get_session()?.element_set_module_data(self, data)
+        self.get_session()?
+            .element_set_module_data(&self.id(), data)
     }
 
     fn get_module(&self) -> Result<Option<MRef>, SessionError> {
-        self.get_session()?.element_get_module(self)
+        self.get_session()?.element_get_module(&self.id())
     }
 
-    fn set_module(&self, module: Option<MRef>) -> Result<(), SessionError> {
-        self.get_session()?.element_set_module(self, module)
+    fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError> {
+        self.get_session()?.element_set_module(&self.id(), module)
     }
 
     fn resolv_module(&self) -> Result<bool, SessionError> {
-        self.get_session()?.element_resolv_module(self)
+        self.get_session()?.element_resolv_module(&self.id())
     }
 
     fn init(&self) -> Result<bool, SessionError> {
         if let Some(module) = &self.get_module()? {
-            self.get_session()?.module_init_element(module, self)?;
+            self.get_session()?
+                .module_init_element(&module.id(), &self.id())?;
             Ok(true)
         } else {
             Ok(false)
@@ -200,15 +214,16 @@ impl TElement for ERef {
     }
 
     fn get_statuses(&self) -> Result<Vec<String>, SessionError> {
-        self.get_session()?.element_get_statuses(self)
+        self.get_session()?.element_get_statuses(&self.id())
     }
 
     fn set_statuses(&self, statuses: Vec<String>) -> Result<(), SessionError> {
-        self.get_session()?.element_set_statuses(self, statuses)
+        self.get_session()?
+            .element_set_statuses(&self.id(), statuses)
     }
 
     fn get_status(&self) -> Result<usize, SessionError> {
-        self.get_session()?.element_get_status(self)
+        self.get_session()?.element_get_status(&self.id())
     }
 
     fn get_status_msg(&self) -> Result<String, SessionError> {
@@ -220,91 +235,98 @@ impl TElement for ERef {
     }
 
     fn set_status(&self, status: usize) -> Result<(), SessionError> {
-        self.get_session()?.element_set_status(self, status)
+        self.get_session()?.element_set_status(&self.id(), status)
     }
 
     fn get_data(&self) -> Result<FileOrData, SessionError> {
-        self.get_session()?.element_get_data(self)
+        self.get_session()?.element_get_data(&self.id())
     }
 
     fn set_data(&self, data: FileOrData) -> Result<(), SessionError> {
-        self.get_session()?.element_set_data(self, data)
+        self.get_session()?.element_set_data(&self.id(), data)
     }
 
     fn get_progress(&self) -> Result<f32, SessionError> {
-        self.get_session()?.element_get_progress(self)
+        self.get_session()?.element_get_progress(&self.id())
     }
 
     fn set_progress(&self, progress: f32) -> Result<(), SessionError> {
-        self.get_session()?.element_set_progress(self, progress)
+        self.get_session()?
+            .element_set_progress(&self.id(), progress)
     }
 
     fn get_should_save(&self) -> Result<bool, SessionError> {
-        self.get_session()?.element_get_should_save(self)
+        self.get_session()?.element_get_should_save(&self.id())
     }
 
     fn set_should_save(&self, should_save: bool) -> Result<(), SessionError> {
         self.get_session()?
-            .element_set_should_save(self, should_save)
+            .element_set_should_save(&self.id(), should_save)
     }
 
     fn is_enabled(&self) -> Result<bool, SessionError> {
-        self.get_session()?.element_get_enabled(self)
+        self.get_session()?.element_get_enabled(&self.id())
     }
 
     fn set_enabled(&self, enabled: bool, storage: Option<Storage>) -> Result<(), SessionError> {
         self.get_session()?
-            .element_set_enabled(self, enabled, storage)
+            .element_set_enabled(&self.id(), enabled, storage)
     }
 
     fn get_element_info(&self) -> Result<ElementInfo, SessionError> {
-        self.get_session()?.element_get_element_info(self)
+        self.get_session()?.element_get_element_info(&self.id())
     }
 
     fn wait(&self) -> Result<(), SessionError> {
-        self.get_session()?.element_wait(self)
+        self.get_session()?.element_wait(&self.id())
     }
 
     fn destroy(self) -> Result<ERow, SessionError> {
-        self.get_session()?.destroy_element(self)
+        self.get_session()?.destroy_element(self.id())
+    }
+
+    fn id(&self) -> ElementId {
+        self.read().unwrap().id.clone()
     }
 }
 
 impl Common for ERef {
     fn get_name(&self) -> Result<String, SessionError> {
-        self.get_session()?.element_get_name(self)
+        self.get_session()?.element_get_name(&self.id())
     }
 
     fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.element_set_name(self, &name.into())
+        self.get_session()?
+            .element_set_name(&self.id(), &name.into())
     }
 
     fn get_desc(&self) -> Result<String, SessionError> {
-        self.get_session()?.element_get_desc(self)
+        self.get_session()?.element_get_desc(&self.id())
     }
 
     fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.element_set_desc(self, &desc.into())
+        self.get_session()?
+            .element_set_desc(&self.id(), &desc.into())
     }
 
     fn notify(&self, event: Event) -> Result<(), SessionError> {
-        self.get_session()?.element_notify(self, event)
+        self.get_session()?.element_notify(&self.id(), event)
     }
 
     fn emit(&self, event: Event) -> Result<(), SessionError> {
-        self.get_session()?.element_emit(self, event)
+        self.get_session()?.element_emit(&self.id(), event)
     }
 
-    fn subscribe(&self, _ref: Ref) -> Result<(), SessionError> {
-        self.get_session()?.element_subscribe(self, _ref)
+    fn subscribe(&self, _ref: ID) -> Result<(), SessionError> {
+        self.get_session()?.element_subscribe(&self.id(), _ref)
     }
 
-    fn unsubscribe(&self, _ref: Ref) -> Result<(), SessionError> {
-        self.get_session()?.element_unsubscribe(self, _ref)
+    fn unsubscribe(&self, _ref: ID) -> Result<(), SessionError> {
+        self.get_session()?.element_unsubscribe(&self.id(), _ref)
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, bytes_kman::Bytes)]
 pub struct ElementInfo {
     pub name: String,
     pub desc: String,
@@ -318,6 +340,7 @@ pub struct ElementInfo {
     pub progress: f32,
     pub should_save: bool,
     pub enabled: bool,
+    pub id: ElementId,
 }
 
 impl Hash for ElementInfo {

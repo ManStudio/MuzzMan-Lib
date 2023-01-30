@@ -1,11 +1,12 @@
 use std::{
-    any::Any,
     collections::HashMap,
     fmt::{Debug, Display},
     hash::Hash,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
+
+use bytes_kman::TBytes;
 
 pub type LRef = Arc<RwLock<RefLocation>>;
 pub type ERef = Arc<RwLock<RefElement>>;
@@ -15,25 +16,25 @@ pub type LRow = Arc<RwLock<Location>>;
 pub type ERow = Arc<RwLock<Element>>;
 pub type MRow = Arc<RwLock<Module>>;
 
-#[derive(Debug, Clone)]
-pub enum Ref {
-    Element(ERef),
-    Location(LRef),
+#[derive(Debug, Clone, bytes_kman::Bytes)]
+pub enum ID {
+    Element(ElementId),
+    Location(LocationId),
 }
 
-impl PartialEq for Ref {
+impl PartialEq for ID {
     fn eq(&self, other: &Self) -> bool {
         match self {
-            Ref::Element(e) => {
-                if let Ref::Element(se) = other {
-                    e.read().unwrap().uid == se.read().unwrap().uid
+            ID::Element(e) => {
+                if let ID::Element(se) = other {
+                    e == se
                 } else {
                     false
                 }
             }
-            Ref::Location(l) => {
-                if let Ref::Location(sl) = other {
-                    l.read().unwrap().uid == sl.read().unwrap().uid
+            ID::Location(l) => {
+                if let ID::Location(sl) = other {
+                    l == sl
                 } else {
                     false
                 }
@@ -42,14 +43,27 @@ impl PartialEq for Ref {
     }
 }
 
+impl ID {
+    pub fn get_ref(&self, session: &dyn TSession) -> Result<Ref, SessionError> {
+        match self {
+            ID::Element(e) => Ok(Ref::Element(session.get_element_ref(e)?)),
+            ID::Location(l) => Ok(Ref::Location(session.get_location_ref(l)?)),
+        }
+    }
+}
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    element::ElementId,
     enums::{AdvanceEnum, CustomEnum},
-    prelude::{Element, FileOrData, Location, Module, RefElement, RefLocation, RefModule},
+    prelude::{
+        Element, FileOrData, Location, LocationId, Module, Ref, RefElement, RefLocation, RefModule,
+        SessionError, TSession,
+    },
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum Type {
     U8(u8),
     U16(u16),
@@ -76,8 +90,6 @@ pub enum Type {
     HashMapS(HashMap<String, Type>),
     // HashMap(HashMap<Type, Type>),
     FileOrData(FileOrData),
-    #[serde(skip)]
-    Any(Arc<RwLock<Box<dyn Any>>>),
     CustomEnum(CustomEnum),
     AdvancedEnum(AdvanceEnum),
     // Fields(Box<dyn Fields>),
@@ -119,7 +131,6 @@ impl Hash for Type {
                 }
             }
             Type::FileOrData(ford) => ford.hash(state),
-            Type::Any(_) => 21.hash(state),
             Type::CustomEnum(e) => e.hash(state),
             Type::AdvancedEnum(e) => e.hash(state),
             Type::Vec(v) => v.hash(state),
@@ -157,7 +168,6 @@ impl Type {
                 HashMapS(Box::new(ty.1.to_tag()))
             }
             Type::FileOrData(_) => FileOrData,
-            Type::Any(_) => TypeTag::Any,
             Type::CustomEnum(e) => CustomEnum(e.clone()),
             Type::AdvancedEnum(e) => AdvancedEnum(e.clone()),
             Type::Vec(v) => {
@@ -197,14 +207,14 @@ impl Display for Type {
             Type::HashMapSS(v) => {
                 let mut buff = String::new();
                 for (k, v) in v.iter() {
-                    buff.push_str(&format!("{}: {}", k, v));
+                    buff.push_str(&format!("{k}: {v}"));
                 }
                 f.write_str(&buff)
             }
             Type::HashMapS(v) => {
                 let mut buff = String::new();
                 for (k, v) in v.iter() {
-                    buff.push_str(&format!("{}: {}", k, v));
+                    buff.push_str(&format!("{k}: {v}"));
                 }
                 f.write_str(&buff)
             }
@@ -220,7 +230,6 @@ impl Display for Type {
                 ),
                 FileOrData::Bytes(b) => b.fmt(f),
             },
-            Type::Any(_) => f.write_str("Any"),
             Type::CustomEnum(e) => {
                 if let Some(e) = e.get_active() {
                     f.write_str(&e)
@@ -537,7 +546,7 @@ impl TryInto<String> for Type {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub enum TypeTag {
     U8,
     U16,
@@ -598,19 +607,19 @@ impl Display for TypeTag {
             TypeTag::Url => "url",
             TypeTag::Path => "path",
             TypeTag::HashMapSS => "hashmap_string_string",
-            TypeTag::HashMapS(h) => return write!(f, "hashmap_string({})", h),
+            TypeTag::HashMapS(h) => return write!(f, "hashmap_string({h})"),
             TypeTag::FileOrData => "file_or_data",
             TypeTag::Any => "any",
             TypeTag::CustomEnum(_) => "custom_enum",
             TypeTag::AdvancedEnum(_) => "advanced_enum",
-            TypeTag::Vec(v) => return write!(f, "vec({})", v),
+            TypeTag::Vec(v) => return write!(f, "vec({v})"),
             TypeTag::Bytes => "bytes",
             TypeTag::None => "none",
         })
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub enum TypeValidation {
     Range(usize, usize),
 }
