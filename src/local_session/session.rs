@@ -99,6 +99,19 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
     }
 
     fn add_module(&self, module: Box<dyn TModule>) -> Result<MRef, SessionError> {
+        // if other module has the same default name with the new module will be replaced and will
+        // be returned as the new module
+        {
+            let len = self.get_modules_len()?;
+            let name = module.get_name();
+            for m in self.get_modules(0..len)? {
+                if m.get_default_name()? == name {
+                    self.get_module(&m.id())?.write().unwrap().module = module;
+                    return Ok(m);
+                }
+            }
+        }
+
         let info = Arc::new(RwLock::new(RefModule {
             uid: ModuleId(self.get_modules_len()? as u64),
             session: Some(self.c()),
