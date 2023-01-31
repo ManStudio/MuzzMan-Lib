@@ -1,7 +1,7 @@
 [package]
 name = "muzzman-lib"
 description = "Modulabile Download manager"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 authors = ["konkitoman"]
 repository = "https://github.com/ManStudio/MuzzMan-Lib"
@@ -24,8 +24,7 @@ debug = false
 [dependencies]
 rand = "0.8.5"
 get_ref = "0.1.0"
-url = "2.3.1"
 libloading = "0.7.4"
-muzzman-lib-macros = "0.1.2"
+muzzman-lib-macros = "0.1.3"
 serde = {version = "1.0.152", features = ["derive", "std", "rc", "alloc"]}
 bytes-kman = "0.1.18"

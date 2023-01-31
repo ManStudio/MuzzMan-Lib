@@ -77,6 +77,9 @@ pub trait TElement {
     fn resolv_module(&self) -> Result<bool, SessionError>;
     fn init(&self) -> Result<bool, SessionError>;
 
+    fn get_url(&self) -> Result<Option<String>, SessionError>;
+    fn set_url(&self, url: Option<String>) -> Result<(), SessionError>;
+
     fn get_statuses(&self) -> Result<Vec<String>, SessionError>;
     fn set_statuses(&self, statuses: Vec<String>) -> Result<(), SessionError>;
 
@@ -109,6 +112,7 @@ pub struct Element {
     pub name: String,
     pub desc: String,
     pub meta: String,
+    pub url: Option<String>,
     pub element_data: Data,
     pub module_data: Data,
     pub module: Option<MRef>,
@@ -287,6 +291,14 @@ impl TElement for ERef {
 
     fn id(&self) -> ElementId {
         self.read().unwrap().id.clone()
+    }
+
+    fn get_url(&self) -> Result<Option<String>, SessionError> {
+        self.get_session()?.element_get_url(&self.id())
+    }
+
+    fn set_url(&self, url: Option<String>) -> Result<(), SessionError> {
+        self.get_session()?.element_set_url(&self.id(), url)
     }
 }
 
