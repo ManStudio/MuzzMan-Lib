@@ -77,7 +77,7 @@ pub fn module_link(
         }
 
         #[no_mangle]
-        fn accept_url(url: Url) -> bool {
+        fn accept_url(url: String) -> bool {
             MODULE.accept_url(url)
         }
 
