@@ -97,6 +97,7 @@ pub trait TModule {
 
     fn accept_extension(&self, filename: &str) -> bool;
     fn accept_url(&self, url: String) -> bool;
+    fn accepted_protocols(&self) -> Vec<String>;
 
     fn init_location(&self, location_ref: LRef, data: FileOrData);
     fn step_location(
@@ -129,6 +130,7 @@ pub enum RawLibraryError {
     DontHaveSymbolStepElement,
     DontHaveSymbolAcceptExtension,
     DontHaveSymbolAcceptUrl,
+    DontHaveSymbolAcceptedProtocols,
     DontHaveSymbolInitLocation,
     DontHaveSymbolStepLocation,
     DontHaveSymbolNotify,
@@ -153,6 +155,7 @@ pub struct RawModule {
 
     fn_accept_extension: Symbol<'static, fn(&str) -> bool>,
     fn_accept_url: Symbol<'static, fn(String) -> bool>,
+    fn_accepted_protocols: Symbol<'static, fn() -> Vec<String>>,
 
     fn_notify: Symbol<'static, fn(Ref, Event)>,
 }
@@ -226,6 +229,12 @@ impl RawModule {
             return Err(RawLibraryError::DontHaveSymbolAcceptUrl);
         };
 
+        let fn_accepted_protocols = if let Ok(func) = unsafe { lib.get(b"accepted_protocols\0") } {
+            func
+        } else {
+            return Err(RawLibraryError::DontHaveSymbolAcceptedProtocols);
+        };
+
         let fn_init_location = if let Ok(func) = unsafe { lib.get(b"init_location\0") } {
             func
         } else {
@@ -256,6 +265,7 @@ impl RawModule {
             fn_step_element,
             fn_accept_extension,
             fn_accept_url,
+            fn_accepted_protocols,
             fn_notify,
             fn_step_location,
         })
@@ -304,6 +314,10 @@ impl TModule for Arc<RawModule> {
 
     fn accept_url(&self, url: String) -> bool {
         (*self.fn_accept_url)(url)
+    }
+
+    fn accepted_protocols(&self) -> Vec<String> {
+        (*self.fn_accepted_protocols)()
     }
 
     fn init_location(&self, location: LRef, data: FileOrData) {

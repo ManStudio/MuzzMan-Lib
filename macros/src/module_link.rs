@@ -77,6 +77,11 @@ pub fn module_link(
         }
 
         #[no_mangle]
+        fn accepted_protocols() -> Vec<String>{
+            MODULE.accepted_protocols()
+        }
+
+        #[no_mangle]
         fn accept_url(url: String) -> bool {
             MODULE.accept_url(url)
         }
