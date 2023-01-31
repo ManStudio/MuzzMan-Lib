@@ -424,11 +424,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(())
     }
 
-    fn moduie_accept_url(
-        &self,
-        module_info: &ModuleId,
-        url: url::Url,
-    ) -> Result<bool, SessionError> {
+    fn module_accept_url(&self, module_info: &ModuleId, url: String) -> Result<bool, SessionError> {
         Ok(self
             .get_module(module_info)?
             .read()
@@ -510,6 +506,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             name: name.to_owned(),
             desc: String::new(),
             meta: String::new(),
+            url: None,
             element_data: Data::new(),
             module_data: Data::new(),
             module: None,
@@ -802,20 +799,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         let mut module = None;
 
-        if let Some(Type::String(url)) = self
-            .get_element(element_info)?
-            .read()
-            .unwrap()
-            .element_data
-            .get("url")
-        {
+        if let Some(url) = self.get_element(element_info)?.read().unwrap().url.clone() {
             for tmp_module in self.get_modules(0..len)? {
                 if self
                     .get_module(&tmp_module.read().unwrap().uid)?
                     .read()
                     .unwrap()
                     .module
-                    .accept_url(Url::parse(url).unwrap())
+                    .accept_url(url.clone())
                 {
                     module = Some(tmp_module);
                     break;
@@ -1377,5 +1368,18 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn get_location_ref(&self, id: &LocationId) -> Result<LRef, SessionError> {
         Ok(self.get_location(id)?.read().unwrap().info.clone())
+    }
+
+    fn element_get_url(&self, element_id: &ElementId) -> Result<Option<String>, SessionError> {
+        Ok(self.get_element(element_id)?.read().unwrap().url.clone())
+    }
+
+    fn element_set_url(
+        &self,
+        element_id: &ElementId,
+        url: Option<String>,
+    ) -> Result<(), SessionError> {
+        self.get_element(element_id)?.write().unwrap().url = url;
+        Ok(())
     }
 }

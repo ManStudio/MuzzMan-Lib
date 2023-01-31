@@ -24,5 +24,4 @@ pub mod prelude {
     pub use get_ref::*;
     pub use muzzman_lib_macros::*;
     pub use std::any::Any;
-    pub use url::Url;
 }

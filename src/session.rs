@@ -92,7 +92,7 @@ pub trait TSession {
         element_id: &ElementId,
     ) -> Result<(), SessionError>;
 
-    fn moduie_accept_url(&self, module_id: &ModuleId, url: Url) -> Result<bool, SessionError>;
+    fn module_accept_url(&self, module_id: &ModuleId, url: String) -> Result<bool, SessionError>;
 
     fn module_accept_extension(
         &self,
@@ -140,6 +140,13 @@ pub trait TSession {
 
     fn element_get_meta(&self, element_id: &ElementId) -> Result<String, SessionError>;
     fn element_set_meta(&self, element_id: &ElementId, meta: &str) -> Result<(), SessionError>;
+
+    fn element_get_url(&self, element_id: &ElementId) -> Result<Option<String>, SessionError>;
+    fn element_set_url(
+        &self,
+        element_id: &ElementId,
+        url: Option<String>,
+    ) -> Result<(), SessionError>;
 
     fn element_get_element_data(&self, element_id: &ElementId) -> Result<Data, SessionError>;
     fn element_set_element_data(
