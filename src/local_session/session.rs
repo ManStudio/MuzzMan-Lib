@@ -565,6 +565,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn destroy_element(&self, element: ElementId) -> Result<ERow, SessionError> {
+        let _ = self.get_element_ref(&element)?;
+
         let _ = self.notify_all(SessionEvent::DestroyedElement(element.clone()));
 
         let element = self
@@ -1060,6 +1062,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn destroy_location(&self, location: LocationId) -> Result<LRow, SessionError> {
+        let _ = self.get_location_ref(&location)?;
         let _ = self.notify_all(SessionEvent::DestroyedLocation(location.clone()));
 
         let mut location_uid = location;
