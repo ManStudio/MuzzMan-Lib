@@ -100,6 +100,8 @@ pub trait TSession {
         filename: &str,
     ) -> Result<bool, SessionError>;
 
+    fn module_accepted_protocols(&self, module_id: &ModuleId) -> Result<Vec<String>, SessionError>;
+
     fn module_step_element(
         &self,
         module_id: &ModuleId,

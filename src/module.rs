@@ -381,6 +381,7 @@ pub trait TModuleInfo {
 
     fn accept_url(&self, url: String) -> Result<bool, SessionError>;
     fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError>;
+    fn accepted_protocols(&self) -> Result<Vec<String>, SessionError>;
 
     fn init_element(&self, element_info: &ElementId) -> Result<(), SessionError>;
     fn init_location(
@@ -497,6 +498,10 @@ impl TModuleInfo for MRef {
     fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError> {
         self.get_session()?
             .module_accept_extension(&self.id(), &filename.into())
+    }
+
+    fn accepted_protocols(&self) -> Result<Vec<String>, SessionError> {
+        self.get_session()?.module_accepted_protocols(&self.id())
     }
 
     fn init_element(&self, element_info: &ElementId) -> Result<(), SessionError> {

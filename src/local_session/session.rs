@@ -446,6 +446,15 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .accept_extension(filename))
     }
 
+    fn module_accepted_protocols(&self, module_id: &ModuleId) -> Result<Vec<String>, SessionError> {
+        Ok(self
+            .get_module(module_id)?
+            .read()
+            .unwrap()
+            .module
+            .accepted_protocols())
+    }
+
     fn module_step_element(
         &self,
         module_info: &ModuleId,
@@ -556,6 +565,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn destroy_element(&self, element: ElementId) -> Result<ERow, SessionError> {
+        let _ = self.get_element_ref(&element)?;
+
         let _ = self.notify_all(SessionEvent::DestroyedElement(element.clone()));
 
         let element = self
@@ -616,6 +627,19 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn element_set_meta(&self, element: &ElementId, meta: &str) -> Result<(), SessionError> {
         self.get_element(element)?.write().unwrap().meta = meta.to_owned();
+        Ok(())
+    }
+
+    fn element_get_url(&self, element_id: &ElementId) -> Result<Option<String>, SessionError> {
+        Ok(self.get_element(element_id)?.read().unwrap().url.clone())
+    }
+
+    fn element_set_url(
+        &self,
+        element_id: &ElementId,
+        url: Option<String>,
+    ) -> Result<(), SessionError> {
+        self.get_element(element_id)?.write().unwrap().url = url;
         Ok(())
     }
 
@@ -1038,6 +1062,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn destroy_location(&self, location: LocationId) -> Result<LRow, SessionError> {
+        let _ = self.get_location_ref(&location)?;
         let _ = self.notify_all(SessionEvent::DestroyedLocation(location.clone()));
 
         let mut location_uid = location;
@@ -1354,10 +1379,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(())
     }
 
-    fn c(&self) -> Box<dyn TSession> {
-        Box::new(self.clone())
-    }
-
     fn get_module_ref(&self, id: &ModuleId) -> Result<MRef, SessionError> {
         Ok(self.get_module(id)?.read().unwrap().info.clone())
     }
@@ -1370,16 +1391,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(self.get_location(id)?.read().unwrap().info.clone())
     }
 
-    fn element_get_url(&self, element_id: &ElementId) -> Result<Option<String>, SessionError> {
-        Ok(self.get_element(element_id)?.read().unwrap().url.clone())
-    }
-
-    fn element_set_url(
-        &self,
-        element_id: &ElementId,
-        url: Option<String>,
-    ) -> Result<(), SessionError> {
-        self.get_element(element_id)?.write().unwrap().url = url;
-        Ok(())
+    fn c(&self) -> Box<dyn TSession> {
+        Box::new(self.clone())
     }
 }
