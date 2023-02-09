@@ -117,13 +117,19 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
             session: Some(self.c()),
         }));
 
+        let mut settings = Data::new();
+        let mut element_data = Data::new();
+
+        module.init_settings(&mut settings);
+        module.init_element_settings(&mut element_data);
+
         let module = Module {
             name: module.get_name(),
             desc: module.get_desc(),
             module,
             proxy: 0,
-            settings: Data::new(),
-            element_data: Data::new(),
+            settings,
+            element_data,
             info: info.clone(),
         };
 
@@ -413,12 +419,12 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let module = self.get_module(module_info)?;
         let module = module.read().unwrap();
         let element = self.get_element(element_info)?;
-        module
-            .module
-            .init_settings(&mut element.write().unwrap().module_data);
-        module
-            .module
-            .init_element_settings(&mut element.write().unwrap().element_data);
+
+        {
+            let mut element = element.write().unwrap();
+            element.element_data = module.element_data.clone();
+            element.module_data = module.settings.clone();
+        }
         module.module.init_element(element);
 
         Ok(())
