@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "bytes-kman"
-version = "0.1.18"
+version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6df6a3154fb27a485590c22f4e9000b20472218c85d3c54014bf8c0607250a0"
+checksum = "8c9ee107158ddf3941fb584ddf21240f4a649870c968f29b7513919be650d4d1"
 dependencies = [
  "bytes-kman-derive",
 ]
@@ -47,9 +47,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.137"
+version = "0.2.139"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc7fcc620a3bff7cdd7a365be3376c97191aeaccc2a603e600951e452615bf89"
+checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
 
 [[package]]
 name = "libloading"
@@ -63,7 +63,7 @@ dependencies = [
 
 [[package]]
 name = "muzzman-lib"
-version = "0.3.3"
+version = "0.3.5"
 dependencies = [
  "bytes-kman",
  "get_ref",
@@ -101,9 +101,9 @@ checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.49"
+version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57a8eca9f9c4ffde41714334dee777596264c7825420f521abc92b5b5deb63a5"
+checksum = "5d727cae5b39d21da60fa540906919ad737832fe0b1c165da3a34d6548c849d6"
 dependencies = [
  "unicode-ident",
 ]
