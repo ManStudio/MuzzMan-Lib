@@ -112,15 +112,31 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         info: Option<ModuleInfo>,
     ) -> Result<MRef, SessionError> {
         if let Some(info) = info {
-            let module_old =
-                if let Some(module_old) = self.read().unwrap().modules.get(info.id.0 as usize) {
-                    Some(module_old.clone())
-                } else {
-                    None
-                };
+            let ref_ = Arc::new(RwLock::new(RefModule {
+                uid: info.id,
+                session: Some(self.c()),
+            }));
+
+            let module = Arc::new(RwLock::new(Module {
+                name: info.name.clone(),
+                desc: info.desc.clone(),
+                module,
+                proxy: info.proxy,
+                settings: info.settings.clone(),
+                element_data: info.element_data.clone(),
+                info: ref_.clone(),
+                path,
+            }));
+            let module_old = self
+                .read()
+                .unwrap()
+                .modules
+                .get(info.id.0 as usize)
+                .map(std::clone::Clone::clone);
             if let Some(module_old) = module_old {
                 if let Some(module_old) = module_old {
                     if module_old.read().unwrap().path == info.path {
+                        // if we had to correct module at the correct location
                         {
                             let mut module = module_old.write().unwrap();
                             module.name = info.name;
@@ -131,48 +147,21 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                         }
                         return self.get_module_ref(&info.id);
                     } else {
+                        // if we not have the correct module
+                        // that means we need to move to the top
+                        // and add our module at the module id
                         let mut lock = self.write().unwrap();
                         let len = lock.modules.len();
                         let old = lock.modules.remove(info.id.0 as usize);
                         lock.modules.push(old);
                         module_old.write().unwrap().info.write().unwrap().uid.0 = len as u64;
 
-                        let ref_ = Arc::new(RwLock::new(RefModule {
-                            uid: info.id,
-                            session: Some(self.c()),
-                        }));
-
-                        let module = Arc::new(RwLock::new(Module {
-                            name: info.name,
-                            desc: info.desc,
-                            module,
-                            proxy: info.proxy,
-                            settings: info.settings,
-                            element_data: info.element_data,
-                            info: ref_.clone(),
-                            path,
-                        }));
-
                         lock.modules.insert(info.id.0 as usize, Some(module));
                         return Ok(ref_);
                     }
                 } else {
+                    // if has a avalibile slot but no module in it
                     self.write().unwrap().modules.remove(info.id.0 as usize);
-                    let ref_ = Arc::new(RwLock::new(RefModule {
-                        uid: info.id,
-                        session: Some(self.c()),
-                    }));
-
-                    let module = Arc::new(RwLock::new(Module {
-                        name: info.name,
-                        desc: info.desc,
-                        module,
-                        proxy: info.proxy,
-                        settings: info.settings,
-                        element_data: info.element_data,
-                        info: ref_.clone(),
-                        path,
-                    }));
                     self.write()
                         .unwrap()
                         .modules
@@ -180,24 +169,10 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                     return Ok(ref_);
                 }
             } else {
+                // if we don't have enouch modules
+                // we need to add empty modules until the disire id
                 loop {
                     if self.get_modules_len()? == info.id.0 as usize {
-                        let ref_ = Arc::new(RwLock::new(RefModule {
-                            uid: info.id,
-                            session: Some(self.c()),
-                        }));
-
-                        let module = Arc::new(RwLock::new(Module {
-                            name: info.name,
-                            desc: info.desc,
-                            module,
-                            proxy: info.proxy,
-                            settings: info.settings,
-                            element_data: info.element_data,
-                            info: ref_.clone(),
-                            path,
-                        }));
-
                         self.write().unwrap().modules.push(Some(module));
 
                         return Ok(ref_);
@@ -208,6 +183,8 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         }
         // if other module has the same default name with the new module will be replaced and will
         // be returned as the new module
+
+        // TODO: Find the first empty module and swap with the new module
         {
             let len = self.get_modules_len()?;
             let name = module.get_name();
