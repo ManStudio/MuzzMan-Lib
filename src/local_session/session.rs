@@ -9,7 +9,7 @@ use crate::prelude::*;
 #[derive(Default)]
 pub struct LocalSession {
     pub location: Option<LRow>,
-    pub modules: Vec<MRow>,
+    pub modules: Vec<Option<MRow>>,
     pub actions: Vec<Arc<RwLock<Action>>>,
     pub callback: Option<Box<dyn Fn(SessionEvent)>>,
 }
@@ -95,7 +95,11 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
 
     fn get_module(&self, info: &ModuleId) -> Result<MRow, SessionError> {
         if let Some(module) = self.read().unwrap().modules.get(info.0 as usize) {
-            Ok(module.clone())
+            if let Some(module) = &module {
+                Ok(module.clone())
+            } else {
+                Err(SessionError::InvalidModule)
+            }
         } else {
             Err(SessionError::InvalidModule)
         }
@@ -108,24 +112,52 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         info: Option<ModuleInfo>,
     ) -> Result<MRef, SessionError> {
         if let Some(info) = info {
-            if let Ok(module_old) = self.get_module(&info.id) {
-                if module_old.read().unwrap().path == info.path {
-                    {
-                        let mut module = module_old.write().unwrap();
-                        module.name = info.name;
-                        module.desc = info.desc;
-                        module.proxy = info.proxy;
-                        module.settings = info.settings;
-                        module.element_data = info.element_data;
-                    }
-                    return self.get_module_ref(&info.id);
+            let module_old =
+                if let Some(module_old) = self.read().unwrap().modules.get(info.id.0 as usize) {
+                    Some(module_old.clone())
                 } else {
-                    let mut lock = self.write().unwrap();
-                    let len = lock.modules.len();
-                    let old = lock.modules.remove(info.id.0 as usize);
-                    lock.modules.push(old);
-                    module_old.write().unwrap().info.write().unwrap().uid.0 = len as u64;
+                    None
+                };
+            if let Some(module_old) = module_old {
+                if let Some(module_old) = module_old {
+                    if module_old.read().unwrap().path == info.path {
+                        {
+                            let mut module = module_old.write().unwrap();
+                            module.name = info.name;
+                            module.desc = info.desc;
+                            module.proxy = info.proxy;
+                            module.settings = info.settings;
+                            module.element_data = info.element_data;
+                        }
+                        return self.get_module_ref(&info.id);
+                    } else {
+                        let mut lock = self.write().unwrap();
+                        let len = lock.modules.len();
+                        let old = lock.modules.remove(info.id.0 as usize);
+                        lock.modules.push(old);
+                        module_old.write().unwrap().info.write().unwrap().uid.0 = len as u64;
 
+                        let ref_ = Arc::new(RwLock::new(RefModule {
+                            uid: info.id,
+                            session: Some(self.c()),
+                        }));
+
+                        let module = Arc::new(RwLock::new(Module {
+                            name: info.name,
+                            desc: info.desc,
+                            module,
+                            proxy: info.proxy,
+                            settings: info.settings,
+                            element_data: info.element_data,
+                            info: ref_.clone(),
+                            path,
+                        }));
+
+                        lock.modules.insert(info.id.0 as usize, Some(module));
+                        return Ok(ref_);
+                    }
+                } else {
+                    self.write().unwrap().modules.remove(info.id.0 as usize);
                     let ref_ = Arc::new(RwLock::new(RefModule {
                         uid: info.id,
                         session: Some(self.c()),
@@ -141,9 +173,36 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                         info: ref_.clone(),
                         path,
                     }));
-
-                    lock.modules.insert(info.id.0 as usize, module);
+                    self.write()
+                        .unwrap()
+                        .modules
+                        .insert(info.id.0 as usize, Some(module));
                     return Ok(ref_);
+                }
+            } else {
+                loop {
+                    if self.get_modules_len()? == info.id.0 as usize {
+                        let ref_ = Arc::new(RwLock::new(RefModule {
+                            uid: info.id,
+                            session: Some(self.c()),
+                        }));
+
+                        let module = Arc::new(RwLock::new(Module {
+                            name: info.name,
+                            desc: info.desc,
+                            module,
+                            proxy: info.proxy,
+                            settings: info.settings,
+                            element_data: info.element_data,
+                            info: ref_.clone(),
+                            path,
+                        }));
+
+                        self.write().unwrap().modules.push(Some(module));
+
+                        return Ok(ref_);
+                    }
+                    self.write().unwrap().modules.push(None);
                 }
             }
         }
@@ -189,7 +248,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         self.write()
             .unwrap()
             .modules
-            .push(Arc::new(RwLock::new(module)));
+            .push(Some(Arc::new(RwLock::new(module))));
 
         let _ = self.notify_all(SessionEvent::NewModule(info.read().unwrap().uid));
 
@@ -245,6 +304,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let index = info.0;
         {
             let module = self.read().unwrap().modules[index as usize].clone();
+            let Some(module) = module else{return Err(SessionError::InvalidModule)};
             let module = module.read().unwrap();
             let info = module.info.clone();
             self.write()
@@ -252,17 +312,20 @@ impl TSession for Arc<RwLock<LocalSession>> {
                 .actions
                 .retain(|e| *e.read().unwrap().owner.read().unwrap() != *info.read().unwrap());
         }
-        let module = self.write().unwrap().modules.remove(index as usize);
+        let mut module = self.write().unwrap().modules.remove(index as usize);
+        let module = module.take().unwrap();
 
         let mut notifications = Vec::new();
 
         for (i, module) in self.write().unwrap().modules.iter().enumerate() {
-            let info = &module.write().unwrap().info;
-            let last = info.read().unwrap().uid;
-            let mut new = last;
-            new.0 = i as u64;
-            info.write().unwrap().uid = new;
-            notifications.push(SessionEvent::ModuleIdChanged(last, new));
+            if let Some(module) = module {
+                let info = &module.write().unwrap().info;
+                let last = info.read().unwrap().uid;
+                let mut new = last;
+                new.0 = i as u64;
+                info.write().unwrap().uid = new;
+                notifications.push(SessionEvent::ModuleIdChanged(last, new));
+            }
         }
 
         for notification in notifications {
@@ -362,8 +425,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let mut modules = Vec::new();
 
         for module in self.read().unwrap().modules[range].iter() {
-            let info = &module.write().unwrap().info;
-            modules.push(info.clone())
+            if let Some(module) = module {
+                let info = &module.write().unwrap().info;
+                modules.push(info.clone())
+            }
         }
 
         Ok(modules)
