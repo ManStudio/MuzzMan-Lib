@@ -52,7 +52,11 @@ trait TLocalSession {
     fn get_element(&self, info: &ElementId) -> Result<ERow, SessionError>;
     fn get_module(&self, info: &ModuleId) -> Result<MRow, SessionError>;
 
-    fn add_module(&self, module: Box<dyn TModule>) -> Result<MRef, SessionError>;
+    fn add_module(
+        &self,
+        module: Box<dyn TModule>,
+        path: Option<PathBuf>,
+    ) -> Result<MRef, SessionError>;
 
     fn notify_all(&self, event: SessionEvent) -> Result<(), SessionError>;
 }
@@ -98,7 +102,11 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         }
     }
 
-    fn add_module(&self, module: Box<dyn TModule>) -> Result<MRef, SessionError> {
+    fn add_module(
+        &self,
+        module: Box<dyn TModule>,
+        path: Option<PathBuf>,
+    ) -> Result<MRef, SessionError> {
         // if other module has the same default name with the new module will be replaced and will
         // be returned as the new module
         {
@@ -131,6 +139,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
             settings,
             element_data,
             info: info.clone(),
+            path,
         };
 
         if let Err(error) = module.module.init(info.clone()) {
@@ -185,7 +194,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let module = RawModule::new_module(&path);
 
         match module {
-            Ok(module) => Ok(self.add_module(module)?),
+            Ok(module) => Ok(self.add_module(module, Some(path.clone()))?),
             Err(err) => Err(SessionError::RawModule(err)),
         }
     }
@@ -876,20 +885,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
                 let __module = self.get_module(&__module.read().unwrap().uid)?;
                 let __module = __module.read().unwrap();
 
-                let mut hasher = DefaultHasher::new();
-                let hasher = &mut hasher;
-                __module.name.hash(hasher);
-                __module.desc.hash(hasher);
-                let id = hasher.finish();
-
                 module = Some(ModuleInfo {
                     name: __module.name.clone(),
                     desc: __module.desc.clone(),
-                    module: id,
                     proxy: __module.proxy,
                     settings: __module.settings.clone(),
                     element_data: __module.element_data.clone(),
                     id: __module.info.id(),
+                    path: __module.path.clone(),
                 });
             }
         }
@@ -1232,11 +1235,11 @@ impl TSession for Arc<RwLock<LocalSession>> {
                 module = Some(ModuleInfo {
                     name: __module.name.clone(),
                     desc: __module.desc.clone(),
-                    module: id,
                     proxy: __module.proxy,
                     settings: __module.settings.clone(),
                     element_data: __module.element_data.clone(),
                     id: __module.info.id(),
+                    path: __module.path.clone(),
                 });
             }
         }

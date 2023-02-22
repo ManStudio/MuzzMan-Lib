@@ -1,4 +1,8 @@
-use std::{fmt::Debug, path::Path, sync::Arc};
+use std::{
+    fmt::Debug,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use crate::prelude::*;
 use bytes_kman::TBytes;
@@ -58,6 +62,8 @@ pub struct Module {
     pub name: String,
     pub desc: String,
     pub module: Box<dyn TModule>,
+    /// this is the path of where the module get loaded
+    pub path: Option<PathBuf>,
     pub proxy: usize,
     /// default module data/settings
     pub settings: Data,
@@ -535,8 +541,8 @@ impl TModuleInfo for MRef {
 pub struct ModuleInfo {
     pub name: String,
     pub desc: String,
+    pub path: Option<PathBuf>,
     // module hash
-    pub module: u64,
     pub id: ModuleId,
     pub proxy: usize,
     pub settings: Data,
