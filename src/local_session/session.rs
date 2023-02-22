@@ -94,12 +94,8 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
     }
 
     fn get_module(&self, info: &ModuleId) -> Result<MRow, SessionError> {
-        if let Some(module) = self.read().unwrap().modules.get(info.0 as usize) {
-            if let Some(module) = &module {
-                Ok(module.clone())
-            } else {
-                Err(SessionError::InvalidModule)
-            }
+        if let Some(Some(module)) = self.read().unwrap().modules.get(info.0 as usize) {
+            Ok(module.clone())
         } else {
             Err(SessionError::InvalidModule)
         }
@@ -401,11 +397,9 @@ impl TSession for Arc<RwLock<LocalSession>> {
     fn get_modules(&self, range: Range<usize>) -> Result<Vec<MRef>, SessionError> {
         let mut modules = Vec::new();
 
-        for module in self.read().unwrap().modules[range].iter() {
-            if let Some(module) = module {
-                let info = &module.write().unwrap().info;
-                modules.push(info.clone())
-            }
+        for module in self.read().unwrap().modules[range].iter().flatten() {
+            let info = &module.write().unwrap().info;
+            modules.push(info.clone())
         }
 
         Ok(modules)
