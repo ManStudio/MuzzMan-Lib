@@ -1,6 +1,4 @@
 use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
     ops::Range,
     path::PathBuf,
     sync::{Arc, RwLock},
@@ -56,6 +54,7 @@ trait TLocalSession {
         &self,
         module: Box<dyn TModule>,
         path: Option<PathBuf>,
+        info: Option<ModuleInfo>,
     ) -> Result<MRef, SessionError>;
 
     fn notify_all(&self, event: SessionEvent) -> Result<(), SessionError>;
@@ -106,7 +105,48 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         &self,
         module: Box<dyn TModule>,
         path: Option<PathBuf>,
+        info: Option<ModuleInfo>,
     ) -> Result<MRef, SessionError> {
+        if let Some(info) = info {
+            if let Ok(module_old) = self.get_module(&info.id) {
+                if module_old.read().unwrap().path == info.path {
+                    {
+                        let mut module = module_old.write().unwrap();
+                        module.name = info.name;
+                        module.desc = info.desc;
+                        module.proxy = info.proxy;
+                        module.settings = info.settings;
+                        module.element_data = info.element_data;
+                    }
+                    return self.get_module_ref(&info.id);
+                } else {
+                    let mut lock = self.write().unwrap();
+                    let len = lock.modules.len();
+                    let old = lock.modules.remove(info.id.0 as usize);
+                    lock.modules.push(old);
+                    module_old.write().unwrap().info.write().unwrap().uid.0 = len as u64;
+
+                    let ref_ = Arc::new(RwLock::new(RefModule {
+                        uid: info.id,
+                        session: Some(self.c()),
+                    }));
+
+                    let module = Arc::new(RwLock::new(Module {
+                        name: info.name,
+                        desc: info.desc,
+                        module,
+                        proxy: info.proxy,
+                        settings: info.settings,
+                        element_data: info.element_data,
+                        info: ref_.clone(),
+                        path,
+                    }));
+
+                    lock.modules.insert(info.id.0 as usize, module);
+                    return Ok(ref_);
+                }
+            }
+        }
         // if other module has the same default name with the new module will be replaced and will
         // be returned as the new module
         {
@@ -194,7 +234,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let module = RawModule::new_module(&path);
 
         match module {
-            Ok(module) => Ok(self.add_module(module, Some(path.clone()))?),
+            Ok(module) => Ok(self.add_module(module, Some(path.clone()), None)?),
             Err(err) => Err(SessionError::RawModule(err)),
         }
     }
@@ -1225,12 +1265,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
             if let Some(__module) = __module {
                 let __module = self.get_module(&__module.read().unwrap().uid)?;
                 let __module = __module.read().unwrap();
-
-                let mut hasher = DefaultHasher::new();
-                let hasher = &mut hasher;
-                __module.name.hash(hasher);
-                __module.desc.hash(hasher);
-                let id = hasher.finish();
 
                 module = Some(ModuleInfo {
                     name: __module.name.clone(),

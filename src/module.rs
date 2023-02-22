@@ -542,7 +542,6 @@ pub struct ModuleInfo {
     pub name: String,
     pub desc: String,
     pub path: Option<PathBuf>,
-    // module hash
     pub id: ModuleId,
     pub proxy: usize,
     pub settings: Data,
