@@ -787,6 +787,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             };
 
             loop {
+                // TODO: Change to be async spawn
                 if let ControlFlow::Break = control_flow {
                     break;
                 }
@@ -798,7 +799,9 @@ impl TSession for Arc<RwLock<LocalSession>> {
                         if let Some(m) = &element.read().unwrap().module {
                             module = Some(m.clone());
                         } else {
-                            panic!("Is inposibile!")
+                            // this should not happend but is possibile because is multi threaded
+                            // is not problem if this happend
+                            module = None;
                         }
                     } else {
                         std::thread::sleep(std::time::Duration::from_secs(1));

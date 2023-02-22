@@ -30,6 +30,10 @@ pub enum SessionError {
 
 pub type Actions = Vec<(String, MRef, Vec<(String, Value)>)>;
 
+// TODO: all the functions should be async
+// because is possible to be performed on the network
+// or should have a asnyc version
+// like TSessionAsync
 pub trait TSession {
     //
     // Module
