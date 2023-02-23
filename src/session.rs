@@ -135,6 +135,11 @@ pub trait TSession {
     //
 
     fn create_element(&self, name: &str, location_id: &LocationId) -> Result<ERef, SessionError>;
+    fn load_element_info(
+        &self,
+        info: ElementInfo,
+        location: &LocationId,
+    ) -> Result<ERef, SessionError>;
     fn move_element(
         &self,
         element: &ElementId,
@@ -241,6 +246,11 @@ pub trait TSession {
     //
 
     fn create_location(&self, name: &str, location_id: &LocationId) -> Result<LRef, SessionError>;
+    fn location_load_info(
+        &self,
+        info: LocationInfo,
+        id: Option<&LocationId>,
+    ) -> Result<LRef, SessionError>;
     fn get_locations_len(&self, location_id: &LocationId) -> Result<usize, SessionError>;
     fn get_locations(
         &self,

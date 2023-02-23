@@ -662,6 +662,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(element_info)
     }
 
+    fn load_element_info(
+        &self,
+        info: ElementInfo,
+        location: &LocationId,
+    ) -> Result<ERef, SessionError> {
+        todo!()
+    }
+
     fn move_element(&self, element: &ElementId, location: &LocationId) -> Result<(), SessionError> {
         let elem = self.destroy_element(element.clone())?;
         let info = elem.read().unwrap().info.clone();
@@ -1158,6 +1166,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
         ));
 
         Ok(location_info)
+    }
+
+    fn location_load_info(
+        &self,
+        info: LocationInfo,
+        id: Option<&LocationId>,
+    ) -> Result<LRef, SessionError> {
+        todo!()
     }
 
     fn get_locations_len(&self, location: &LocationId) -> Result<usize, SessionError> {
