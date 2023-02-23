@@ -15,7 +15,7 @@ pub struct LocalSession {
 }
 
 impl LocalSession {
-    pub fn new_session(self) -> Box<dyn TSession> {
+    pub fn new_session(self) -> Box<dyn TLocalSession> {
         let session = self;
 
         let session = Arc::new(RwLock::new(session));
@@ -41,11 +41,11 @@ impl LocalSession {
             events: Arc::new(RwLock::new(Events::default())),
         }));
         session.write().unwrap().location = Some(location);
-        session.c()
+        Box::new(session)
     }
 }
 
-trait TLocalSession {
+pub trait TLocalSession: TSession {
     fn get_location(&self, info: &LocationId) -> Result<LRow, SessionError>;
     fn get_element(&self, info: &ElementId) -> Result<ERow, SessionError>;
     fn get_module(&self, info: &ModuleId) -> Result<MRow, SessionError>;
