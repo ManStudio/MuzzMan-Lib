@@ -142,6 +142,12 @@ pub enum RawLibraryError {
     DontHaveSymbolNotify,
 }
 
+impl From<RawLibraryError> for SessionError {
+    fn from(value: RawLibraryError) -> Self {
+        Self::RawModule(value)
+    }
+}
+
 pub struct RawModule {
     lib: &'static Library,
 

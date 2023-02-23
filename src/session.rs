@@ -24,6 +24,9 @@ pub enum SessionError {
     AlreadyUnsubscribed,
     IsNotElement,
     IsNotLocation,
+    CannotLoadModuleInfo,
+    CannotLoadElementInfo,
+    CannotLoadLocationInfo,
     RawModule(RawLibraryError),
     Custom(String),
 }
@@ -41,6 +44,7 @@ pub trait TSession {
 
     fn load_module(&self, path: PathBuf) -> Result<MRef, SessionError>;
     fn remove_module(&self, id: ModuleId) -> Result<MRow, SessionError>;
+    fn load_module_info(&self, info: ModuleInfo) -> Result<MRef, SessionError>;
 
     fn register_action(
         &self,

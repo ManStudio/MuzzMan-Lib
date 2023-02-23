@@ -326,6 +326,16 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(module)
     }
 
+    fn load_module_info(&self, info: ModuleInfo) -> Result<MRef, SessionError> {
+        let path = info.path.clone();
+        if let Some(path) = path {
+            let module = RawModule::new_module(&path)?;
+            self.add_module(module, Some(path), Some(info))
+        } else {
+            todo!("Move get_muzzman_dir from daemon to muzzman-lib")
+        }
+    }
+
     fn register_action(
         &self,
         module: &ModuleId,
