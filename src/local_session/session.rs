@@ -180,7 +180,6 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         // if other module has the same default name with the new module will be replaced and will
         // be returned as the new module
 
-        // TODO: Find the first empty module and swap with the new module
         {
             let len = self.get_modules_len()?;
             let name = module.get_name();
@@ -191,9 +190,20 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                 }
             }
         }
+        // find if is a empty module id
+        // that should be replaced by the new module
+        let mut new_id = self.get_modules_len()?;
+        let mut finded = None;
+        for (i, modu) in self.write().unwrap().modules.iter().enumerate() {
+            if modu.is_none() {
+                new_id = i;
+                finded = Some(i);
+                break;
+            }
+        }
 
         let info = Arc::new(RwLock::new(RefModule {
-            uid: ModuleId(self.get_modules_len()? as u64),
+            uid: ModuleId(new_id as u64),
             session: Some(self.c()),
         }));
 
@@ -218,10 +228,18 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
             return Err(SessionError::CannotInstallModule(error));
         }
 
-        self.write()
-            .unwrap()
-            .modules
-            .push(Some(Arc::new(RwLock::new(module))));
+        // we need to remove and add in a single Atomic action
+        // because if a other thread trying to get a module after the removed module
+        // will have problems
+        {
+            let mut s = self.write().unwrap();
+            if let Some(finded) = finded {
+                s.modules.remove(finded);
+            }
+
+            s.modules
+                .insert(new_id, Some(Arc::new(RwLock::new(module))));
+        }
 
         let _ = self.notify_all(SessionEvent::NewModule(info.read().unwrap().uid));
 
