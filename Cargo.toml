@@ -21,6 +21,11 @@ panic = 'unwind'
 panic = 'unwind'
 debug = false
 
+[target.'cfg(target_os = "windows")'.dependencies]
+dirs = "4.0.0"
+[target.'cfg(target_os = "linux")'.dependencies]
+dirs = "4.0.0"
+
 [dependencies]
 rand = "0.8.5"
 get_ref = "0.1.0"
