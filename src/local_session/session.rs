@@ -629,7 +629,23 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn create_element(&self, name: &str, location: &LocationId) -> Result<ERef, SessionError> {
-        let element_uid = self.get_location(location)?.read().unwrap().elements.len();
+        let mut element_uid = self.get_location(location)?.read().unwrap().elements.len();
+        let mut should_replace = None;
+        for (i, element) in self
+            .get_location(location)?
+            .read()
+            .unwrap()
+            .elements
+            .iter()
+            .enumerate()
+        {
+            if element.is_none() {
+                element_uid = i;
+                should_replace = Some(i);
+                break;
+            }
+        }
+
         let element_info = Arc::new(RwLock::new(RefElement {
             session: Some(self.c()),
             id: ElementId {
@@ -664,6 +680,13 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .unwrap()
             .elements
             .push(Some(element));
+        if let Some(should_replace) = should_replace {
+            self.get_location(location)?
+                .write()
+                .unwrap()
+                .elements
+                .swap_remove(should_replace);
+        }
 
         let _ = self.notify_all(SessionEvent::NewElement(
             element_info.read().unwrap().id.clone(),
