@@ -1233,7 +1233,24 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn create_location(&self, name: &str, location: &LocationId) -> Result<LRef, SessionError> {
         let mut location_uid = location.clone();
-        location_uid.push(self.get_locations_len(location)? as u64);
+        let mut uid = self.get_locations_len(location)?;
+        let mut should_swap = None;
+        for (i, location) in self
+            .get_location(location)
+            .unwrap()
+            .write()
+            .unwrap()
+            .locations
+            .iter()
+            .enumerate()
+        {
+            if location.is_none() {
+                uid = i;
+                should_swap = Some(i);
+                break;
+            }
+        }
+        location_uid.push(uid as u64);
         let location_info = Arc::new(RwLock::new(RefLocation {
             session: Some(self.c()),
             id: location_uid,
@@ -1262,6 +1279,15 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .unwrap()
             .locations
             .push(Some(Arc::new(RwLock::new(loc))));
+
+        if let Some(should_swap) = should_swap {
+            self.get_location(location)
+                .unwrap()
+                .write()
+                .unwrap()
+                .locations
+                .swap_remove(should_swap);
+        }
 
         let _ = self.notify_all(SessionEvent::NewLocation(
             location_info.read().unwrap().id.clone(),
