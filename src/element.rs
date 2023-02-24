@@ -343,6 +343,7 @@ pub struct ElementInfo {
     pub name: String,
     pub desc: String,
     pub meta: String,
+    pub url: Option<String>,
     pub element_data: Data,
     pub module_data: Data,
     pub module: Option<ModuleInfo>,
@@ -366,6 +367,7 @@ impl Hash for ElementInfo {
         self.status.hash(state);
         self.data.hash(state);
         self.enabled.hash(state);
+        self.url.hash(state);
         (self.progress as i32).hash(state)
     }
 }

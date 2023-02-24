@@ -10,6 +10,9 @@ use bytes_kman::TBytes;
 #[derive(Clone, Debug, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum SessionError {
     InvalidSession,
+    EmptyElement,
+    EmptyLocation,
+    EmptyModule,
     ElementDoNotExist,
     InsufficientPermissions,
     InvalidLocation,
@@ -135,11 +138,7 @@ pub trait TSession {
     //
 
     fn create_element(&self, name: &str, location_id: &LocationId) -> Result<ERef, SessionError>;
-    fn load_element_info(
-        &self,
-        info: ElementInfo,
-        location: &LocationId,
-    ) -> Result<ERef, SessionError>;
+    fn load_element_info(&self, info: ElementInfo) -> Result<ERef, SessionError>;
     fn move_element(
         &self,
         element: &ElementId,
