@@ -1296,12 +1296,58 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(location_info)
     }
 
-    fn location_load_info(
-        &self,
-        info: LocationInfo,
-        id: Option<&LocationId>,
-    ) -> Result<LRef, SessionError> {
-        todo!()
+    fn location_load_info(&self, info: LocationInfo) -> Result<LRef, SessionError> {
+        let mut location_uid = info.id;
+
+        let location_info = Arc::new(RwLock::new(RefLocation {
+            session: Some(self.c()),
+            id: location_uid,
+        }));
+
+        let module = if let Some(module_info) = info.module {
+            Some(self.load_module_info(module_info)?)
+        } else {
+            None
+        };
+
+        let mut locations = Vec::with_capacity(info.locations.len());
+
+        for location in info.locations {
+            locations.push(Some(
+                self.get_location(&self.location_load_info(location)?.id())?,
+            ))
+        }
+
+        let mut elements = Vec::with_capacity(info.elements.len());
+
+        for element in info.elements {
+            elements.push(Some(
+                self.get_element(&self.load_element_info(element)?.id())?,
+            ))
+        }
+
+        let loc = Location {
+            name: info.name,
+            desc: info.desc,
+            where_is: info.where_is,
+            shoud_save: info.shoud_save,
+            elements,
+            locations,
+            info: location_info.clone(),
+            module,
+            path: info.path,
+            thread: None,
+            events: Arc::new(RwLock::new(Events::default())),
+        };
+
+        // TODO: Implelemnt how will be added!
+        todo!();
+
+        let _ = self.notify_all(SessionEvent::NewLocation(
+            location_info.read().unwrap().id.clone(),
+        ));
+
+        Ok(location_info)
     }
 
     fn get_locations_len(&self, location: &LocationId) -> Result<usize, SessionError> {
