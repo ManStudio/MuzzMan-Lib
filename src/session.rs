@@ -245,7 +245,7 @@ pub trait TSession {
     //
 
     fn create_location(&self, name: &str, location_id: &LocationId) -> Result<LRef, SessionError>;
-    fn location_load_info(&self, info: LocationInfo) -> Result<LRef, SessionError>;
+    fn load_location_info(&self, info: LocationInfo) -> Result<LRef, SessionError>;
     fn get_locations_len(&self, location_id: &LocationId) -> Result<usize, SessionError>;
     fn get_locations(
         &self,

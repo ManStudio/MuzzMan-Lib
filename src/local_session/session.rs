@@ -1296,7 +1296,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(location_info)
     }
 
-    fn location_load_info(&self, info: LocationInfo) -> Result<LRef, SessionError> {
+    fn load_location_info(&self, info: LocationInfo) -> Result<LRef, SessionError> {
         let mut location_uid = info.id;
 
         let location_info = Arc::new(RwLock::new(RefLocation {
@@ -1314,7 +1314,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         for location in info.locations {
             locations.push(Some(
-                self.get_location(&self.location_load_info(location)?.id())?,
+                self.get_location(&self.load_location_info(location)?.id())?,
             ))
         }
 
