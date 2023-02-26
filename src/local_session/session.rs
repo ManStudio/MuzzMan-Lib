@@ -167,23 +167,22 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                     }
                 } else {
                     // if has a avalibile slot but no module in it
-                    self.write().unwrap().modules.remove(info.id.0 as usize);
-                    self.write()
-                        .unwrap()
-                        .modules
-                        .insert(info.id.0 as usize, Some(module));
+                    let mut s = self.write().unwrap();
+                    s.modules.push(Some(module));
+                    s.modules.swap_remove(info.id.0 as usize);
                     return Ok(ref_);
                 }
             } else {
                 // if we don't have enouch modules
                 // we need to add empty modules until the disire id
+                let mut s = self.write().unwrap();
                 loop {
-                    if self.get_modules_len()? == info.id.0 as usize {
-                        self.write().unwrap().modules.push(Some(module));
+                    if s.modules.len() == info.id.0 as usize {
+                        s.modules.push(Some(module));
 
                         return Ok(ref_);
                     }
-                    self.write().unwrap().modules.push(None);
+                    s.modules.push(None);
                 }
             }
         }
