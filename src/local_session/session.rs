@@ -107,6 +107,8 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         path: Option<PathBuf>,
         info: Option<ModuleInfo>,
     ) -> Result<MRef, SessionError> {
+        let mut notifications = Vec::new();
+
         if let Some(info) = info {
             let ref_ = Arc::new(RwLock::new(RefModule {
                 uid: info.id,
@@ -148,11 +150,19 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                         // and add our module at the module id
                         let mut lock = self.write().unwrap();
                         let len = lock.modules.len();
-                        let old = lock.modules.remove(info.id.0 as usize);
+                        lock.modules.push(Some(module));
+                        let old = lock.modules.swap_remove(info.id.0 as usize);
                         lock.modules.push(old);
-                        module_old.write().unwrap().info.write().unwrap().uid.0 = len as u64;
+                        let (last_id, new_id) = {
+                            let old = module_old.read().unwrap();
+                            let mut id = old.info.write().unwrap();
+                            let last = id.uid.clone();
+                            id.uid.0 = len as u64;
+                            (last, id.uid.clone())
+                        };
 
-                        lock.modules.insert(info.id.0 as usize, Some(module));
+                        notifications.push(SessionEvent::ModuleIdChanged(last_id, new_id));
+
                         return Ok(ref_);
                     }
                 } else {
@@ -241,7 +251,11 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                 .insert(new_id, Some(Arc::new(RwLock::new(module))));
         }
 
-        let _ = self.notify_all(SessionEvent::NewModule(info.read().unwrap().uid));
+        notifications.push(SessionEvent::NewModule(info.read().unwrap().uid));
+
+        for notification in notifications {
+            let _ = self.notify_all(notification);
+        }
 
         Ok(info)
     }
