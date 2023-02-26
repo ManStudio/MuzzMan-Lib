@@ -740,14 +740,29 @@ impl TSession for Arc<RwLock<LocalSession>> {
             events: Arc::new(RwLock::new(Events::default())),
         }));
 
+        let mut notifications = Vec::new();
+
         {
             let mut location = location.write().unwrap();
             if let Some(other_element) = location.elements.get(info.id.uid as usize) {
                 if let Some(other_element) = other_element.clone() {
+                    let last_id = other_element
+                        .read()
+                        .unwrap()
+                        .info
+                        .read()
+                        .unwrap()
+                        .id
+                        .clone();
                     let other_element_new_id = location.elements.len();
                     location.elements.push(Some(other_element.clone()));
-                    other_element.read().unwrap().info.write().unwrap().id.uid =
-                        other_element_new_id as u64;
+                    let new_id = {
+                        let other_element = other_element.read().unwrap();
+                        let mut uid = other_element.info.write().unwrap();
+                        uid.id.uid = other_element_new_id as u64;
+                        uid.id.clone()
+                    };
+                    notifications.push(SessionEvent::ElementIdChanged(last_id, new_id));
                 }
                 location.elements.push(Some(element));
                 location.elements.swap_remove(info.id.uid as usize);
@@ -763,9 +778,12 @@ impl TSession for Arc<RwLock<LocalSession>> {
             }
         }
 
-        let _ = self.notify_all(SessionEvent::NewElement(
+        notifications.push(SessionEvent::NewElement(
             element_id.read().unwrap().id.clone(),
         ));
+        for notification in notifications {
+            let _ = self.notify_all(notification);
+        }
 
         Ok(element_id)
     }
