@@ -156,9 +156,9 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                         let (last_id, new_id) = {
                             let old = module_old.read().unwrap();
                             let mut id = old.info.write().unwrap();
-                            let last = id.uid.clone();
+                            let last = id.uid;
                             id.uid.0 = len as u64;
-                            (last, id.uid.clone())
+                            (last, id.uid)
                         };
 
                         notifications.push(SessionEvent::ModuleIdChanged(last_id, new_id));
