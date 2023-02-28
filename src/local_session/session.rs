@@ -1329,13 +1329,18 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn load_location_info(&self, info: LocationInfo) -> Result<LRef, SessionError> {
         //TODO:
-        let mut location_uid = info.id;
+        let mut location_uid = info.id.clone();
 
         let location_info = Arc::new(RwLock::new(RefLocation {
             session: Some(self.c()),
             id: location_uid,
         }));
 
+        //TODO: Need some thing else for create a module with the settings but should not be a
+        //global module
+        //TODO: load_module_info should only be use when loading a module with default settings
+        //that will be used for elements or locations
+        //A location when has a module and need to be loaded should find a module that he needs!
         let module = if let Some(module_info) = info.module {
             Some(self.load_module_info(module_info)?)
         } else {
