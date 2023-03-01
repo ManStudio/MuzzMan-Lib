@@ -1338,7 +1338,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         //TODO: Need some thing else for create a module with the settings but should not be a
         //global module
-        //TODO: load_module_info should only be use when loading a module with default settings
+        //load_module_info should only be use when loading a module with default settings
         //that will be used for elements or locations
         //A location when has a module and need to be loaded should find a module that he needs!
         let module = if let Some(module_info) = info.module {
