@@ -1336,11 +1336,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             id: location_uid,
         }));
 
-        //TODO: Need some thing else for create a module with the settings but should not be a
-        //global module
-        //load_module_info should only be use when loading a module with default settings
-        //that will be used for elements or locations
-        //A location when has a module and need to be loaded should find a module that he needs!
+        // TODO: Should gave other method for loadimg temporary modules!
         let module = if let Some(module_info) = info.module {
             Some(self.load_module_info(module_info)?)
         } else {
@@ -1376,6 +1372,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
             thread: None,
             events: Arc::new(RwLock::new(Events::default())),
         };
+        // The new Location
+        // Should replace the old one and put the old one at the top
+        // If has no one will added
+        // If is location zero should replace that location
 
         // TODO: Implelemnt how will be added!
         todo!();
