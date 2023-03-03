@@ -1331,7 +1331,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         //TODO:
         let mut location_uid = info.id.clone();
 
-        let location_info = Arc::new(RwLock::new(RefLocation {
+        let location_ref = Arc::new(RwLock::new(RefLocation {
             session: Some(self.c()),
             id: location_uid,
         }));
@@ -1345,6 +1345,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         let mut locations = Vec::with_capacity(info.locations.len());
 
+        // This can causate problems!
         for location in info.locations {
             locations.push(Some(
                 self.get_location(&self.load_location_info(location)?.id())?,
@@ -1366,12 +1367,13 @@ impl TSession for Arc<RwLock<LocalSession>> {
             shoud_save: info.shoud_save,
             elements,
             locations,
-            info: location_info.clone(),
+            info: location_ref.clone(),
             module,
             path: info.path,
             thread: None,
             events: Arc::new(RwLock::new(Events::default())),
         };
+
         // The new Location
         // Should replace the old one and put the old one at the top
         // If has no one will added
@@ -1381,10 +1383,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
         todo!();
 
         let _ = self.notify_all(SessionEvent::NewLocation(
-            location_info.read().unwrap().id.clone(),
+            location_ref.read().unwrap().id.clone(),
         ));
 
-        Ok(location_info)
+        Ok(location_ref)
     }
 
     fn get_locations_len(&self, location: &LocationId) -> Result<usize, SessionError> {
