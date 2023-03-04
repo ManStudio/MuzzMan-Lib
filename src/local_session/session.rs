@@ -1333,7 +1333,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         let location_ref = Arc::new(RwLock::new(RefLocation {
             session: Some(self.c()),
-            id: location_uid,
+            id: location_uid.clone(),
         }));
 
         // TODO: Should gave other method for loadimg temporary modules!
@@ -1360,7 +1360,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             ))
         }
 
-        let loc = Location {
+        let new_location = Location {
             name: info.name,
             desc: info.desc,
             where_is: info.where_is,
@@ -1373,6 +1373,21 @@ impl TSession for Arc<RwLock<LocalSession>> {
             thread: None,
             events: Arc::new(RwLock::new(Events::default())),
         };
+
+        if let Some(location) = &self.read().unwrap().location {
+            let mut loc = location.clone();
+            for i in location_uid.clone() {
+                let tmp_loc;
+                if let Some(Some(location)) = loc.read().unwrap().locations.get(i as usize) {
+                    tmp_loc = location.clone()
+                } else {
+                    return Err(SessionError::InvalidLocation);
+                }
+                loc = tmp_loc
+            }
+
+            *loc.write().unwrap() = new_location;
+        }
 
         // The new Location
         // Should replace the old one and put the old one at the top
