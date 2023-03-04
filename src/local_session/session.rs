@@ -62,7 +62,7 @@ pub trait TLocalSession: TSession {
 
 impl TLocalSession for Arc<RwLock<LocalSession>> {
     fn get_location(&self, info: &LocationId) -> Result<LRow, SessionError> {
-        if let Some(location) = &mut self.write().unwrap().location {
+        if let Some(location) = &self.read().unwrap().location {
             let mut loc = location.clone();
             for i in info.0.clone() {
                 let tmp_loc;
