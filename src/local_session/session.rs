@@ -1329,7 +1329,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn load_location_info(&self, info: LocationInfo) -> Result<LRef, SessionError> {
         //TODO:
-        let mut location_uid = info.id.clone();
+        let location_uid = info.id.clone();
 
         let location_ref = Arc::new(RwLock::new(RefLocation {
             session: Some(self.c()),
