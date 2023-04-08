@@ -113,6 +113,8 @@ pub trait TModule {
         storage: &mut Storage,
     );
 
+    fn get_uid(&self) -> u64;
+
     fn notify(&self, _ref: Ref, event: Event);
 
     fn c(&self) -> Box<dyn TModule>;
@@ -139,6 +141,7 @@ pub enum RawLibraryError {
     DontHaveSymbolAcceptedProtocols,
     DontHaveSymbolInitLocation,
     DontHaveSymbolStepLocation,
+    DontHaveSymbolGetUID,
     DontHaveSymbolNotify,
 }
 
@@ -168,6 +171,8 @@ pub struct RawModule {
     fn_accept_extension: Symbol<'static, fn(&str) -> bool>,
     fn_accept_url: Symbol<'static, fn(String) -> bool>,
     fn_accepted_protocols: Symbol<'static, fn() -> Vec<String>>,
+
+    fn_get_uid: Symbol<'static, fn() -> u64>,
 
     fn_notify: Symbol<'static, fn(Ref, Event)>,
 }
@@ -265,6 +270,12 @@ impl RawModule {
             return Err(RawLibraryError::DontHaveSymbolStepLocation);
         };
 
+        let fn_get_uid = if let Ok(func) = unsafe { lib.get(b"get_uid\n") } {
+            func
+        } else {
+            return Err(RawLibraryError::DontHaveSymbolGetUID);
+        };
+
         Ok(Self {
             lib,
             fn_init,
@@ -280,6 +291,7 @@ impl RawModule {
             fn_accepted_protocols,
             fn_notify,
             fn_step_location,
+            fn_get_uid,
         })
     }
 }
@@ -336,12 +348,16 @@ impl TModule for Arc<RawModule> {
         (*self.fn_init_location)(location, data)
     }
 
-    fn notify(&self, info: Ref, event: Event) {
-        (*self.fn_notify)(info, event)
-    }
-
     fn step_location(&self, location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage) {
         (*self.fn_step_location)(location, control_flow, storage)
+    }
+
+    fn get_uid(&self) -> u64 {
+        (*self.fn_get_uid)()
+    }
+
+    fn notify(&self, info: Ref, event: Event) {
+        (*self.fn_notify)(info, event)
     }
 
     fn c(&self) -> Box<dyn TModule> {
@@ -416,7 +432,7 @@ impl TModuleInfo for MRef {
     }
 
     fn get_name(&self) -> Result<String, SessionError> {
-        return self.get_session()?.module_get_name(&self.id());
+        self.get_session()?.module_get_name(&self.id())
     }
 
     fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError> {
