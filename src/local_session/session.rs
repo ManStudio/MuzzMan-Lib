@@ -133,7 +133,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                 .map(std::clone::Clone::clone);
             if let Some(module_old) = module_old {
                 if let Some(module_old) = module_old {
-                    if module_old.read().unwrap().path == info.path {
+                    if module_old.read().unwrap().module.get_uid() == info.uid {
                         // if we had to correct module at the correct location
                         {
                             let mut module = module_old.write().unwrap();
@@ -353,7 +353,21 @@ impl TSession for Arc<RwLock<LocalSession>> {
             let Some(module_path) = modules.first() else{return Err(SessionError::CannotLoadModuleInfo)};
             let p = PathBuf::from(module_path);
             path = Some(p.clone());
-            RawModule::new_module(&p)?
+            let module = RawModule::new_module(&p)?;
+            let protocols = module.accepted_protocols();
+            // !TODO: for filetypes
+            if info.supports_protocols.len()
+                == info
+                    .supports_protocols
+                    .iter()
+                    .filter(|proto| protocols.contains(proto))
+                    .collect::<Vec<&String>>()
+                    .len()
+            {
+                module
+            } else {
+                return Err(SessionError::CannotLoadModuleInfo);
+            }
         };
 
         self.add_module(module, path, Some(info))
@@ -1151,6 +1165,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     path: __module.path.clone(),
                     uid: __module.module.get_uid(),
                     version: __module.module.get_version(),
+                    supports_protocols: __module.module.accepted_protocols(),
+                    supports_file_types: Vec::new(), // !TODO: supports file types
                 });
             }
         }
@@ -1602,6 +1618,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     path: __module.path.clone(),
                     uid: __module.module.get_uid(),
                     version: __module.module.get_version(),
+                    supports_protocols: __module.module.accepted_protocols(),
+                    supports_file_types: Vec::new(), // !TODO: Need to have file types in module
                 });
             }
         }

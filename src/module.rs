@@ -595,4 +595,6 @@ pub struct ModuleInfo {
     pub proxy: usize,
     pub settings: Data,
     pub element_data: Data,
+    pub supports_protocols: Vec<String>,
+    pub supports_file_types: Vec<PathBuf>,
 }
