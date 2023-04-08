@@ -65,10 +65,10 @@ pub struct Module {
     /// this is the path of where the module get loaded
     pub path: Option<PathBuf>,
     pub proxy: usize,
-    /// default module data/settings
+    /// default module settings
     pub settings: Data,
-    /// default element data/settings
-    pub element_data: Data,
+    /// default data
+    pub data: Data,
     pub info: MRef,
 }
 
@@ -79,7 +79,7 @@ impl Debug for Module {
             .field("desc", &self.desc)
             .field("proxy", &self.proxy)
             .field("settings", &self.settings)
-            .field("element_data", &self.element_data)
+            .field("element_data", &self.data)
             .finish()
     }
 }
@@ -594,7 +594,7 @@ pub struct ModuleInfo {
     pub version: String,
     pub proxy: usize,
     pub settings: Data,
-    pub element_data: Data,
+    pub data: Data,
     pub supports_protocols: Vec<String>,
     pub supports_file_types: Vec<PathBuf>,
 }

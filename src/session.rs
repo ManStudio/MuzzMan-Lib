@@ -28,6 +28,7 @@ pub enum SessionError {
     IsNotElement,
     IsNotLocation,
     CannotLoadModuleInfo,
+    CannotFindModule,
     CannotLoadElementInfo,
     CannotLoadLocationInfo,
     RawModule(RawLibraryError),
@@ -48,6 +49,7 @@ pub trait TSession {
     fn load_module(&self, path: PathBuf) -> Result<MRef, SessionError>;
     fn remove_module(&self, id: ModuleId) -> Result<MRow, SessionError>;
     fn load_module_info(&self, info: ModuleInfo) -> Result<MRef, SessionError>;
+    fn find_module(&self, info: ModuleInfo) -> Result<MRef, SessionError>;
 
     fn register_action(
         &self,

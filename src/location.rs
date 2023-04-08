@@ -179,6 +179,8 @@ pub struct Location {
     pub desc: String,
     pub where_is: WhereIsLocation,
     pub shoud_save: bool,
+    pub location_data: Data,
+    pub module_data: Data,
     pub elements: Vec<Option<ERow>>,
     pub locations: Vec<Option<LRow>>,
     pub info: LRef,

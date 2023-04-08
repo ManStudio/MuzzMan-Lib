@@ -32,12 +32,14 @@ impl LocalSession {
                 path: PathBuf::from("."),
             }),
             shoud_save: false,
+            location_data: Data::new(),
+            module_data: Data::new(),
             elements: Vec::new(),
             locations: Vec::new(),
             info: location_info,
-            module: None,
             path: PathBuf::from("."),
             thread: None,
+            module: None,
             events: Arc::new(RwLock::new(Events::default())),
         }));
         session.write().unwrap().location = Some(location);
@@ -121,7 +123,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                 module,
                 proxy: info.proxy,
                 settings: info.settings.clone(),
-                element_data: info.element_data.clone(),
+                data: info.data.clone(),
                 info: ref_.clone(),
                 path,
             }));
@@ -141,7 +143,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                             module.desc = info.desc;
                             module.proxy = info.proxy;
                             module.settings = info.settings;
-                            module.element_data = info.element_data;
+                            module.data = info.data;
                         }
                         return self.get_module_ref(&info.id);
                     } else {
@@ -228,7 +230,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
             module,
             proxy: 0,
             settings,
-            element_data,
+            data: element_data,
             info: info.clone(),
             path,
         };
@@ -371,6 +373,30 @@ impl TSession for Arc<RwLock<LocalSession>> {
         };
 
         self.add_module(module, path, Some(info))
+    }
+
+    fn find_module(&self, info: ModuleInfo) -> Result<MRef, SessionError> {
+        let modules_len = self.get_modules_len()?;
+        let modules = self.get_modules(0..modules_len)?;
+
+        let modules: Vec<&MRef> = modules
+            .iter()
+            .filter(|module| {
+                let Ok(accepted_protocols) = module.accepted_protocols() else {return false};
+                let len = accepted_protocols
+                    .iter()
+                    .filter(|accepted| info.supports_protocols.contains(accepted))
+                    .collect::<Vec<&String>>()
+                    .len();
+                len == info.supports_protocols.len()
+            })
+            .collect();
+
+        if let Some(module) = modules.first() {
+            Ok((*module).clone())
+        } else {
+            Err(SessionError::CannotFindModule)
+        }
     }
 
     fn register_action(
@@ -536,12 +562,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn module_get_element_settings(&self, module_info: &ModuleId) -> Result<Data, SessionError> {
-        Ok(self
-            .get_module(module_info)?
-            .read()
-            .unwrap()
-            .element_data
-            .clone())
+        Ok(self.get_module(module_info)?.read().unwrap().data.clone())
     }
 
     fn module_set_element_settings(
@@ -549,7 +570,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         module_info: &ModuleId,
         data: Data,
     ) -> Result<(), SessionError> {
-        self.get_module(module_info)?.write().unwrap().element_data = data;
+        self.get_module(module_info)?.write().unwrap().data = data;
         Ok(())
     }
 
@@ -584,7 +605,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         {
             let mut element = element.write().unwrap();
-            element.element_data = module.element_data.clone();
+            element.element_data = module.data.clone();
             element.module_data = module.settings.clone();
         }
         module.module.init_element(element);
@@ -1160,7 +1181,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     desc: __module.desc.clone(),
                     proxy: __module.proxy,
                     settings: __module.settings.clone(),
-                    element_data: __module.element_data.clone(),
+                    data: __module.data.clone(),
                     id: __module.info.id(),
                     path: __module.path.clone(),
                     uid: __module.module.get_uid(),
@@ -1333,6 +1354,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
             path,
             thread: None,
             events: Arc::new(RwLock::new(Events::default())),
+            location_data: Data::new(),
+            module_data: Data::new(),
         };
 
         let dest = self.get_location(location)?;
@@ -1366,10 +1389,16 @@ impl TSession for Arc<RwLock<LocalSession>> {
             id: location_uid.clone(),
         }));
 
-        // TODO: Should gave other method for loadimg temporary modules!
+        let location_data;
+        let module_data;
+
         let module = if let Some(module_info) = info.module {
-            Some(self.load_module_info(module_info)?)
+            location_data = module_info.data.clone();
+            module_data = module_info.settings.clone();
+            Some(self.find_module(module_info)?)
         } else {
+            location_data = Data::new();
+            module_data = Data::new();
             None
         };
 
@@ -1395,12 +1424,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
             desc: info.desc,
             where_is: info.where_is,
             shoud_save: info.shoud_save,
+            location_data,
+            module_data,
             elements,
             locations,
             info: location_ref.clone(),
-            module,
             path: info.path,
             thread: None,
+            module,
             events: Arc::new(RwLock::new(Events::default())),
         };
 
@@ -1613,7 +1644,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     desc: __module.desc.clone(),
                     proxy: __module.proxy,
                     settings: __module.settings.clone(),
-                    element_data: __module.element_data.clone(),
+                    data: __module.data.clone(),
                     id: __module.info.id(),
                     path: __module.path.clone(),
                     uid: __module.module.get_uid(),
