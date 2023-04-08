@@ -776,7 +776,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         };
 
         let module = if let Some(module) = info.module {
-            Some(self.load_module_info(module)?)
+            Some(self.find_module(module)?)
         } else {
             None
         };
@@ -1167,9 +1167,15 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let element = self.get_element(element)?;
         let mut module = None;
         {
+            let settings;
+            let data;
+
             let __module;
             {
-                __module = element.read().unwrap().module.clone();
+                let element = element.read().unwrap();
+                __module = element.module.clone();
+                data = element.element_data.clone();
+                settings = element.module_data.clone();
             }
 
             if let Some(__module) = __module {
@@ -1180,8 +1186,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     name: __module.name.clone(),
                     desc: __module.desc.clone(),
                     proxy: __module.proxy,
-                    settings: __module.settings.clone(),
-                    data: __module.data.clone(),
+                    settings,
+                    data,
                     id: __module.info.id(),
                     path: __module.path.clone(),
                     uid: __module.module.get_uid(),
@@ -1626,10 +1632,16 @@ impl TSession for Arc<RwLock<LocalSession>> {
     ) -> Result<LocationInfo, SessionError> {
         let mut module = None;
         {
+            let settings;
+            let data;
+
             let __module;
             {
                 let location = self.get_location(location)?;
-                __module = location.read().unwrap().module.clone();
+                let location = location.read().unwrap();
+                __module = location.module.clone();
+                data = location.location_data.clone();
+                settings = location.module_data.clone();
             }
 
             if let Some(__module) = __module {
@@ -1640,8 +1652,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     name: __module.name.clone(),
                     desc: __module.desc.clone(),
                     proxy: __module.proxy,
-                    settings: __module.settings.clone(),
-                    data: __module.data.clone(),
+                    settings,
+                    data,
                     id: __module.info.id(),
                     path: __module.path.clone(),
                     uid: __module.module.get_uid(),
