@@ -471,6 +471,18 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(name)
     }
 
+    fn module_get_uid(&self, module_id: &ModuleId) -> Result<UID, SessionError> {
+        let m = self.get_module(module_id)?;
+        let uid = m.read().unwrap().module.get_uid();
+        Ok(uid)
+    }
+
+    fn module_get_version(&self, module_id: &ModuleId) -> Result<String, SessionError> {
+        let m = self.get_module(module_id)?;
+        let version = m.read().unwrap().module.get_version();
+        Ok(version)
+    }
+
     fn module_get_desc(&self, module_id: &ModuleId) -> Result<String, SessionError> {
         Ok(self.get_module(module_id)?.read().unwrap().desc.clone())
     }
@@ -639,12 +651,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         module.step_location(location, &mut control_flow, &mut storage);
         Ok((control_flow, storage))
-    }
-
-    fn module_get_uid(&self, module_id: &ModuleId) -> Result<UID, SessionError> {
-        let m = self.get_module(module_id)?;
-        let uid = m.read().unwrap().module.get_uid();
-        Ok(uid)
     }
 
     fn create_element(&self, name: &str, location: &LocationId) -> Result<ERef, SessionError> {
@@ -1144,6 +1150,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     id: __module.info.id(),
                     path: __module.path.clone(),
                     uid: __module.module.get_uid(),
+                    version: __module.module.get_version(),
                 });
             }
         }
@@ -1594,6 +1601,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     id: __module.info.id(),
                     path: __module.path.clone(),
                     uid: __module.module.get_uid(),
+                    version: __module.module.get_version(),
                 });
             }
         }

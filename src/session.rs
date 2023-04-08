@@ -73,6 +73,9 @@ pub trait TSession {
     fn module_set_name(&self, module_id: &ModuleId, name: String) -> Result<(), SessionError>;
     fn module_get_default_name(&self, module_id: &ModuleId) -> Result<String, SessionError>;
 
+    fn module_get_uid(&self, module_id: &ModuleId) -> Result<UID, SessionError>;
+    fn module_get_version(&self, module_id: &ModuleId) -> Result<String, SessionError>;
+
     fn module_get_desc(&self, module_id: &ModuleId) -> Result<String, SessionError>;
     fn module_set_desc(&self, module_id: &ModuleId, desc: String) -> Result<(), SessionError>;
     fn module_get_default_desc(&self, module_id: &ModuleId) -> Result<String, SessionError>;
@@ -128,8 +131,6 @@ pub trait TSession {
         control_flow: ControlFlow,
         storage: Storage,
     ) -> Result<(ControlFlow, Storage), SessionError>;
-
-    fn module_get_uid(&self, module_id: &ModuleId) -> Result<UID, SessionError>;
 
     //
     // End Module

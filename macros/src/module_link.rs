@@ -48,6 +48,16 @@ pub fn module_link(
         }
 
         #[no_mangle]
+        fn get_uid() -> UID{
+            MODULE.get_uid()
+        }
+
+        #[no_mangle]
+        fn get_version() -> String{
+            MODULE.get_version()
+        }
+
+        #[no_mangle]
         fn init_settings(data: &mut Data) {
             MODULE.init_settings(data)
         }

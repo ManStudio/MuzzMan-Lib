@@ -90,6 +90,9 @@ pub trait TModule {
     fn get_name(&self) -> String;
     fn get_desc(&self) -> String;
 
+    fn get_uid(&self) -> UID;
+    fn get_version(&self) -> String;
+
     fn init_settings(&self, data: &mut Data);
     fn init_element_settings(&self, data: &mut Data);
 
@@ -113,8 +116,6 @@ pub trait TModule {
         storage: &mut Storage,
     );
 
-    fn get_uid(&self) -> UID;
-
     fn notify(&self, _ref: Ref, event: Event);
 
     fn c(&self) -> Box<dyn TModule>;
@@ -131,6 +132,8 @@ pub enum RawLibraryError {
     NotFound,
     DontHaveSymbolGetName,
     DontHaveSymbolGetDesc,
+    DontHaveSymbolGetUID,
+    DontHaveSymbolGetVersion,
     DontHaveSymbolInit,
     DontHaveSymbolInitSettings,
     DontHaveSymbolInitElementSettings,
@@ -141,7 +144,6 @@ pub enum RawLibraryError {
     DontHaveSymbolAcceptedProtocols,
     DontHaveSymbolInitLocation,
     DontHaveSymbolStepLocation,
-    DontHaveSymbolGetUID,
     DontHaveSymbolNotify,
 }
 
@@ -159,6 +161,9 @@ pub struct RawModule {
     fn_get_name: Symbol<'static, fn() -> String>,
     fn_get_desc: Symbol<'static, fn() -> String>,
 
+    fn_get_uid: Symbol<'static, fn() -> UID>,
+    fn_get_version: Symbol<'static, fn() -> String>,
+
     fn_init_settings: Symbol<'static, fn(&mut Data)>,
     fn_init_element_settings: Symbol<'static, fn(&mut Data)>,
 
@@ -171,8 +176,6 @@ pub struct RawModule {
     fn_accept_extension: Symbol<'static, fn(&str) -> bool>,
     fn_accept_url: Symbol<'static, fn(String) -> bool>,
     fn_accepted_protocols: Symbol<'static, fn() -> Vec<String>>,
-
-    fn_get_uid: Symbol<'static, fn() -> u64>,
 
     fn_notify: Symbol<'static, fn(Ref, Event)>,
 }
@@ -276,6 +279,12 @@ impl RawModule {
             return Err(RawLibraryError::DontHaveSymbolGetUID);
         };
 
+        let fn_get_version = if let Ok(func) = unsafe { lib.get(b"get_version\n") } {
+            func
+        } else {
+            return Err(RawLibraryError::DontHaveSymbolGetVersion);
+        };
+
         Ok(Self {
             lib,
             fn_init,
@@ -292,6 +301,7 @@ impl RawModule {
             fn_notify,
             fn_step_location,
             fn_get_uid,
+            fn_get_version,
         })
     }
 }
@@ -314,6 +324,14 @@ impl TModule for Arc<RawModule> {
 
     fn get_desc(&self) -> String {
         (*self.fn_get_desc)()
+    }
+
+    fn get_uid(&self) -> u64 {
+        (*self.fn_get_uid)()
+    }
+
+    fn get_version(&self) -> String {
+        (*self.fn_get_version)()
     }
 
     fn init_settings(&self, data: &mut Data) {
@@ -352,10 +370,6 @@ impl TModule for Arc<RawModule> {
         (*self.fn_step_location)(location, control_flow, storage)
     }
 
-    fn get_uid(&self) -> u64 {
-        (*self.fn_get_uid)()
-    }
-
     fn notify(&self, info: Ref, event: Event) {
         (*self.fn_notify)(info, event)
     }
@@ -371,6 +385,9 @@ pub trait TModuleInfo {
     fn get_name(&self) -> Result<String, SessionError>;
     fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError>;
     fn get_default_name(&self) -> Result<String, SessionError>;
+
+    fn uid(&self) -> Result<UID, SessionError>;
+    fn version(&self) -> Result<String, SessionError>;
 
     fn get_desc(&self) -> Result<String, SessionError>;
     fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError>;
@@ -420,7 +437,6 @@ pub trait TModuleInfo {
 
     fn notify(&self, info: ID, event: Event) -> Result<(), SessionError>;
 
-    fn uid(&self) -> Result<UID, SessionError>;
     fn id(&self) -> ModuleId;
 }
 
@@ -442,6 +458,14 @@ impl TModuleInfo for MRef {
 
     fn get_default_name(&self) -> Result<String, SessionError> {
         self.get_session()?.module_get_default_name(&self.id())
+    }
+
+    fn uid(&self) -> Result<UID, SessionError> {
+        self.get_session()?.module_get_uid(&self.id())
+    }
+
+    fn version(&self) -> Result<String, SessionError> {
+        self.get_session()?.module_get_version(&self.id())
     }
 
     fn get_desc(&self) -> Result<String, SessionError> {
@@ -558,10 +582,6 @@ impl TModuleInfo for MRef {
     fn id(&self) -> ModuleId {
         self.read().unwrap().uid
     }
-
-    fn uid(&self) -> Result<UID, SessionError> {
-        self.get_session()?.module_get_uid(&self.id())
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
@@ -571,6 +591,7 @@ pub struct ModuleInfo {
     pub path: Option<PathBuf>,
     pub id: ModuleId,
     pub uid: u64,
+    pub version: String,
     pub proxy: usize,
     pub settings: Data,
     pub element_data: Data,
