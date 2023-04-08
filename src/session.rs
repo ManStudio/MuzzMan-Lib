@@ -129,6 +129,8 @@ pub trait TSession {
         storage: Storage,
     ) -> Result<(ControlFlow, Storage), SessionError>;
 
+    fn module_get_uid(&self, module_id: &ModuleId) -> Result<UID, SessionError>;
+
     //
     // End Module
     //

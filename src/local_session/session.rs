@@ -641,6 +641,11 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok((control_flow, storage))
     }
 
+    fn module_get_uid(&self, module_id: &ModuleId) -> Result<UID, SessionError> {
+        let m = self.get_module(module_id)?;
+        Ok(m.read().unwrap().module.get_uid())
+    }
+
     fn create_element(&self, name: &str, location: &LocationId) -> Result<ERef, SessionError> {
         let mut element_uid = self.get_location(location)?.read().unwrap().elements.len();
         let mut should_replace = None;
@@ -1137,6 +1142,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     element_data: __module.element_data.clone(),
                     id: __module.info.id(),
                     path: __module.path.clone(),
+                    uid: __module.module.get_uid(),
                 });
             }
         }
@@ -1586,6 +1592,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     element_data: __module.element_data.clone(),
                     id: __module.info.id(),
                     path: __module.path.clone(),
+                    uid: __module.module.get_uid(),
                 });
             }
         }

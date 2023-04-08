@@ -420,6 +420,7 @@ pub trait TModuleInfo {
 
     fn notify(&self, info: ID, event: Event) -> Result<(), SessionError>;
 
+    fn uid(&self) -> Result<UID, SessionError>;
     fn id(&self) -> ModuleId;
 }
 
@@ -557,6 +558,10 @@ impl TModuleInfo for MRef {
     fn id(&self) -> ModuleId {
         self.read().unwrap().uid
     }
+
+    fn uid(&self) -> Result<UID, SessionError> {
+        self.get_session()?.module_get_uid(&self.id())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
@@ -565,6 +570,7 @@ pub struct ModuleInfo {
     pub desc: String,
     pub path: Option<PathBuf>,
     pub id: ModuleId,
+    pub uid: u64,
     pub proxy: usize,
     pub settings: Data,
     pub element_data: Data,

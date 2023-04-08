@@ -16,6 +16,8 @@ pub type LRow = Arc<RwLock<Location>>;
 pub type ERow = Arc<RwLock<Element>>;
 pub type MRow = Arc<RwLock<Module>>;
 
+pub type UID = u64;
+
 #[derive(Debug, Clone, bytes_kman::Bytes)]
 pub enum ID {
     Element(ElementId),
