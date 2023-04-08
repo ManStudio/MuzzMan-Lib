@@ -113,7 +113,7 @@ pub trait TModule {
         storage: &mut Storage,
     );
 
-    fn get_uid(&self) -> u64;
+    fn get_uid(&self) -> UID;
 
     fn notify(&self, _ref: Ref, event: Event);
 

@@ -643,7 +643,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn module_get_uid(&self, module_id: &ModuleId) -> Result<UID, SessionError> {
         let m = self.get_module(module_id)?;
-        Ok(m.read().unwrap().module.get_uid())
+        let uid = m.read().unwrap().module.get_uid();
+        Ok(uid)
     }
 
     fn create_element(&self, name: &str, location: &LocationId) -> Result<ERef, SessionError> {
