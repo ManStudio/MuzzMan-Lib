@@ -1402,23 +1402,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
             None
         };
 
-        let mut locations = Vec::with_capacity(info.locations.len());
-
-        // This can causate problems!
-        for location in info.locations {
-            locations.push(Some(
-                self.get_location(&self.load_location_info(location)?.id())?,
-            ))
-        }
-
-        let mut elements = Vec::with_capacity(info.elements.len());
-
-        for element in info.elements {
-            elements.push(Some(
-                self.get_element(&self.load_element_info(element)?.id())?,
-            ))
-        }
-
         let new_location = Location {
             name: info.name,
             desc: info.desc,
@@ -1426,8 +1409,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
             shoud_save: info.shoud_save,
             location_data,
             module_data,
-            elements,
-            locations,
+            elements: Vec::with_capacity(info.elements.len()),
+            locations: Vec::with_capacity(info.locations.len()),
             info: location_ref.clone(),
             path: info.path,
             thread: None,
@@ -1435,19 +1418,33 @@ impl TSession for Arc<RwLock<LocalSession>> {
             events: Arc::new(RwLock::new(Events::default())),
         };
 
-        if let Some(location) = &self.read().unwrap().location {
-            let mut loc = location.clone();
-            for i in location_uid.clone() {
-                let tmp_loc;
-                if let Some(Some(location)) = loc.read().unwrap().locations.get(i as usize) {
-                    tmp_loc = location.clone()
-                } else {
-                    return Err(SessionError::InvalidLocation);
-                }
-                loc = tmp_loc
-            }
+        // We should iterate for every location until we find a location with the same id with the
+        // new one and replaced only if is empty if not will put the old one inside the new one
+        //
+        // If don't have as many locations as is needed will create empty locations wintil the
+        // location we need to put inside of and create a empty location
 
-            *loc.write().unwrap() = new_location;
+        // if let Some(location) = &self.read().unwrap().location {
+        //     let mut loc = location.clone();
+        //     for i in location_uid.clone() {
+        //         let tmp_loc;
+        //         if let Some(Some(location)) = loc.read().unwrap().locations.get(i as usize) {
+        //             tmp_loc = location.clone()
+        //         } else {
+        //             return Err(SessionError::InvalidLocation);
+        //         }
+        //         loc = tmp_loc
+        //     }
+
+        //     *loc.write().unwrap() = new_location;
+        // }
+
+        for location in info.locations {
+            self.load_location_info(location)?;
+        }
+
+        for element in info.elements {
+            self.load_element_info(element)?;
         }
 
         // The new Location
