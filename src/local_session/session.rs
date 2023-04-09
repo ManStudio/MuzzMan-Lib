@@ -31,7 +31,7 @@ impl LocalSession {
             where_is: WhereIsLocation::Local(LocalLocation {
                 path: PathBuf::from("."),
             }),
-            shoud_save: false,
+            should_save: false,
             location_data: Data::new(),
             module_data: Data::new(),
             elements: Vec::new(),
@@ -1352,7 +1352,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             where_is: WhereIsLocation::Local(LocalLocation {
                 path: PathBuf::from("."),
             }),
-            shoud_save: false,
+            should_save: false,
             elements: Vec::new(),
             locations: Vec::new(),
             info: location_info.clone(),
@@ -1388,11 +1388,11 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn load_location_info(&self, info: LocationInfo) -> Result<LRef, SessionError> {
         //TODO:
-        let location_uid = info.id.clone();
+        let location_id = info.id.clone();
 
         let location_ref = Arc::new(RwLock::new(RefLocation {
             session: Some(self.c()),
-            id: location_uid.clone(),
+            id: location_id.clone(),
         }));
 
         let location_data;
@@ -1412,7 +1412,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             name: info.name,
             desc: info.desc,
             where_is: info.where_is,
-            shoud_save: info.shoud_save,
+            should_save: info.shoud_save,
             location_data,
             module_data,
             elements: Vec::with_capacity(info.elements.len()),
@@ -1424,26 +1424,134 @@ impl TSession for Arc<RwLock<LocalSession>> {
             events: Arc::new(RwLock::new(Events::default())),
         };
 
+        let mut new_location = Arc::new(RwLock::new(new_location));
+        let mut notifications = Vec::new();
+
         // We should iterate for every location until we find a location with the same id with the
         // new one and replaced only if is empty if not will put the old one inside the new one
         //
         // If don't have as many locations as is needed will create empty locations wintil the
         // location we need to put inside of and create a empty location
 
-        // if let Some(location) = &self.read().unwrap().location {
-        //     let mut loc = location.clone();
-        //     for i in location_uid.clone() {
-        //         let tmp_loc;
-        //         if let Some(Some(location)) = loc.read().unwrap().locations.get(i as usize) {
-        //             tmp_loc = location.clone()
-        //         } else {
-        //             return Err(SessionError::InvalidLocation);
-        //         }
-        //         loc = tmp_loc
-        //     }
+        'set_location: {
+            let mut location;
+            if let Some(tmp_location) = &self.read().unwrap().location {
+                location = tmp_location.clone();
+            } else {
+                return Err(SessionError::DefaultLocationDoNotExist);
+            }
 
-        //     *loc.write().unwrap() = new_location;
-        // }
+            for i in location_id.clone() {
+                let tmp_loc;
+                if let Some(Some(location)) = location.read().unwrap().locations.get(i as usize) {
+                    tmp_loc = location.clone()
+                } else {
+                    let mut new_id = location.read().unwrap().info.read().unwrap().id.clone();
+                    new_id.push(i);
+
+                    let where_is;
+                    let should_save;
+
+                    {
+                        let location = location.read().unwrap();
+                        where_is = location.where_is.clone();
+                        should_save = location.should_save;
+                    }
+
+                    let new_location = Location {
+                        name: String::new(),
+                        desc: String::new(),
+                        where_is,
+                        should_save,
+                        location_data: Data::new(),
+                        module_data: Data::new(),
+                        elements: Vec::new(),
+                        locations: Vec::new(),
+                        info: Arc::new(RwLock::new(RefLocation {
+                            id: new_id.clone(),
+                            session: Some(self.c()),
+                        })),
+                        path: PathBuf::new(),
+                        thread: None,
+                        module: None,
+                        events: Arc::default(),
+                    };
+                    tmp_loc = Arc::new(RwLock::new(new_location));
+
+                    let len;
+                    {
+                        let mut location = location.write().unwrap();
+                        while location.locations.len() < i as usize {
+                            location.locations.push(None);
+                        }
+                        len = location.locations.len();
+                        if len >= i as usize {
+                            location.locations.swap(len, i as usize);
+                            let mut old = location.info.read().unwrap().id.clone();
+                            let mut new = old.clone();
+                            old.push(i);
+                            new.push(len as u64);
+                            let tmp = (&location.locations[len]
+                                .unwrap()
+                                .read()
+                                .unwrap()
+                                .info
+                                .write()
+                                .unwrap()
+                                .id
+                                .last_mut()
+                                .unwrap());
+                            *(*tmp) = len as u64;
+                            notifications.push(SessionEvent::LocationIdChanged(old, new));
+                        }
+                        location.locations.push(Some(tmp_loc.clone()));
+                        notifications.push(SessionEvent::NewLocation(new_id))
+                    }
+                }
+                location = tmp_loc
+            }
+
+            let is_empty = {
+                let location = location.read().unwrap();
+                location.locations.is_empty() && location.elements.is_empty()
+            };
+            if is_empty {
+                std::mem::swap(
+                    &mut *location.write().unwrap(),
+                    &mut *new_location.write().unwrap(),
+                );
+                notifications.push(SessionEvent::LocationIdChanged(
+                    location_id.clone(),
+                    location_id,
+                ))
+            } else {
+                {
+                    let mut old_location = location.write().unwrap();
+                    let mut new_location = new_location.write().unwrap();
+                    std::mem::swap(&mut *old_location, &mut new_location);
+                }
+
+                let new_id;
+                {
+                    let mut location = location.write().unwrap();
+                    new_id = location.locations.len() as u64;
+                    location.locations.push(Some(new_location.clone()));
+                }
+
+                let old_id;
+
+                let new_id = {
+                    let location = new_location.read().unwrap();
+                    let mut info = location.info.write().unwrap();
+                    old_id = info.id.clone();
+                    info.id.push(new_id);
+                    info.id.clone()
+                };
+
+                notifications.push(SessionEvent::LocationIdChanged(old_id, new_id));
+            }
+            break 'set_location;
+        }
 
         for location in info.locations {
             self.load_location_info(location)?;
@@ -1464,6 +1572,16 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let _ = self.notify_all(SessionEvent::NewLocation(
             location_ref.read().unwrap().id.clone(),
         ));
+
+        let results: Vec<Result<(), SessionError>> = notifications
+            .into_iter()
+            .map(|notification| self.notify_all(notification))
+            .collect();
+
+        for result in results {
+            // better error system
+            let _ = result?;
+        }
 
         Ok(location_ref)
     }
@@ -1595,7 +1713,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn location_get_should_save(&self, location: &LocationId) -> Result<bool, SessionError> {
-        Ok(self.get_location(location)?.read().unwrap().shoud_save)
+        Ok(self.get_location(location)?.read().unwrap().should_save)
     }
 
     fn location_set_should_save(
@@ -1603,7 +1721,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         location: &LocationId,
         should_save: bool,
     ) -> Result<(), SessionError> {
-        self.get_location(location)?.write().unwrap().shoud_save = should_save;
+        self.get_location(location)?.write().unwrap().should_save = should_save;
         Ok(())
     }
 
@@ -1692,7 +1810,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             desc: location.desc.clone(),
             id: location.info.id(),
             where_is: location.where_is.clone(),
-            shoud_save: location.shoud_save,
+            shoud_save: location.should_save,
             elements,
             locations,
             path: location.path.clone(),

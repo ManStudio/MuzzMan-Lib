@@ -31,6 +31,7 @@ pub enum SessionError {
     CannotFindModule,
     CannotLoadElementInfo,
     CannotLoadLocationInfo,
+    DefaultLocationDoNotExist,
     RawModule(RawLibraryError),
     Custom(String),
 }
