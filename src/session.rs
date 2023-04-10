@@ -333,5 +333,12 @@ pub trait TSession {
     fn get_element_ref(&self, id: &ElementId) -> Result<ERef, SessionError>;
     fn get_location_ref(&self, id: &LocationId) -> Result<LRef, SessionError>;
 
+    //
+    // Session
+    //
+
+    fn get_version(&self) -> Result<u64, SessionError>;
+    fn get_version_text(&self) -> Result<String, SessionError>;
+
     fn c(&self) -> Box<dyn TSession>;
 }

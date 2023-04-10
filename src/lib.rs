@@ -12,6 +12,8 @@ pub mod session;
 pub mod storage;
 pub mod types;
 
+pub const VERSION: u64 = 1;
+
 pub extern crate muzzman_lib_macros;
 
 pub use local_session::LocalSession;

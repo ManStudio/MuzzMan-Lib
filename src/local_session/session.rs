@@ -4,7 +4,9 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use crate::prelude::*;
+use crate::{prelude::*, VERSION};
+
+pub const LOCAL_SESSION_VERSION: u64 = 1;
 
 #[derive(Default)]
 pub struct LocalSession {
@@ -1831,6 +1833,20 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn get_location_ref(&self, id: &LocationId) -> Result<LRef, SessionError> {
         Ok(self.get_location(id)?.read()?.info.clone())
+    }
+
+    //
+    // Session
+    //
+
+    fn get_version(&self) -> Result<u64, SessionError> {
+        Ok(VERSION)
+    }
+
+    fn get_version_text(&self) -> Result<String, SessionError> {
+        Ok(format!(
+            "MuzzManLib: {VERSION}, LocalSession: {LOCAL_SESSION_VERSION}"
+        ))
     }
 
     fn c(&self) -> Box<dyn TSession> {
