@@ -18,7 +18,7 @@ pub struct LocalSession {
 }
 
 impl LocalSession {
-    pub fn new_session(self) -> Box<dyn TLocalSession> {
+    pub fn new_session(self) -> Box<Arc<RwLock<LocalSession>>> {
         let session = self;
 
         let session = Arc::new(RwLock::new(session));
