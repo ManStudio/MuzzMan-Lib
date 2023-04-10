@@ -111,155 +111,166 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         path: Option<PathBuf>,
         info: Option<ModuleInfo>,
     ) -> Result<MRef, SessionError> {
+        let result;
         let mut notifications = Vec::new();
 
-        if let Some(info) = info {
-            let ref_ = Arc::new(RwLock::new(RefModule {
-                uid: info.id,
+        'install_module: {
+            if let Some(info) = info {
+                let ref_ = Arc::new(RwLock::new(RefModule {
+                    uid: info.id,
+                    session: Some(self.c()),
+                }));
+
+                let module = Arc::new(RwLock::new(Module {
+                    name: info.name.clone(),
+                    desc: info.desc.clone(),
+                    module,
+                    proxy: info.proxy,
+                    settings: info.settings.clone(),
+                    data: info.data.clone(),
+                    info: ref_.clone(),
+                    path,
+                }));
+                let module_old = self
+                    .read()?
+                    .modules
+                    .get(info.id.0 as usize)
+                    .map(std::clone::Clone::clone);
+                if let Some(module_old) = module_old {
+                    if let Some(module_old) = module_old {
+                        if module_old.read()?.module.get_uid() == info.uid {
+                            // if we had to correct module at the correct location
+                            {
+                                let mut module = module_old.write()?;
+                                module.name = info.name;
+                                module.desc = info.desc;
+                                module.proxy = info.proxy;
+                                module.settings = info.settings;
+                                module.data = info.data;
+                            }
+                            result = self.get_module_ref(&info.id);
+                            break 'install_module;
+                        } else {
+                            // if we not have the correct module
+                            // that means we need to move to the top
+                            // and add our module at the module id
+                            let mut lock = self.write()?;
+                            let len = lock.modules.len();
+                            lock.modules.push(Some(module));
+                            let old = lock.modules.swap_remove(info.id.0 as usize);
+                            lock.modules.push(old);
+                            let (last_id, new_id) = {
+                                let old = module_old.read()?;
+                                let mut id = old.info.write()?;
+                                let last = id.uid;
+                                id.uid.0 = len as u64;
+                                (last, id.uid)
+                            };
+
+                            notifications.push(SessionEvent::ModuleIdChanged(last_id, new_id));
+
+                            result = Ok(ref_);
+                            break 'install_module;
+                        }
+                    } else {
+                        // if has a avalibile slot but no module in it
+                        let mut s = self.write()?;
+                        s.modules.push(Some(module));
+                        s.modules.swap_remove(info.id.0 as usize);
+
+                        result = Ok(ref_);
+                        break 'install_module;
+                    }
+                } else {
+                    // if we don't have enouch modules
+                    // we need to add empty modules until the disire id
+                    let mut s = self.write()?;
+                    loop {
+                        if s.modules.len() == info.id.0 as usize {
+                            s.modules.push(Some(module));
+
+                            notifications.push(SessionEvent::NewModule(info.id));
+
+                            result = Ok(ref_);
+                            break 'install_module;
+                        }
+                        s.modules.push(None);
+                    }
+                }
+            }
+            // if other module has the uid with the new module will be replaced and will
+            // be returned as the new module
+
+            {
+                let len = self.get_modules_len()?;
+                let uid = module.get_uid();
+                for m in self.get_modules(0..len)? {
+                    if m.uid()? == uid {
+                        self.get_module(&m.id())?.write()?.module = module;
+                        result = Ok(m);
+                        break 'install_module;
+                    }
+                }
+            }
+            // find if is a empty module id
+            // that should be replaced by the new module
+            let mut new_id = self.get_modules_len()?;
+            let mut finded = None;
+            for (i, modu) in self.write()?.modules.iter().enumerate() {
+                if modu.is_none() {
+                    new_id = i;
+                    finded = Some(i);
+                    break;
+                }
+            }
+
+            let info = Arc::new(RwLock::new(RefModule {
+                uid: ModuleId(new_id as u64),
                 session: Some(self.c()),
             }));
 
-            let module = Arc::new(RwLock::new(Module {
-                name: info.name.clone(),
-                desc: info.desc.clone(),
+            let mut settings = Data::new();
+            let mut element_data = Data::new();
+
+            module.init_settings(&mut settings);
+            module.init_element_settings(&mut element_data);
+
+            let module = Module {
+                name: module.get_name(),
+                desc: module.get_desc(),
                 module,
-                proxy: info.proxy,
-                settings: info.settings.clone(),
-                data: info.data.clone(),
-                info: ref_.clone(),
+                proxy: 0,
+                settings,
+                data: element_data,
+                info: info.clone(),
                 path,
-            }));
-            let module_old = self
-                .read()?
-                .modules
-                .get(info.id.0 as usize)
-                .map(std::clone::Clone::clone);
-            if let Some(module_old) = module_old {
-                if let Some(module_old) = module_old {
-                    if module_old.read()?.module.get_uid() == info.uid {
-                        // if we had to correct module at the correct location
-                        {
-                            let mut module = module_old.write()?;
-                            module.name = info.name;
-                            module.desc = info.desc;
-                            module.proxy = info.proxy;
-                            module.settings = info.settings;
-                            module.data = info.data;
-                        }
-                        return self.get_module_ref(&info.id);
-                    } else {
-                        // if we not have the correct module
-                        // that means we need to move to the top
-                        // and add our module at the module id
-                        let mut lock = self.write()?;
-                        let len = lock.modules.len();
-                        lock.modules.push(Some(module));
-                        let old = lock.modules.swap_remove(info.id.0 as usize);
-                        lock.modules.push(old);
-                        let (last_id, new_id) = {
-                            let old = module_old.read()?;
-                            let mut id = old.info.write()?;
-                            let last = id.uid;
-                            id.uid.0 = len as u64;
-                            (last, id.uid)
-                        };
+            };
 
-                        notifications.push(SessionEvent::ModuleIdChanged(last_id, new_id));
+            if let Err(error) = module.module.init(info.clone()) {
+                result = Err(SessionError::CannotInstallModule(error));
+                break 'install_module;
+            }
 
-                        return Ok(ref_);
-                    }
-                } else {
-                    // if has a avalibile slot but no module in it
-                    let mut s = self.write()?;
-                    s.modules.push(Some(module));
-                    s.modules.swap_remove(info.id.0 as usize);
-                    return Ok(ref_);
-                }
-            } else {
-                // if we don't have enouch modules
-                // we need to add empty modules until the disire id
+            // we need to remove and add in a single Atomic action
+            // because if a other thread trying to get a module after the removed module
+            // will have problems
+            {
                 let mut s = self.write()?;
-                loop {
-                    if s.modules.len() == info.id.0 as usize {
-                        s.modules.push(Some(module));
-
-                        return Ok(ref_);
-                    }
-                    s.modules.push(None);
+                s.modules.push(Some(Arc::new(RwLock::new(module))));
+                if let Some(finded) = finded {
+                    s.modules.swap_remove(finded);
                 }
             }
+
+            notifications.push(SessionEvent::NewModule(info.read()?.uid));
+            result = Ok(info);
         }
-        // if other module has the same default name with the new module will be replaced and will
-        // be returned as the new module
-
-        {
-            let len = self.get_modules_len()?;
-            let name = module.get_name();
-            for m in self.get_modules(0..len)? {
-                if m.get_default_name()? == name {
-                    self.get_module(&m.id())?.write()?.module = module;
-                    return Ok(m);
-                }
-            }
-        }
-        // find if is a empty module id
-        // that should be replaced by the new module
-        let mut new_id = self.get_modules_len()?;
-        let mut finded = None;
-        for (i, modu) in self.write()?.modules.iter().enumerate() {
-            if modu.is_none() {
-                new_id = i;
-                finded = Some(i);
-                break;
-            }
-        }
-
-        let info = Arc::new(RwLock::new(RefModule {
-            uid: ModuleId(new_id as u64),
-            session: Some(self.c()),
-        }));
-
-        let mut settings = Data::new();
-        let mut element_data = Data::new();
-
-        module.init_settings(&mut settings);
-        module.init_element_settings(&mut element_data);
-
-        let module = Module {
-            name: module.get_name(),
-            desc: module.get_desc(),
-            module,
-            proxy: 0,
-            settings,
-            data: element_data,
-            info: info.clone(),
-            path,
-        };
-
-        if let Err(error) = module.module.init(info.clone()) {
-            return Err(SessionError::CannotInstallModule(error));
-        }
-
-        // we need to remove and add in a single Atomic action
-        // because if a other thread trying to get a module after the removed module
-        // will have problems
-        {
-            let mut s = self.write()?;
-            if let Some(finded) = finded {
-                s.modules.remove(finded);
-            }
-
-            s.modules
-                .insert(new_id, Some(Arc::new(RwLock::new(module))));
-        }
-
-        notifications.push(SessionEvent::NewModule(info.read()?.uid));
 
         for notification in notifications {
             let _ = self.notify_all(notification);
         }
 
-        Ok(info)
+        result
     }
 
     fn notify_all(&self, event: SessionEvent) -> Result<(), SessionError> {
