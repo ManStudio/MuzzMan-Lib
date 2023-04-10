@@ -1387,7 +1387,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn load_location_info(&self, info: LocationInfo) -> Result<LRef, SessionError> {
-        //TODO:
         let location_id = info.id.clone();
 
         let location_ref = Arc::new(RwLock::new(RefLocation {
@@ -1424,7 +1423,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             events: Arc::new(RwLock::new(Events::default())),
         };
 
-        let mut new_location = Arc::new(RwLock::new(new_location));
+        let new_location = Arc::new(RwLock::new(new_location));
         let mut notifications = Vec::new();
 
         // We should iterate for every location until we find a location with the same id with the
@@ -1478,34 +1477,29 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     };
                     tmp_loc = Arc::new(RwLock::new(new_location));
 
-                    let len;
                     {
                         let mut location = location.write().unwrap();
                         while location.locations.len() < i as usize {
                             location.locations.push(None);
                         }
-                        len = location.locations.len();
+                        let len = location.locations.len();
+                        location.locations.push(Some(tmp_loc.clone()));
+                        notifications.push(SessionEvent::NewLocation(new_id));
                         if len >= i as usize {
                             location.locations.swap(len, i as usize);
+                            // now update the old location
                             let mut old = location.info.read().unwrap().id.clone();
                             let mut new = old.clone();
                             old.push(i);
                             new.push(len as u64);
-                            let tmp = (&location.locations[len]
-                                .unwrap()
-                                .read()
-                                .unwrap()
-                                .info
-                                .write()
-                                .unwrap()
-                                .id
-                                .last_mut()
-                                .unwrap());
-                            *(*tmp) = len as u64;
+                            if let Some(Some(location)) = location.locations.get(len) {
+                                let _ref = location.read().unwrap().info.clone();
+                                let mut _ref = _ref.write().unwrap();
+                                let tmp = _ref.id.last_mut().unwrap();
+                                *tmp = len as u64;
+                            }
                             notifications.push(SessionEvent::LocationIdChanged(old, new));
                         }
-                        location.locations.push(Some(tmp_loc.clone()));
-                        notifications.push(SessionEvent::NewLocation(new_id))
                     }
                 }
                 location = tmp_loc
@@ -1561,18 +1555,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
             self.load_element_info(element)?;
         }
 
-        // The new Location
-        // Should replace the old one and put the old one at the top
-        // If has no one will added
-        // If is location zero should replace that location
-
-        // TODO: Implelemnt how will be added!
-        todo!();
-
-        let _ = self.notify_all(SessionEvent::NewLocation(
-            location_ref.read().unwrap().id.clone(),
-        ));
-
         let results: Vec<Result<(), SessionError>> = notifications
             .into_iter()
             .map(|notification| self.notify_all(notification))
@@ -1580,7 +1562,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         for result in results {
             // better error system
-            let _ = result?;
+            result?;
         }
 
         Ok(location_ref)
