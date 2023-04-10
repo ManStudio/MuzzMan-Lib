@@ -1,11 +1,13 @@
 #![allow(dead_code)]
 
-use std::any::Any;
+use std::{any::Any, panic::UnwindSafe};
 
 #[derive(Debug, Default)]
 pub struct Storage {
     pub data: Vec<Box<dyn Any + Send>>,
 }
+
+impl UnwindSafe for Storage {}
 
 impl Storage {
     pub fn get<T: 'static>(&self) -> Option<&T> {

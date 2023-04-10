@@ -34,6 +34,7 @@ pub enum SessionError {
     DefaultLocationDoNotExist,
     PosionErrorCannotLockForRead,
     PosionErrorCannotLocakForWrite,
+    StepOnElementPaniced,
     RawModule(RawLibraryError),
     Custom(String),
 }

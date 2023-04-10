@@ -85,7 +85,7 @@ impl Debug for Module {
     }
 }
 
-pub trait TModule {
+pub trait TModule: std::panic::UnwindSafe {
     fn init(&self, info: MRef) -> Result<(), String>;
 
     fn get_name(&self) -> String;

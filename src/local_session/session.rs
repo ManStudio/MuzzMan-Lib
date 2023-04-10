@@ -1,7 +1,8 @@
 use std::{
     ops::Range,
     path::PathBuf,
-    sync::{Arc, RwLock},
+    rc::Rc,
+    sync::{Arc, Mutex, RwLock},
 };
 
 use crate::{prelude::*, VERSION};
@@ -654,11 +655,32 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         let element = self.get_element(element_info)?;
 
-        let mut control_flow = control_flow;
-        let mut storage = storage;
+        let control_flow = Rc::new(Mutex::new(control_flow));
+        let storage = Rc::new(Mutex::new(storage));
+        let cf = control_flow.clone();
+        let s = storage.clone();
 
-        module.step_element(element, &mut control_flow, &mut storage);
-        Ok((control_flow, storage))
+        let has_error = {
+            let mut control_flow = cf.lock().unwrap();
+            let mut storage = s.lock().unwrap();
+            std::panic::catch_unwind(move || {
+                module.step_element(element, &mut control_flow, &mut storage);
+            })
+            .is_err()
+        };
+
+        let Ok(control_flow) =
+            std::rc::Rc::try_unwrap(control_flow) else {return Err(SessionError::PosionErrorCannotLocakForWrite)};
+        let Ok(storage) = std::rc::Rc::try_unwrap(storage) else {return Err(SessionError::PosionErrorCannotLocakForWrite)};
+
+        let control_flow = control_flow.into_inner().unwrap();
+        let storage = storage.into_inner().unwrap();
+
+        if has_error {
+            Err(SessionError::StepOnElementPaniced)
+        } else {
+            Ok((control_flow, storage))
+        }
     }
 
     fn module_step_location(
@@ -1076,13 +1098,17 @@ impl TSession for Arc<RwLock<LocalSession>> {
                         continue;
                     }
                     if let Some(module) = module {
-                        (control_flow, storage) = module
-                            .step_element(
-                                &element_info.read().unwrap().id.clone(),
-                                control_flow,
-                                storage,
-                            )
-                            .unwrap();
+                        match module.step_element(
+                            &element_info.read().unwrap().id.clone(),
+                            control_flow,
+                            storage,
+                        ) {
+                            Ok((cf, s)) => {
+                                control_flow = cf;
+                                storage = s;
+                            }
+                            Err(_) => break,
+                        }
                     }
                 } else {
                     break;
