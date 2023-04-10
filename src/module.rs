@@ -1,5 +1,6 @@
 use std::{
     fmt::Debug,
+    ops::Range,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -92,6 +93,7 @@ pub trait TModule {
 
     fn get_uid(&self) -> UID;
     fn get_version(&self) -> String;
+    fn supported_versions(&self) -> Range<u64>;
 
     fn init_settings(&self, data: &mut Data);
     fn init_element_settings(&self, data: &mut Data);
@@ -106,6 +108,7 @@ pub trait TModule {
 
     fn accept_extension(&self, filename: &str) -> bool;
     fn accept_url(&self, url: String) -> bool;
+    fn accepted_extensions(&self) -> Vec<String>;
     fn accepted_protocols(&self) -> Vec<String>;
 
     fn init_location(&self, location_ref: LRef, data: FileOrData);
@@ -134,6 +137,7 @@ pub enum RawLibraryError {
     DontHaveSymbolGetDesc,
     DontHaveSymbolGetUID,
     DontHaveSymbolGetVersion,
+    DontHaveSymbolSupportedVersions,
     DontHaveSymbolInit,
     DontHaveSymbolInitSettings,
     DontHaveSymbolInitElementSettings,
@@ -141,6 +145,7 @@ pub enum RawLibraryError {
     DontHaveSymbolStepElement,
     DontHaveSymbolAcceptExtension,
     DontHaveSymbolAcceptUrl,
+    DontHaveSymbolAcceptedExtensions,
     DontHaveSymbolAcceptedProtocols,
     DontHaveSymbolInitLocation,
     DontHaveSymbolStepLocation,
@@ -163,6 +168,7 @@ pub struct RawModule {
 
     fn_get_uid: Symbol<'static, fn() -> UID>,
     fn_get_version: Symbol<'static, fn() -> String>,
+    fn_supported_versions: Symbol<'static, fn() -> Range<u64>>,
 
     fn_init_settings: Symbol<'static, fn(&mut Data)>,
     fn_init_element_settings: Symbol<'static, fn(&mut Data)>,
@@ -175,6 +181,7 @@ pub struct RawModule {
 
     fn_accept_extension: Symbol<'static, fn(&str) -> bool>,
     fn_accept_url: Symbol<'static, fn(String) -> bool>,
+    fn_accepted_extensions: Symbol<'static, fn() -> Vec<String>>,
     fn_accepted_protocols: Symbol<'static, fn() -> Vec<String>>,
 
     fn_notify: Symbol<'static, fn(Ref, Event)>,
@@ -273,16 +280,29 @@ impl RawModule {
             return Err(RawLibraryError::DontHaveSymbolStepLocation);
         };
 
-        let fn_get_uid = if let Ok(func) = unsafe { lib.get(b"get_uid\n") } {
+        let fn_get_uid = if let Ok(func) = unsafe { lib.get(b"get_uid\0") } {
             func
         } else {
             return Err(RawLibraryError::DontHaveSymbolGetUID);
         };
 
-        let fn_get_version = if let Ok(func) = unsafe { lib.get(b"get_version\n") } {
+        let fn_get_version = if let Ok(func) = unsafe { lib.get(b"get_version\0") } {
             func
         } else {
             return Err(RawLibraryError::DontHaveSymbolGetVersion);
+        };
+
+        let fn_accepted_extensions = if let Ok(func) = unsafe { lib.get(b"accepted_extensions\0") }
+        {
+            func
+        } else {
+            return Err(RawLibraryError::DontHaveSymbolAcceptedExtensions);
+        };
+
+        let fn_supported_versions = if let Ok(func) = unsafe { lib.get(b"supported_versions\0") } {
+            func
+        } else {
+            return Err(RawLibraryError::DontHaveSymbolSupportedVersions);
         };
 
         Ok(Self {
@@ -302,6 +322,8 @@ impl RawModule {
             fn_step_location,
             fn_get_uid,
             fn_get_version,
+            fn_supported_versions,
+            fn_accepted_extensions,
         })
     }
 }
@@ -334,6 +356,10 @@ impl TModule for Arc<RawModule> {
         (*self.fn_get_version)()
     }
 
+    fn supported_versions(&self) -> Range<u64> {
+        (*self.fn_supported_versions)()
+    }
+
     fn init_settings(&self, data: &mut Data) {
         (*self.fn_init_settings)(data)
     }
@@ -356,6 +382,10 @@ impl TModule for Arc<RawModule> {
 
     fn accept_url(&self, url: String) -> bool {
         (*self.fn_accept_url)(url)
+    }
+
+    fn accepted_extensions(&self) -> Vec<String> {
+        (*self.fn_accepted_extensions)()
     }
 
     fn accepted_protocols(&self) -> Vec<String> {
@@ -388,6 +418,7 @@ pub trait TModuleInfo {
 
     fn uid(&self) -> Result<UID, SessionError>;
     fn version(&self) -> Result<String, SessionError>;
+    fn supported_versions(&self) -> Result<Range<u64>, SessionError>;
 
     fn get_desc(&self) -> Result<String, SessionError>;
     fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError>;
@@ -427,6 +458,7 @@ pub trait TModuleInfo {
     fn accept_url(&self, url: String) -> Result<bool, SessionError>;
     fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError>;
     fn accepted_protocols(&self) -> Result<Vec<String>, SessionError>;
+    fn accepted_extensions(&self) -> Result<Vec<String>, SessionError>;
 
     fn init_element(&self, element_info: &ElementId) -> Result<(), SessionError>;
     fn init_location(
@@ -466,6 +498,10 @@ impl TModuleInfo for MRef {
 
     fn version(&self) -> Result<String, SessionError> {
         self.get_session()?.module_get_version(&self.id())
+    }
+
+    fn supported_versions(&self) -> Result<Range<u64>, SessionError> {
+        self.get_session()?.module_supported_versions(&self.id())
     }
 
     fn get_desc(&self) -> Result<String, SessionError> {
@@ -555,6 +591,10 @@ impl TModuleInfo for MRef {
 
     fn accepted_protocols(&self) -> Result<Vec<String>, SessionError> {
         self.get_session()?.module_accepted_protocols(&self.id())
+    }
+
+    fn accepted_extensions(&self) -> Result<Vec<String>, SessionError> {
+        self.get_session()?.module_accepted_extensions(&self.id())
     }
 
     fn init_element(&self, element_info: &ElementId) -> Result<(), SessionError> {

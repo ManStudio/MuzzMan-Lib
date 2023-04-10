@@ -58,6 +58,11 @@ pub fn module_link(
         }
 
         #[no_mangle]
+        fn supported_versions() -> Vec<Range<u64>>{
+            MODULE.supported_versions()
+        }
+
+        #[no_mangle]
         fn init_settings(data: &mut Data) {
             MODULE.init_settings(data)
         }
@@ -94,6 +99,11 @@ pub fn module_link(
         #[no_mangle]
         fn accept_url(url: String) -> bool {
             MODULE.accept_url(url)
+        }
+
+        #[no_mangle]
+        fn accepted_extensions() -> Vec<String>{
+            MODULE.accepted_extensions()
         }
 
         #[no_mangle]

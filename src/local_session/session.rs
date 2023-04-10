@@ -517,6 +517,12 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(version)
     }
 
+    fn module_supported_versions(&self, module_id: &ModuleId) -> Result<Range<u64>, SessionError> {
+        let m = self.get_module(module_id)?;
+        let versions = m.read()?.module.supported_versions();
+        Ok(versions)
+    }
+
     fn module_get_desc(&self, module_id: &ModuleId) -> Result<String, SessionError> {
         Ok(self.get_module(module_id)?.read()?.desc.clone())
     }
@@ -618,6 +624,17 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .read()?
             .module
             .accepted_protocols())
+    }
+
+    fn module_accepted_extensions(
+        &self,
+        module_id: &ModuleId,
+    ) -> Result<Vec<String>, SessionError> {
+        Ok(self
+            .get_module(module_id)?
+            .read()?
+            .module
+            .accepted_extensions())
     }
 
     fn module_step_element(

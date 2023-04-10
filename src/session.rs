@@ -91,6 +91,7 @@ pub trait TSession {
 
     fn module_get_uid(&self, module_id: &ModuleId) -> Result<UID, SessionError>;
     fn module_get_version(&self, module_id: &ModuleId) -> Result<String, SessionError>;
+    fn module_supported_versions(&self, module_id: &ModuleId) -> Result<Range<u64>, SessionError>;
 
     fn module_get_desc(&self, module_id: &ModuleId) -> Result<String, SessionError>;
     fn module_set_desc(&self, module_id: &ModuleId, desc: String) -> Result<(), SessionError>;
@@ -131,6 +132,8 @@ pub trait TSession {
     ) -> Result<bool, SessionError>;
 
     fn module_accepted_protocols(&self, module_id: &ModuleId) -> Result<Vec<String>, SessionError>;
+    fn module_accepted_extensions(&self, module_id: &ModuleId)
+        -> Result<Vec<String>, SessionError>;
 
     fn module_step_element(
         &self,
