@@ -32,10 +32,23 @@ pub enum SessionError {
     CannotLoadElementInfo,
     CannotLoadLocationInfo,
     DefaultLocationDoNotExist,
+    PosionErrorCannotLockForRead,
+    PosionErrorCannotLocakForWrite,
     RawModule(RawLibraryError),
     Custom(String),
 }
 
+impl<'a, T> From<std::sync::PoisonError<std::sync::RwLockReadGuard<'a, T>>> for SessionError {
+    fn from(_value: std::sync::PoisonError<std::sync::RwLockReadGuard<T>>) -> Self {
+        Self::PosionErrorCannotLockForRead
+    }
+}
+
+impl<'a, T> From<std::sync::PoisonError<std::sync::RwLockWriteGuard<'a, T>>> for SessionError {
+    fn from(_value: std::sync::PoisonError<std::sync::RwLockWriteGuard<T>>) -> Self {
+        Self::PosionErrorCannotLocakForWrite
+    }
+}
 pub type Actions = Vec<(String, MRef, Vec<(String, Value)>)>;
 
 // TODO: all the functions should be async
