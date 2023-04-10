@@ -706,7 +706,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             should_save: false,
             enabled: false,
             thread: None,
-            info: element_info.clone(),
+            _ref: element_info.clone(),
             events: Arc::new(RwLock::new(Events::default())),
         }));
 
@@ -767,7 +767,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             should_save: info.should_save,
             enabled: false,
             thread: None,
-            info: element_id.clone(),
+            _ref: element_id.clone(),
             events: Arc::new(RwLock::new(Events::default())),
         }));
 
@@ -777,12 +777,12 @@ impl TSession for Arc<RwLock<LocalSession>> {
             let mut location = location.write()?;
             if let Some(other_element) = location.elements.get(info.id.uid as usize) {
                 if let Some(other_element) = other_element.clone() {
-                    let last_id = other_element.read()?.info.read()?.id.clone();
+                    let last_id = other_element.read()?._ref.read()?.id.clone();
                     let other_element_new_id = location.elements.len();
                     location.elements.push(Some(other_element.clone()));
                     let new_id = {
                         let other_element = other_element.read()?;
-                        let mut uid = other_element.info.write()?;
+                        let mut uid = other_element._ref.write()?;
                         uid.id.uid = other_element_new_id as u64;
                         uid.id.clone()
                     };
@@ -812,7 +812,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn move_element(&self, element: &ElementId, location: &LocationId) -> Result<(), SessionError> {
         let elem = self.destroy_element(element.clone())?;
-        let info = elem.read()?.info.clone();
+        let info = elem.read()?._ref.clone();
         let new_uid = self.get_location(location)?.read()?.elements.len();
         let last = info.read()?.id.clone();
         let new = ElementId {
@@ -820,7 +820,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             location_id: location.clone(),
         };
 
-        elem.read()?.info.write()?.id = new.clone();
+        elem.read()?._ref.write()?.id = new.clone();
         self.get_location(location)?
             .write()?
             .elements
@@ -843,14 +843,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         let mut notifications = Vec::new();
         for (i, element) in self
-            .get_location(&element.read()?.info.read()?.id.location_id)?
+            .get_location(&element.read()?._ref.read()?.id.location_id)?
             .read()?
             .elements
             .iter()
             .enumerate()
         {
             let Some(element) = element else {continue};
-            let info = element.read()?.info.clone();
+            let info = element.read()?._ref.clone();
             let last = info.read()?.id.clone();
             info.write()?.id.uid = i as u64;
 
@@ -1027,7 +1027,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let tmp_element = element.clone();
         element.write()?.thread = Some(std::thread::spawn(move || {
             let element = tmp_element.clone();
-            let element_info = element.read().unwrap().info.clone();
+            let element_info = element.read().unwrap()._ref.clone();
             let mut control_flow = ControlFlow::Run;
             let mut storage = if let Some(storage) = storage {
                 storage
@@ -1160,7 +1160,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             progress: element.progress,
             should_save: element.should_save,
             enabled: element.enabled,
-            id: element.info.id(),
+            id: element._ref.id(),
         })
     }
 
@@ -1214,16 +1214,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }
 
         let events = match _ref {
-            ID::Element(e_info) => {
-                let e = self.get_element(&e_info)?;
-                let d = e.read()?.events.clone();
-                d
-            }
-            ID::Location(l_info) => {
-                let l = self.get_location(&l_info)?;
-                let d = l.read()?.events.clone();
-                d
-            }
+            ID::Element(e_info) => self.get_element(&e_info)?.read()?.events.clone(),
+            ID::Location(l_info) => self.get_location(&l_info)?.read()?.events.clone(),
         };
 
         if !events.write()?.subscribe(ID::Element(element_info.clone())) {
@@ -1240,16 +1232,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }
 
         let events = match _ref {
-            ID::Element(e_info) => {
-                let e = self.get_element(&e_info)?;
-                let d = e.read()?.events.clone();
-                d
-            }
-            ID::Location(l_info) => {
-                let l = self.get_location(&l_info)?;
-                let d = l.read()?.events.clone();
-                d
-            }
+            ID::Element(e_info) => self.get_element(&e_info)?.read()?.events.clone(),
+            ID::Location(l_info) => self.get_location(&l_info)?.read()?.events.clone(),
         };
 
         if !events
@@ -1648,7 +1632,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .iter()
             .flatten()
         {
-            element_infos.push(element.read()?.info.clone())
+            element_infos.push(element.read()?._ref.clone())
         }
         Ok(element_infos)
     }
@@ -1781,16 +1765,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }
 
         let events = match _ref {
-            ID::Element(e_info) => {
-                let e = self.get_element(&e_info)?;
-                let d = e.read()?.events.clone();
-                d
-            }
-            ID::Location(l_info) => {
-                let l = self.get_location(&l_info)?;
-                let d = l.read()?.events.clone();
-                d
-            }
+            ID::Element(e_info) => self.get_element(&e_info)?.read()?.events.clone(),
+            ID::Location(l_info) => self.get_location(&l_info)?.read()?.events.clone(),
         };
 
         if !events
@@ -1814,16 +1790,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }
 
         let events = match _ref {
-            ID::Element(e_info) => {
-                let e = self.get_element(&e_info)?;
-                let d = e.read()?.events.clone();
-                d
-            }
-            ID::Location(l_info) => {
-                let l = self.get_location(&l_info)?;
-                let d = l.read()?.events.clone();
-                d
-            }
+            ID::Element(e_info) => self.get_element(&e_info)?.read()?.events.clone(),
+            ID::Location(l_info) => self.get_location(&l_info)?.read()?.events.clone(),
         };
 
         if !events
@@ -1841,7 +1809,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn get_element_ref(&self, id: &ElementId) -> Result<ERef, SessionError> {
-        Ok(self.get_element(id)?.read()?.info.clone())
+        Ok(self.get_element(id)?.read()?._ref.clone())
     }
 
     fn get_location_ref(&self, id: &LocationId) -> Result<LRef, SessionError> {
