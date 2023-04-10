@@ -1107,7 +1107,15 @@ impl TSession for Arc<RwLock<LocalSession>> {
                                 control_flow = cf;
                                 storage = s;
                             }
-                            Err(_) => break,
+                            Err(error) => {
+                                let mut logger = element.get_logger(None);
+                                logger.error(format!(
+                                    "Module crashed: {}, with error: {error:?}",
+                                    module.get_name().unwrap(),
+                                ));
+
+                                break;
+                            }
                         }
                     }
                 } else {
