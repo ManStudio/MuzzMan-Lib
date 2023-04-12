@@ -1371,6 +1371,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn load_location_info(&self, info: LocationInfo) -> Result<LRef, SessionError> {
+        // TODO: Is a really big problem some were when loading a location can have a self reference to it self and when notify for events will be stuck in a loop until the machine remains without memory
         let location_id = info.id.clone();
 
         let location_ref = Arc::new(RwLock::new(RefLocation {
