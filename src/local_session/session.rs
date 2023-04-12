@@ -1426,9 +1426,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
             for i in location_id.clone() {
                 let tmp_loc;
-                if let Some(Some(location)) = location.read()?.locations.get(i as usize) {
+                let tmp_location = location.clone();
+                let tmp_location = tmp_location.read()?;
+                // if the contition is false the lock is not droped!
+                if let Some(Some(location)) = tmp_location.locations.get(i as usize) {
                     tmp_loc = location.clone()
                 } else {
+                    // fixed with manual drop
+                    drop(tmp_location);
                     let mut new_id = location.read()?.info.read()?.id.clone();
                     new_id.push(i);
 
