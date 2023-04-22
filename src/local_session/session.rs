@@ -1526,6 +1526,17 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     let mut info = location.info.write()?;
                     old_id = info.id.clone();
                     info.id.push(new_id);
+
+                    for location in location.locations.iter() {
+                        let Some(location) = location else {continue};
+                        let location = location.read()?;
+                        let mut id = location.info.write()?;
+                        let old_id = id.id.clone();
+                        let len = id.id.len();
+                        id.id.insert(len - 1, new_id);
+                        let new_id = id.id.clone();
+                        notifications.push(SessionEvent::LocationIdChanged(old_id, new_id));
+                    }
                     info.id.clone()
                 };
 
