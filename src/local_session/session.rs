@@ -62,7 +62,7 @@ pub trait TLocalSession: TSession {
         info: Option<ModuleInfo>,
     ) -> Result<MRef, SessionError>;
 
-    fn notify_all(&self, event: SessionEvent) -> Result<(), SessionError>;
+    fn notify_all(&self, events: Vec<SessionEvent>) -> Result<(), SessionError>;
 }
 
 impl TLocalSession for Arc<RwLock<LocalSession>> {
@@ -266,14 +266,12 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
             result = Ok(info);
         }
 
-        for notification in notifications {
-            let _ = self.notify_all(notification);
-        }
+        let _ = self.notify_all(notifications);
 
         result
     }
 
-    fn notify_all(&self, event: SessionEvent) -> Result<(), SessionError> {
+    fn notify_all(&self, events: Vec<SessionEvent>) -> Result<(), SessionError> {
         let mut locations = vec![self.get_default_location()?];
         let mut new_range = 0..1;
 
@@ -290,16 +288,18 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
             new_range = start_pos..locations.len();
         }
 
-        for location in locations {
-            let _ = location.notify(Event::SessionEvent(event.clone()));
-            let len = location.get_elements_len()?;
-            for element in location.get_elements(0..len)? {
-                let _ = element.notify(Event::SessionEvent(event.clone()));
+        for event in events {
+            for location in locations.iter() {
+                let _ = location.notify(Event::SessionEvent(event.clone()));
+                let len = location.get_elements_len()?;
+                for element in location.get_elements(0..len)? {
+                    let _ = element.notify(Event::SessionEvent(event.clone()));
+                }
             }
-        }
 
-        if let Some(callback) = &self.read()?.callback {
-            callback(event)
+            if let Some(callback) = &self.read()?.callback {
+                callback(event)
+            }
         }
 
         Ok(())
@@ -317,7 +317,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn remove_module(&self, info: ModuleId) -> Result<MRow, SessionError> {
-        let _ = self.notify_all(SessionEvent::DestroyedModule(info));
+        let _ = self.notify_all(vec![SessionEvent::DestroyedModule(info)]);
 
         let index = info.0;
         {
@@ -345,9 +345,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             }
         }
 
-        for notification in notifications {
-            let _ = self.notify_all(notification);
-        }
+        let _ = self.notify_all(notifications);
 
         Ok(module)
     }
@@ -773,7 +771,9 @@ impl TSession for Arc<RwLock<LocalSession>> {
                 .swap_remove(should_replace);
         }
 
-        let _ = self.notify_all(SessionEvent::NewElement(element_info.read()?.id.clone()));
+        let _ = self.notify_all(vec![SessionEvent::NewElement(
+            element_info.read()?.id.clone(),
+        )]);
 
         Ok(element_info)
     }
@@ -855,9 +855,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }
 
         notifications.push(SessionEvent::NewElement(element_id.read()?.id.clone()));
-        for notification in notifications {
-            let _ = self.notify_all(notification);
-        }
+        let _ = self.notify_all(notifications);
 
         Ok(element_id)
     }
@@ -878,14 +876,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .elements
             .push(Some(elem));
 
-        let _ = self.notify_all(SessionEvent::ElementIdChanged(last, new));
+        let _ = self.notify_all(vec![SessionEvent::ElementIdChanged(last, new)]);
         Ok(())
     }
 
     fn destroy_element(&self, element: ElementId) -> Result<ERow, SessionError> {
         let _ = self.get_element_ref(&element)?;
 
-        let _ = self.notify_all(SessionEvent::DestroyedElement(element.clone()));
+        let _ = self.notify_all(vec![SessionEvent::DestroyedElement(element.clone())]);
 
         let Some(element) = self
             .get_location(&element.location_id)?
@@ -915,7 +913,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             ));
         }
         for notification in notifications {
-            let _ = self.notify_all(notification);
+            let _ = self.notify_all(vec![notification]);
         }
         Ok(element)
     }
@@ -1365,7 +1363,9 @@ impl TSession for Arc<RwLock<LocalSession>> {
                 .swap_remove(should_swap);
         }
 
-        let _ = self.notify_all(SessionEvent::NewLocation(location_info.read()?.id.clone()));
+        let _ = self.notify_all(vec![SessionEvent::NewLocation(
+            location_info.read()?.id.clone(),
+        )]);
 
         Ok(location_info)
     }
@@ -1567,7 +1567,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         let results: Vec<Result<(), SessionError>> = notifications
             .into_iter()
-            .map(|notification| self.notify_all(notification))
+            .map(|notification| self.notify_all(vec![notification]))
             .collect();
 
         for result in results {
@@ -1597,7 +1597,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn destroy_location(&self, location: LocationId) -> Result<LRow, SessionError> {
         let _ = self.get_location_ref(&location)?;
-        let _ = self.notify_all(SessionEvent::DestroyedLocation(location.clone()));
+        let _ = self.notify_all(vec![SessionEvent::DestroyedLocation(location.clone())]);
 
         let mut location_uid = location;
         if let Some(location_index) = location_uid.pop() {
@@ -1622,9 +1622,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                 notifications.push(SessionEvent::LocationIdChanged(last, new));
             }
 
-            for notification in notifications {
-                let _ = self.notify_all(notification);
-            }
+            let _ = self.notify_all(notifications);
 
             return Ok(removed_location);
         }
@@ -1650,7 +1648,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             .locations
             .push(Some(location));
 
-        let _ = self.notify_all(SessionEvent::LocationIdChanged(last, new));
+        let _ = self.notify_all(vec![SessionEvent::LocationIdChanged(last, new)]);
 
         Ok(())
     }
