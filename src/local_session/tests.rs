@@ -63,3 +63,24 @@ fn save_and_load_when_has_content() -> Result<(), SessionError> {
 
     Ok(())
 }
+
+#[test]
+fn load_custom() -> Result<(), SessionError> {
+    let session = LocalSession::default().new_session();
+    let mut custom = LocationInfo::default();
+
+    custom.id.push(0);
+    custom.name = "This is a new location".into();
+
+    let location = session.load_location_info(custom)?;
+    assert_eq!(location.get_name()?, "This is a new location".to_string());
+
+    let default_location = session.get_default_location()?;
+    let locations = default_location.get_locations(0..1)?;
+    assert_eq!(
+        locations[0].get_name()?,
+        "This is a new location".to_string()
+    );
+
+    Ok(())
+}
