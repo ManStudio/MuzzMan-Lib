@@ -124,7 +124,7 @@ pub struct Element {
     pub enabled: bool,
     pub thread: Option<JoinHandle<()>>,
     pub events: Arc<RwLock<Events>>,
-    pub _ref: ERef,
+    pub ref_id: ERef,
 }
 
 unsafe impl Sync for Element {}
@@ -380,7 +380,7 @@ impl TGetLogger for ERef {
 
 impl TGetLogger for ERow {
     fn get_logger(&self, dst: Option<Arc<std::sync::Mutex<std::fs::File>>>) -> Logger {
-        let info = self.read().unwrap()._ref.clone();
+        let info = self.read().unwrap().ref_id.clone();
         Logger::for_element(dst, info)
     }
 }

@@ -179,7 +179,7 @@ pub struct Location {
     pub module_data: Data,
     pub elements: Vec<Option<ERow>>,
     pub locations: Vec<Option<LRow>>,
-    pub info: LRef,
+    pub ref_id: LRef,
     pub path: PathBuf,
     pub thread: Option<JoinHandle<()>>,
     pub module: Option<MRef>,
@@ -348,7 +348,7 @@ impl TGetLogger for LRef {
 
 impl TGetLogger for LRow {
     fn get_logger(&self, dst: Option<Arc<Mutex<std::fs::File>>>) -> Logger {
-        let info = self.read().unwrap().info.clone();
+        let info = self.read().unwrap().ref_id.clone();
         Logger::for_location(dst, info)
     }
 }

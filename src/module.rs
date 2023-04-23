@@ -70,7 +70,7 @@ pub struct Module {
     pub settings: Data,
     /// default data
     pub data: Data,
-    pub info: MRef,
+    pub ref_id: MRef,
 }
 
 impl Debug for Module {
