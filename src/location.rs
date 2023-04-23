@@ -81,15 +81,11 @@ impl Hash for ServerLocation {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
-pub struct LocalLocation {
-    pub path: PathBuf,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub enum WhereIsLocation {
     Server(ServerLocation),
-    Local(LocalLocation),
+    #[default]
+    Local,
 }
 
 #[derive(
@@ -330,7 +326,7 @@ pub trait TLocation {
     fn id(&self) -> LocationId;
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
+#[derive(Clone, Default, Debug, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub struct LocationInfo {
     pub name: String,
     pub desc: String,

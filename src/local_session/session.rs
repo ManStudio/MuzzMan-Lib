@@ -31,9 +31,7 @@ impl LocalSession {
         let location = Arc::new(RwLock::new(Location {
             name: String::from("Default Location"),
             desc: String::from("Default Location"),
-            where_is: WhereIsLocation::Local(LocalLocation {
-                path: PathBuf::from("."),
-            }),
+            where_is: WhereIsLocation::Local,
             should_save: false,
             location_data: Data::new(),
             module_data: Data::new(),
@@ -1336,9 +1334,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let loc = Location {
             name: name.to_owned(),
             desc: String::new(),
-            where_is: WhereIsLocation::Local(LocalLocation {
-                path: PathBuf::from("."),
-            }),
+            where_is: WhereIsLocation::Local,
             should_save: false,
             elements: Vec::new(),
             locations: Vec::new(),
