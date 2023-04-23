@@ -231,6 +231,8 @@ impl Display for Type {
                     }
                 ),
                 Data::Bytes(b) => b.fmt(f),
+                Data::FileWriter(p, _) => p.fmt(f),
+                Data::FileReader(p, _) => p.fmt(f),
             },
             Type::CustomEnum(e) => {
                 if let Some(e) = e.get_active() {

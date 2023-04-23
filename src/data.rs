@@ -301,6 +301,14 @@ impl Values {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Data {
     File(PathBuf, #[serde(skip)] Option<Arc<Mutex<std::fs::File>>>),
+    FileWriter(
+        PathBuf,
+        #[serde(skip)] Option<Arc<Mutex<std::io::BufWriter<File>>>>,
+    ),
+    FileReader(
+        PathBuf,
+        #[serde(skip)] Option<Arc<Mutex<std::io::BufReader<File>>>>,
+    ),
     Bytes(Bytes),
 }
 
@@ -309,6 +317,8 @@ impl TBytes for Data {
         match self {
             Data::File(p, _) => p.size() + 1,
             Data::Bytes(v) => v.size() + 1,
+            Data::FileWriter(p, _) => p.size() + 1,
+            Data::FileReader(p, _) => p.size() + 1,
         }
     }
 
@@ -327,6 +337,22 @@ impl TBytes for Data {
 
                 buff.push(1);
                 buff.append(&mut bytes.to_bytes());
+
+                buff
+            }
+            Data::FileWriter(path, _) => {
+                let mut buff = Vec::with_capacity(self.size());
+
+                buff.push(2);
+                buff.append(&mut path.to_bytes());
+
+                buff
+            }
+            Data::FileReader(path, _) => {
+                let mut buff = Vec::with_capacity(self.size());
+
+                buff.push(3);
+                buff.append(&mut path.to_bytes());
 
                 buff
             }
@@ -352,6 +378,8 @@ impl Hash for Data {
         match self {
             Data::File(f, _) => f.hash(state),
             Data::Bytes(b) => b.hash(state),
+            Data::FileWriter(p, _) => p.hash(state),
+            Data::FileReader(p, _) => p.hash(state),
         }
     }
 }
@@ -374,6 +402,8 @@ impl std::io::Write for Data {
                 }
             }
             Data::Bytes(bytes) => bytes.write(buf),
+            Data::FileWriter(_, _) => todo!(),
+            Data::FileReader(_, _) => todo!(),
         }
     }
 
@@ -387,6 +417,20 @@ impl std::io::Write for Data {
                 }
             }
             Data::Bytes(_) => Ok(()),
+            Data::FileWriter(_, stream) => {
+                if let Some(stream) = stream {
+                    stream.lock().unwrap().flush()
+                } else {
+                    Ok(())
+                }
+            }
+            Data::FileReader(_, stream) => {
+                if let Some(stream) = stream {
+                    stream.lock().unwrap().get_ref().flush()
+                } else {
+                    Ok(())
+                }
+            }
         }
     }
 }
@@ -405,6 +449,20 @@ impl std::io::Read for Data {
                 }
             }
             Data::Bytes(bytes) => bytes.read(buf),
+            Data::FileWriter(_, stream) => {
+                if let Some(stream) = stream {
+                    stream.lock().unwrap().get_ref().read(buf)
+                } else {
+                    Ok(0)
+                }
+            }
+            Data::FileReader(_, stream) => {
+                if let Some(stream) = stream {
+                    stream.lock().unwrap().read(buf)
+                } else {
+                    Ok(0)
+                }
+            }
         }
     }
 }
@@ -423,6 +481,20 @@ impl std::io::Seek for Data {
                 }
             }
             Data::Bytes(bytes) => bytes.seek(pos),
+            Data::FileWriter(_, stream) => {
+                if let Some(stream) = stream {
+                    stream.lock().unwrap().seek(pos)
+                } else {
+                    Ok(0)
+                }
+            }
+            Data::FileReader(_, stream) => {
+                if let Some(stream) = stream {
+                    stream.lock().unwrap().seek(pos)
+                } else {
+                    Ok(0)
+                }
+            }
         }
     }
 }
