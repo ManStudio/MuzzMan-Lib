@@ -184,6 +184,10 @@ pub struct Location {
     pub thread: Option<JoinHandle<()>>,
     pub module: Option<MRef>,
     pub events: Arc<RwLock<Events>>,
+
+    pub progress: f32,
+    pub statuses: Vec<String>,
+    pub status: usize,
 }
 
 impl TLocation for LRef {
@@ -330,7 +334,6 @@ pub trait TLocation {
 pub struct LocationInfo {
     pub name: String,
     pub desc: String,
-    // hash
     pub id: LocationId,
     pub where_is: WhereIsLocation,
     pub shoud_save: bool,

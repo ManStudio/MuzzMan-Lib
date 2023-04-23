@@ -42,6 +42,10 @@ impl LocalSession {
             thread: None,
             module: None,
             events: Arc::new(RwLock::new(Events::default())),
+
+            progress: 0.0,
+            statuses: vec![],
+            status: usize::MAX,
         }));
         session.write().unwrap().location = Some(location);
         Box::new(session)
@@ -810,15 +814,16 @@ impl TSession for Arc<RwLock<LocalSession>> {
             element_data: info.element_data,
             module_data: info.module_data,
             module,
-            statuses: info.statuses,
-            status: info.status,
             data: FileOrData::File(path, None),
-            progress: info.progress,
             should_save: info.should_save,
             enabled: false,
             thread: None,
             ref_id: element_id.clone(),
             events: Arc::new(RwLock::new(Events::default())),
+
+            progress: 0.0,
+            statuses: vec![],
+            status: usize::MAX,
         }));
 
         let mut notifications = Vec::new();
@@ -1214,10 +1219,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             element_data: element.element_data.clone(),
             module_data: element.module_data.clone(),
             module,
-            statuses: element.statuses.clone(),
-            status: element.status,
             data: element.data.clone(),
-            progress: element.progress,
             should_save: element.should_save,
             enabled: element.enabled,
             id: element.ref_id.id(),
@@ -1345,6 +1347,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
             events: Arc::new(RwLock::new(Events::default())),
             location_data: Data::new(),
             module_data: Data::new(),
+
+            progress: 0.0,
+            statuses: vec![],
+            status: usize::MAX,
         };
 
         let dest = self.get_location(location)?;
@@ -1402,6 +1408,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
             thread: None,
             module,
             events: Arc::new(RwLock::new(Events::default())),
+
+            progress: 0.0,
+            statuses: vec![],
+            status: usize::MAX,
         };
 
         let new_location = Arc::new(RwLock::new(new_location));
@@ -1460,6 +1470,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
                         thread: None,
                         module: None,
                         events: Arc::default(),
+
+                        progress: 0.0,
+                        statuses: vec![],
+                        status: usize::MAX,
                     };
                     tmp_loc = Arc::new(RwLock::new(new_location));
 

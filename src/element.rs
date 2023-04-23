@@ -21,7 +21,7 @@ pub enum ElementNotify {
 impl_get_ref!(ElementNotify);
 
 #[derive(
-    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, bytes_kman::Bytes,
+    Debug, Clone, Hash, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, bytes_kman::Bytes,
 )]
 pub struct ElementId {
     pub uid: u64,
@@ -116,15 +116,16 @@ pub struct Element {
     pub element_data: Data,
     pub module_data: Data,
     pub module: Option<MRef>,
-    pub statuses: Vec<String>,
-    pub status: usize,
     pub data: FileOrData,
-    pub progress: f32,
     pub should_save: bool,
     pub enabled: bool,
     pub thread: Option<JoinHandle<()>>,
     pub events: Arc<RwLock<Events>>,
     pub ref_id: ERef,
+
+    pub progress: f32,
+    pub statuses: Vec<String>,
+    pub status: usize,
 }
 
 unsafe impl Sync for Element {}
@@ -338,7 +339,7 @@ impl Common for ERef {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, bytes_kman::Bytes)]
+#[derive(Debug, Clone, Hash, Serialize, Deserialize, bytes_kman::Bytes)]
 pub struct ElementInfo {
     pub name: String,
     pub desc: String,
@@ -347,29 +348,10 @@ pub struct ElementInfo {
     pub element_data: Data,
     pub module_data: Data,
     pub module: Option<ModuleInfo>,
-    pub statuses: Vec<String>,
-    pub status: usize,
     pub data: FileOrData,
-    pub progress: f32,
     pub should_save: bool,
     pub enabled: bool,
     pub id: ElementId,
-}
-
-impl Hash for ElementInfo {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
-        self.desc.hash(state);
-        self.meta.hash(state);
-        self.element_data.hash(state);
-        self.module_data.hash(state);
-        self.statuses.hash(state);
-        self.status.hash(state);
-        self.data.hash(state);
-        self.enabled.hash(state);
-        self.url.hash(state);
-        (self.progress as i32).hash(state)
-    }
 }
 
 impl TGetLogger for ERef {
