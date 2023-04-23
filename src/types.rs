@@ -60,7 +60,7 @@ use crate::{
     element::ElementId,
     enums::{AdvanceEnum, CustomEnum},
     prelude::{
-        Element, FileOrData, Location, LocationId, Module, Ref, RefElement, RefLocation, RefModule,
+        Data, Element, Location, LocationId, Module, Ref, RefElement, RefLocation, RefModule,
         SessionError, TSession,
     },
 };
@@ -91,7 +91,7 @@ pub enum Type {
     HashMapSS(HashMap<String, String>),
     HashMapS(HashMap<String, Type>),
     // HashMap(HashMap<Type, Type>),
-    FileOrData(FileOrData),
+    FileOrData(Data),
     CustomEnum(CustomEnum),
     AdvancedEnum(AdvanceEnum),
     // Fields(Box<dyn Fields>),
@@ -221,7 +221,7 @@ impl Display for Type {
                 f.write_str(&buff)
             }
             Type::FileOrData(ford) => match ford {
-                FileOrData::File(file_path, _) => write!(
+                Data::File(file_path, _) => write!(
                     f,
                     "File: {}",
                     if let Some(path) = file_path.to_str() {
@@ -230,7 +230,7 @@ impl Display for Type {
                         "Cannot parse path!"
                     }
                 ),
-                FileOrData::Bytes(b) => b.fmt(f),
+                Data::Bytes(b) => b.fmt(f),
             },
             Type::CustomEnum(e) => {
                 if let Some(e) = e.get_active() {

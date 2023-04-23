@@ -168,12 +168,12 @@ impl From<Type> for Value {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, bytes_kman::Bytes)]
-pub struct Data {
+pub struct Values {
     pub data: HashMap<String, Value>,
     pub locked: bool,
 }
 
-impl Hash for Data {
+impl Hash for Values {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.locked.hash(state);
         for (k, v) in self.data.iter() {
@@ -183,7 +183,7 @@ impl Hash for Data {
     }
 }
 
-impl Data {
+impl Values {
     pub fn new() -> Self {
         Self {
             data: HashMap::new(),
@@ -299,22 +299,22 @@ impl Data {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum FileOrData {
+pub enum Data {
     File(PathBuf, #[serde(skip)] Option<Arc<Mutex<std::fs::File>>>),
     Bytes(Bytes),
 }
 
-impl TBytes for FileOrData {
+impl TBytes for Data {
     fn size(&self) -> usize {
         match self {
-            FileOrData::File(p, _) => p.size() + 1,
-            FileOrData::Bytes(v) => v.size() + 1,
+            Data::File(p, _) => p.size() + 1,
+            Data::Bytes(v) => v.size() + 1,
         }
     }
 
     fn to_bytes(&self) -> Vec<u8> {
         match self {
-            FileOrData::File(path, _) => {
+            Data::File(path, _) => {
                 let mut buff = Vec::with_capacity(self.size());
 
                 buff.push(0);
@@ -322,7 +322,7 @@ impl TBytes for FileOrData {
 
                 buff
             }
-            FileOrData::Bytes(bytes) => {
+            Data::Bytes(bytes) => {
                 let mut buff = Vec::with_capacity(self.size());
 
                 buff.push(1);
@@ -347,19 +347,19 @@ impl TBytes for FileOrData {
     }
 }
 
-impl Hash for FileOrData {
+impl Hash for Data {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
-            FileOrData::File(f, _) => f.hash(state),
-            FileOrData::Bytes(b) => b.hash(state),
+            Data::File(f, _) => f.hash(state),
+            Data::Bytes(b) => b.hash(state),
         }
     }
 }
 
-impl std::io::Write for FileOrData {
+impl std::io::Write for Data {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         match self {
-            FileOrData::File(file_path, file) => {
+            Data::File(file_path, file) => {
                 if let Some(file) = file {
                     file.lock().unwrap().write(buf)
                 } else {
@@ -373,28 +373,28 @@ impl std::io::Write for FileOrData {
                     res
                 }
             }
-            FileOrData::Bytes(bytes) => bytes.write(buf),
+            Data::Bytes(bytes) => bytes.write(buf),
         }
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
         match self {
-            FileOrData::File(_, file) => {
+            Data::File(_, file) => {
                 if let Some(file) = file {
                     file.lock().unwrap().flush()
                 } else {
                     Ok(())
                 }
             }
-            FileOrData::Bytes(_) => Ok(()),
+            Data::Bytes(_) => Ok(()),
         }
     }
 }
 
-impl std::io::Read for FileOrData {
+impl std::io::Read for Data {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         match self {
-            FileOrData::File(file_path, file) => {
+            Data::File(file_path, file) => {
                 if let Some(file) = file {
                     file.lock().unwrap().read(buf)
                 } else {
@@ -404,15 +404,15 @@ impl std::io::Read for FileOrData {
                     res
                 }
             }
-            FileOrData::Bytes(bytes) => bytes.read(buf),
+            Data::Bytes(bytes) => bytes.read(buf),
         }
     }
 }
 
-impl std::io::Seek for FileOrData {
+impl std::io::Seek for Data {
     fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
         match self {
-            FileOrData::File(file_path, file) => {
+            Data::File(file_path, file) => {
                 if let Some(file) = file {
                     file.lock().unwrap().seek(pos)
                 } else {
@@ -422,7 +422,7 @@ impl std::io::Seek for FileOrData {
                     res
                 }
             }
-            FileOrData::Bytes(bytes) => bytes.seek(pos),
+            Data::Bytes(bytes) => bytes.seek(pos),
         }
     }
 }

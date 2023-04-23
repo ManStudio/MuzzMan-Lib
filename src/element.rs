@@ -65,11 +65,11 @@ pub trait TElement {
     fn get_meta(&self) -> Result<String, SessionError>;
     fn set_meta(&self, meta: &str) -> Result<(), SessionError>;
 
-    fn get_element_data(&self) -> Result<Data, SessionError>;
-    fn set_element_data(&self, data: Data) -> Result<(), SessionError>;
+    fn get_element_data(&self) -> Result<Values, SessionError>;
+    fn set_element_data(&self, data: Values) -> Result<(), SessionError>;
 
-    fn get_module_data(&self) -> Result<Data, SessionError>;
-    fn set_module_data(&self, data: Data) -> Result<(), SessionError>;
+    fn get_module_data(&self) -> Result<Values, SessionError>;
+    fn set_module_data(&self, data: Values) -> Result<(), SessionError>;
 
     fn get_module(&self) -> Result<Option<MRef>, SessionError>;
     fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError>;
@@ -87,8 +87,8 @@ pub trait TElement {
     fn get_status_msg(&self) -> Result<String, SessionError>;
     fn set_status(&self, status: usize) -> Result<(), SessionError>;
 
-    fn get_data(&self) -> Result<FileOrData, SessionError>;
-    fn set_data(&self, data: FileOrData) -> Result<(), SessionError>;
+    fn get_data(&self) -> Result<Data, SessionError>;
+    fn set_data(&self, data: Data) -> Result<(), SessionError>;
 
     fn get_progress(&self) -> Result<f32, SessionError>;
     fn set_progress(&self, progress: f32) -> Result<(), SessionError>;
@@ -113,10 +113,10 @@ pub struct Element {
     pub desc: String,
     pub meta: String,
     pub url: Option<String>,
-    pub element_data: Data,
-    pub module_data: Data,
+    pub element_data: Values,
+    pub settings: Values,
     pub module: Option<MRef>,
-    pub data: FileOrData,
+    pub data: Data,
     pub should_save: bool,
     pub enabled: bool,
     pub thread: Option<JoinHandle<()>>,
@@ -151,7 +151,7 @@ impl Debug for Element {
             .field("desc", &self.desc)
             .field("meta", &self.meta)
             .field("element_data", &self.element_data)
-            .field("module_data", &self.module_data)
+            .field("module_data", &self.settings)
             .field("statuses", &self.statuses)
             .field("data", &self.data)
             .field("progress", &self.progress)
@@ -178,20 +178,20 @@ impl TElement for ERef {
         self.get_session()?.element_set_meta(&self.id(), meta)
     }
 
-    fn get_element_data(&self) -> Result<Data, SessionError> {
+    fn get_element_data(&self) -> Result<Values, SessionError> {
         self.get_session()?.element_get_element_data(&self.id())
     }
 
-    fn set_element_data(&self, data: Data) -> Result<(), SessionError> {
+    fn set_element_data(&self, data: Values) -> Result<(), SessionError> {
         self.get_session()?
             .element_set_element_data(&self.id(), data)
     }
 
-    fn get_module_data(&self) -> Result<Data, SessionError> {
+    fn get_module_data(&self) -> Result<Values, SessionError> {
         self.get_session()?.element_get_module_data(&self.id())
     }
 
-    fn set_module_data(&self, data: Data) -> Result<(), SessionError> {
+    fn set_module_data(&self, data: Values) -> Result<(), SessionError> {
         self.get_session()?
             .element_set_module_data(&self.id(), data)
     }
@@ -243,11 +243,11 @@ impl TElement for ERef {
         self.get_session()?.element_set_status(&self.id(), status)
     }
 
-    fn get_data(&self) -> Result<FileOrData, SessionError> {
+    fn get_data(&self) -> Result<Data, SessionError> {
         self.get_session()?.element_get_data(&self.id())
     }
 
-    fn set_data(&self, data: FileOrData) -> Result<(), SessionError> {
+    fn set_data(&self, data: Data) -> Result<(), SessionError> {
         self.get_session()?.element_set_data(&self.id(), data)
     }
 
@@ -345,10 +345,10 @@ pub struct ElementInfo {
     pub desc: String,
     pub meta: String,
     pub url: Option<String>,
-    pub element_data: Data,
-    pub module_data: Data,
+    pub element_data: Values,
+    pub module_data: Values,
     pub module: Option<ModuleInfo>,
-    pub data: FileOrData,
+    pub data: Data,
     pub should_save: bool,
     pub enabled: bool,
     pub id: ElementId,

@@ -67,9 +67,9 @@ pub struct Module {
     pub path: Option<PathBuf>,
     pub proxy: usize,
     /// default module settings
-    pub settings: Data,
+    pub settings: Values,
     /// default data
-    pub data: Data,
+    pub data: Values,
     pub ref_id: MRef,
 }
 
@@ -95,8 +95,8 @@ pub trait TModule: std::panic::UnwindSafe {
     fn get_version(&self) -> String;
     fn supported_versions(&self) -> Range<u64>;
 
-    fn init_settings(&self, data: &mut Data);
-    fn init_element_settings(&self, data: &mut Data);
+    fn init_settings(&self, data: &mut Values);
+    fn init_element_settings(&self, data: &mut Values);
 
     fn init_element(&self, element_row: ERow);
     fn step_element(
@@ -111,7 +111,7 @@ pub trait TModule: std::panic::UnwindSafe {
     fn accepted_extensions(&self) -> Vec<String>;
     fn accepted_protocols(&self) -> Vec<String>;
 
-    fn init_location(&self, location_ref: LRef, data: FileOrData);
+    fn init_location(&self, location_ref: LRef, data: Data);
     fn step_location(
         &self,
         location_row: LRow,
@@ -170,11 +170,11 @@ pub struct RawModule {
     fn_get_version: Symbol<'static, fn() -> String>,
     fn_supported_versions: Symbol<'static, fn() -> Range<u64>>,
 
-    fn_init_settings: Symbol<'static, fn(&mut Data)>,
-    fn_init_element_settings: Symbol<'static, fn(&mut Data)>,
+    fn_init_settings: Symbol<'static, fn(&mut Values)>,
+    fn_init_element_settings: Symbol<'static, fn(&mut Values)>,
 
     fn_init_element: Symbol<'static, fn(ERow)>,
-    fn_init_location: Symbol<'static, fn(LRef, FileOrData)>,
+    fn_init_location: Symbol<'static, fn(LRef, Data)>,
 
     fn_step_element: Symbol<'static, fn(ERow, &mut ControlFlow, &mut Storage)>,
     fn_step_location: Symbol<'static, fn(LRow, &mut ControlFlow, &mut Storage)>,
@@ -360,11 +360,11 @@ impl TModule for Arc<RawModule> {
         (*self.fn_supported_versions)()
     }
 
-    fn init_settings(&self, data: &mut Data) {
+    fn init_settings(&self, data: &mut Values) {
         (*self.fn_init_settings)(data)
     }
 
-    fn init_element_settings(&self, data: &mut Data) {
+    fn init_element_settings(&self, data: &mut Values) {
         (*self.fn_init_element_settings)(data)
     }
 
@@ -392,7 +392,7 @@ impl TModule for Arc<RawModule> {
         (*self.fn_accepted_protocols)()
     }
 
-    fn init_location(&self, location: LRef, data: FileOrData) {
+    fn init_location(&self, location: LRef, data: Data) {
         (*self.fn_init_location)(location, data)
     }
 
@@ -427,11 +427,11 @@ pub trait TModuleInfo {
     fn get_proxy(&self) -> Result<usize, SessionError>;
     fn set_proxy(&self, proxy: usize) -> Result<(), SessionError>;
 
-    fn get_settings(&self) -> Result<Data, SessionError>;
-    fn set_settings(&self, settings: Data) -> Result<(), SessionError>;
+    fn get_settings(&self) -> Result<Values, SessionError>;
+    fn set_settings(&self, settings: Values) -> Result<(), SessionError>;
 
-    fn get_element_settings(&self) -> Result<Data, SessionError>;
-    fn set_element_settings(&self, settings: Data) -> Result<(), SessionError>;
+    fn get_element_settings(&self) -> Result<Values, SessionError>;
+    fn set_element_settings(&self, settings: Values) -> Result<(), SessionError>;
 
     fn register_action(
         &self,
@@ -461,11 +461,7 @@ pub trait TModuleInfo {
     fn accepted_extensions(&self) -> Result<Vec<String>, SessionError>;
 
     fn init_element(&self, element_info: &ElementId) -> Result<(), SessionError>;
-    fn init_location(
-        &self,
-        location_info: &LocationId,
-        data: FileOrData,
-    ) -> Result<(), SessionError>;
+    fn init_location(&self, location_info: &LocationId, data: Data) -> Result<(), SessionError>;
 
     fn notify(&self, info: ID, event: Event) -> Result<(), SessionError>;
 
@@ -524,20 +520,20 @@ impl TModuleInfo for MRef {
         self.get_session()?.module_set_proxy(&self.id(), proxy)
     }
 
-    fn get_settings(&self) -> Result<Data, SessionError> {
+    fn get_settings(&self) -> Result<Values, SessionError> {
         self.get_session()?.module_get_settings(&self.id())
     }
 
-    fn set_settings(&self, settings: Data) -> Result<(), SessionError> {
+    fn set_settings(&self, settings: Values) -> Result<(), SessionError> {
         self.get_session()?
             .module_set_settings(&self.id(), settings)
     }
 
-    fn get_element_settings(&self) -> Result<Data, SessionError> {
+    fn get_element_settings(&self) -> Result<Values, SessionError> {
         self.get_session()?.module_get_element_settings(&self.id())
     }
 
-    fn set_element_settings(&self, settings: Data) -> Result<(), SessionError> {
+    fn set_element_settings(&self, settings: Values) -> Result<(), SessionError> {
         self.get_session()?
             .module_set_element_settings(&self.id(), settings)
     }
@@ -602,11 +598,7 @@ impl TModuleInfo for MRef {
             .module_init_element(&self.id(), element_info)
     }
 
-    fn init_location(
-        &self,
-        location_info: &LocationId,
-        data: FileOrData,
-    ) -> Result<(), SessionError> {
+    fn init_location(&self, location_info: &LocationId, data: Data) -> Result<(), SessionError> {
         self.get_session()?
             .module_init_location(&self.id(), location_info, data)
     }
@@ -633,8 +625,8 @@ pub struct ModuleInfo {
     pub uid: u64,
     pub version: String,
     pub proxy: usize,
-    pub settings: Data,
-    pub data: Data,
+    pub settings: Values,
+    pub data: Values,
     pub supports_protocols: Vec<String>,
     pub supports_file_types: Vec<PathBuf>,
 }

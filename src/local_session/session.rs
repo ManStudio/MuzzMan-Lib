@@ -33,8 +33,8 @@ impl LocalSession {
             desc: String::from("Default Location"),
             where_is: WhereIsLocation::Local,
             should_save: false,
-            location_data: Data::new(),
-            module_data: Data::new(),
+            location_data: Values::new(),
+            settings: Values::new(),
             elements: Vec::new(),
             locations: Vec::new(),
             ref_id: location_info,
@@ -231,8 +231,8 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                 session: Some(self.c()),
             }));
 
-            let mut settings = Data::new();
-            let mut element_data = Data::new();
+            let mut settings = Values::new();
+            let mut element_data = Values::new();
 
             module.init_settings(&mut settings);
             module.init_element_settings(&mut element_data);
@@ -561,23 +561,27 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Err(SessionError::InvalidModule)
     }
 
-    fn module_get_settings(&self, module_info: &ModuleId) -> Result<Data, SessionError> {
+    fn module_get_settings(&self, module_info: &ModuleId) -> Result<Values, SessionError> {
         Ok(self.get_module(module_info)?.read()?.settings.clone())
     }
 
-    fn module_set_settings(&self, module_info: &ModuleId, data: Data) -> Result<(), SessionError> {
+    fn module_set_settings(
+        &self,
+        module_info: &ModuleId,
+        data: Values,
+    ) -> Result<(), SessionError> {
         self.get_module(module_info)?.write()?.settings = data;
         Ok(())
     }
 
-    fn module_get_element_settings(&self, module_info: &ModuleId) -> Result<Data, SessionError> {
+    fn module_get_element_settings(&self, module_info: &ModuleId) -> Result<Values, SessionError> {
         Ok(self.get_module(module_info)?.read()?.data.clone())
     }
 
     fn module_set_element_settings(
         &self,
         module_info: &ModuleId,
-        data: Data,
+        data: Values,
     ) -> Result<(), SessionError> {
         self.get_module(module_info)?.write()?.data = data;
         Ok(())
@@ -587,7 +591,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         &self,
         module_info: &ModuleId,
         location_info: &LocationId,
-        data: crate::data::FileOrData,
+        data: crate::data::Data,
     ) -> Result<(), SessionError> {
         let location_info = self.get_location(location_info)?.read()?.ref_id.clone();
         self.get_module(module_info)?
@@ -609,7 +613,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         {
             let mut element = element.write()?;
             element.element_data = module.data.clone();
-            element.module_data = module.settings.clone();
+            element.settings = module.settings.clone();
         }
         module.module.init_element(element);
 
@@ -748,12 +752,12 @@ impl TSession for Arc<RwLock<LocalSession>> {
             desc: String::new(),
             meta: String::new(),
             url: None,
-            element_data: Data::new(),
-            module_data: Data::new(),
+            element_data: Values::new(),
+            settings: Values::new(),
             module: None,
             statuses: Vec::new(),
             status: usize::MAX,
-            data: FileOrData::File(path, None),
+            data: Data::File(path, None),
             progress: 0.0,
             should_save: false,
             enabled: false,
@@ -794,7 +798,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }));
 
         // TODO: better path system
-        let path = if let FileOrData::File(path, _) = info.data {
+        let path = if let Data::File(path, _) = info.data {
             path
         } else {
             location_ref.get_path()?.join(&info.name)
@@ -812,9 +816,9 @@ impl TSession for Arc<RwLock<LocalSession>> {
             meta: info.meta,
             url: info.url,
             element_data: info.element_data,
-            module_data: info.module_data,
+            settings: info.module_data,
             module,
-            data: FileOrData::File(path, None),
+            data: Data::File(path, None),
             should_save: info.should_save,
             enabled: false,
             thread: None,
@@ -961,25 +965,29 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(())
     }
 
-    fn element_get_element_data(&self, element: &ElementId) -> Result<Data, SessionError> {
+    fn element_get_element_data(&self, element: &ElementId) -> Result<Values, SessionError> {
         Ok(self.get_element(element)?.read()?.element_data.clone())
     }
 
     fn element_set_element_data(
         &self,
         element: &ElementId,
-        data: Data,
+        data: Values,
     ) -> Result<(), SessionError> {
         self.get_element(element)?.write()?.element_data = data;
         Ok(())
     }
 
-    fn element_get_module_data(&self, element: &ElementId) -> Result<Data, SessionError> {
-        Ok(self.get_element(element)?.read()?.module_data.clone())
+    fn element_get_module_data(&self, element: &ElementId) -> Result<Values, SessionError> {
+        Ok(self.get_element(element)?.read()?.settings.clone())
     }
 
-    fn element_set_module_data(&self, element: &ElementId, data: Data) -> Result<(), SessionError> {
-        self.get_element(element)?.write()?.module_data = data;
+    fn element_set_module_data(
+        &self,
+        element: &ElementId,
+        data: Values,
+    ) -> Result<(), SessionError> {
+        self.get_element(element)?.write()?.settings = data;
         Ok(())
     }
 
@@ -1030,11 +1038,11 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }
     }
 
-    fn element_get_data(&self, element: &ElementId) -> Result<FileOrData, SessionError> {
+    fn element_get_data(&self, element: &ElementId) -> Result<Data, SessionError> {
         Ok(self.get_element(element)?.read()?.data.clone())
     }
 
-    fn element_set_data(&self, element: &ElementId, data: FileOrData) -> Result<(), SessionError> {
+    fn element_set_data(&self, element: &ElementId, data: Data) -> Result<(), SessionError> {
         self.get_element(element)?.write()?.data = data;
         Ok(())
     }
@@ -1188,7 +1196,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                 let element = element.read()?;
                 __module = element.module.clone();
                 data = element.element_data.clone();
-                settings = element.module_data.clone();
+                settings = element.settings.clone();
             }
 
             if let Some(__module) = __module {
@@ -1217,7 +1225,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             meta: element.meta.clone(),
             url: element.url.clone(),
             element_data: element.element_data.clone(),
-            module_data: element.module_data.clone(),
+            module_data: element.settings.clone(),
             module,
             data: element.data.clone(),
             should_save: element.should_save,
@@ -1345,8 +1353,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
             path,
             thread: None,
             events: Arc::new(RwLock::new(Events::default())),
-            location_data: Data::new(),
-            module_data: Data::new(),
+            location_data: Values::new(),
+            settings: Values::new(),
 
             progress: 0.0,
             statuses: vec![],
@@ -1389,8 +1397,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
             module_data = module_info.settings.clone();
             Some(self.find_module(module_info)?)
         } else {
-            location_data = Data::new();
-            module_data = Data::new();
+            location_data = Values::new();
+            module_data = Values::new();
             None
         };
 
@@ -1400,7 +1408,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             where_is: info.where_is,
             should_save: info.shoud_save,
             location_data,
-            module_data,
+            settings: module_data,
             elements: Vec::with_capacity(info.elements.len()),
             locations: Vec::with_capacity(info.locations.len()),
             ref_id: location_ref.clone(),
@@ -1458,8 +1466,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
                         desc: String::new(),
                         where_is,
                         should_save,
-                        location_data: Data::new(),
-                        module_data: Data::new(),
+                        location_data: Values::new(),
+                        settings: Values::new(),
                         elements: Vec::new(),
                         locations: Vec::new(),
                         ref_id: Arc::new(RwLock::new(RefLocation {
@@ -1753,7 +1761,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                 let location = location.read()?;
                 __module = location.module.clone();
                 data = location.location_data.clone();
-                settings = location.module_data.clone();
+                settings = location.settings.clone();
             }
 
             if let Some(__module) = __module {

@@ -101,21 +101,21 @@ pub trait TSession {
     fn module_get_proxy(&self, module_id: &ModuleId) -> Result<usize, SessionError>;
     fn module_set_proxy(&self, module_id: &ModuleId, proxy: usize) -> Result<(), SessionError>;
 
-    fn module_get_settings(&self, module_id: &ModuleId) -> Result<Data, SessionError>;
-    fn module_set_settings(&self, module_id: &ModuleId, data: Data) -> Result<(), SessionError>;
+    fn module_get_settings(&self, module_id: &ModuleId) -> Result<Values, SessionError>;
+    fn module_set_settings(&self, module_id: &ModuleId, data: Values) -> Result<(), SessionError>;
 
-    fn module_get_element_settings(&self, module_id: &ModuleId) -> Result<Data, SessionError>;
+    fn module_get_element_settings(&self, module_id: &ModuleId) -> Result<Values, SessionError>;
     fn module_set_element_settings(
         &self,
         module_id: &ModuleId,
-        data: Data,
+        data: Values,
     ) -> Result<(), SessionError>;
 
     fn module_init_location(
         &self,
         module_id: &ModuleId,
         location_id: &LocationId,
-        data: FileOrData,
+        data: Data,
     ) -> Result<(), SessionError>;
 
     fn module_init_element(
@@ -185,18 +185,18 @@ pub trait TSession {
         url: Option<String>,
     ) -> Result<(), SessionError>;
 
-    fn element_get_element_data(&self, element_id: &ElementId) -> Result<Data, SessionError>;
+    fn element_get_element_data(&self, element_id: &ElementId) -> Result<Values, SessionError>;
     fn element_set_element_data(
         &self,
         element_id: &ElementId,
-        data: Data,
+        data: Values,
     ) -> Result<(), SessionError>;
 
-    fn element_get_module_data(&self, element_id: &ElementId) -> Result<Data, SessionError>;
+    fn element_get_module_data(&self, element_id: &ElementId) -> Result<Values, SessionError>;
     fn element_set_module_data(
         &self,
         element_id: &ElementId,
-        data: Data,
+        data: Values,
     ) -> Result<(), SessionError>;
 
     fn element_get_module(&self, element_id: &ElementId) -> Result<Option<MRef>, SessionError>;
@@ -217,12 +217,8 @@ pub trait TSession {
     fn element_set_status(&self, element_id: &ElementId, status: usize)
         -> Result<(), SessionError>;
 
-    fn element_get_data(&self, element_id: &ElementId) -> Result<FileOrData, SessionError>;
-    fn element_set_data(
-        &self,
-        element_id: &ElementId,
-        data: FileOrData,
-    ) -> Result<(), SessionError>;
+    fn element_get_data(&self, element_id: &ElementId) -> Result<Data, SessionError>;
+    fn element_set_data(&self, element_id: &ElementId, data: Data) -> Result<(), SessionError>;
 
     fn element_get_progress(&self, element_id: &ElementId) -> Result<f32, SessionError>;
     fn element_set_progress(
