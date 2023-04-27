@@ -56,7 +56,7 @@ pub type Actions = Vec<(String, MRef, Vec<(String, Value)>)>;
 // because is possible to be performed on the network
 // or should have a asnyc version
 // like TSessionAsync
-pub trait TSession {
+pub trait TSession: Send + Sync {
     //
     // Module
     //
@@ -115,7 +115,6 @@ pub trait TSession {
         &self,
         module_id: &ModuleId,
         location_id: &LocationId,
-        data: Data,
     ) -> Result<(), SessionError>;
 
     fn module_init_element(

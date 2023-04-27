@@ -111,7 +111,7 @@ pub trait TModule: std::panic::UnwindSafe {
     fn accepted_extensions(&self) -> Vec<String>;
     fn accepted_protocols(&self) -> Vec<String>;
 
-    fn init_location(&self, location_ref: LRef, data: Data);
+    fn init_location(&self, location_ref: LRef);
     fn step_location(
         &self,
         location_row: LRow,
@@ -174,7 +174,7 @@ pub struct RawModule {
     fn_init_element_settings: Symbol<'static, fn(&mut Values)>,
 
     fn_init_element: Symbol<'static, fn(ERow)>,
-    fn_init_location: Symbol<'static, fn(LRef, Data)>,
+    fn_init_location: Symbol<'static, fn(LRef)>,
 
     fn_step_element: Symbol<'static, fn(ERow, &mut ControlFlow, &mut Storage)>,
     fn_step_location: Symbol<'static, fn(LRow, &mut ControlFlow, &mut Storage)>,
@@ -392,8 +392,8 @@ impl TModule for Arc<RawModule> {
         (*self.fn_accepted_protocols)()
     }
 
-    fn init_location(&self, location: LRef, data: Data) {
-        (*self.fn_init_location)(location, data)
+    fn init_location(&self, location: LRef) {
+        (*self.fn_init_location)(location)
     }
 
     fn step_location(&self, location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage) {
@@ -461,7 +461,7 @@ pub trait TModuleInfo {
     fn accepted_extensions(&self) -> Result<Vec<String>, SessionError>;
 
     fn init_element(&self, element_info: &ElementId) -> Result<(), SessionError>;
-    fn init_location(&self, location_info: &LocationId, data: Data) -> Result<(), SessionError>;
+    fn init_location(&self, location_info: &LocationId) -> Result<(), SessionError>;
 
     fn notify(&self, info: ID, event: Event) -> Result<(), SessionError>;
 
@@ -598,9 +598,9 @@ impl TModuleInfo for MRef {
             .module_init_element(&self.id(), element_info)
     }
 
-    fn init_location(&self, location_info: &LocationId, data: Data) -> Result<(), SessionError> {
+    fn init_location(&self, location_info: &LocationId) -> Result<(), SessionError> {
         self.get_session()?
-            .module_init_location(&self.id(), location_info, data)
+            .module_init_location(&self.id(), location_info)
     }
 
     fn notify(&self, info: ID, event: Event) -> Result<(), SessionError> {

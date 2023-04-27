@@ -58,17 +58,17 @@ pub fn module_link(
         }
 
         #[no_mangle]
-        fn supported_versions() -> Vec<Range<u64>>{
+        fn supported_versions() -> Range<u64>{
             MODULE.supported_versions()
         }
 
         #[no_mangle]
-        fn init_settings(data: &mut Data) {
+        fn init_settings(data: &mut Values) {
             MODULE.init_settings(data)
         }
 
         #[no_mangle]
-        fn init_element_settings(data: &mut Data) {
+        fn init_element_settings(data: &mut Values) {
             MODULE.init_element_settings(data)
         }
 
@@ -107,8 +107,8 @@ pub fn module_link(
         }
 
         #[no_mangle]
-        fn init_location(location: LRef, data: FileOrData) {
-            MODULE.init_location(location, data)
+        fn init_location(location: LRef) {
+            MODULE.init_location(location)
         }
 
         #[no_mangle]

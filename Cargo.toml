@@ -30,6 +30,7 @@ dirs = "4.0.0"
 rand = "0.8.5"
 get_ref = "0.1.0"
 libloading = "0.7.4"
-muzzman-lib-macros = "0.1.3"
+muzzman-lib-macros = {path = "./macros"}
+# muzzman-lib-macros = "0.1.3"
 serde = {version = "1.0.152", features = ["derive", "std", "rc", "alloc"]}
 bytes-kman = "0.1"

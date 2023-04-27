@@ -17,6 +17,9 @@ pub struct LocalSession {
     pub callback: Option<Box<dyn Fn(SessionEvent)>>,
 }
 
+unsafe impl Send for LocalSession {}
+unsafe impl Sync for LocalSession {}
+
 impl LocalSession {
     pub fn new_session(self) -> Box<Arc<RwLock<LocalSession>>> {
         let session = self;
@@ -591,13 +594,12 @@ impl TSession for Arc<RwLock<LocalSession>> {
         &self,
         module_info: &ModuleId,
         location_info: &LocationId,
-        data: crate::data::Data,
     ) -> Result<(), SessionError> {
         let location_info = self.get_location(location_info)?.read()?.ref_id.clone();
         self.get_module(module_info)?
             .read()?
             .module
-            .init_location(location_info, data);
+            .init_location(location_info);
         Ok(())
     }
 
