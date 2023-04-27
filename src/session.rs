@@ -22,7 +22,7 @@ pub enum SessionError {
     InvalidElementStatus,
     LocationAllreadyExist,
     InvalidModule,
-    CannotInstallModule(String),
+    CannotInstallModule(Box<SessionError>),
     AlreadySubscribed,
     AlreadyUnsubscribed,
     IsNotElement,
@@ -106,6 +106,13 @@ pub trait TSession: Send + Sync {
 
     fn module_get_element_settings(&self, module_id: &ModuleId) -> Result<Values, SessionError>;
     fn module_set_element_settings(
+        &self,
+        module_id: &ModuleId,
+        data: Values,
+    ) -> Result<(), SessionError>;
+
+    fn module_get_location_settings(&self, module_id: &ModuleId) -> Result<Values, SessionError>;
+    fn module_set_location_settings(
         &self,
         module_id: &ModuleId,
         data: Values,

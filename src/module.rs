@@ -69,7 +69,8 @@ pub struct Module {
     /// default module settings
     pub settings: Values,
     /// default data
-    pub data: Values,
+    pub element_settings: Values,
+    pub location_settings: Values,
     pub ref_id: MRef,
 }
 
@@ -80,13 +81,13 @@ impl Debug for Module {
             .field("desc", &self.desc)
             .field("proxy", &self.proxy)
             .field("settings", &self.settings)
-            .field("element_data", &self.data)
+            .field("element_data", &self.element_settings)
             .finish()
     }
 }
 
 pub trait TModule: std::panic::UnwindSafe {
-    fn init(&self, info: MRef) -> Result<(), String>;
+    fn init(&self, module_ref: MRef) -> Result<(), SessionError>;
 
     fn get_name(&self) -> String;
     fn get_desc(&self) -> String;
@@ -95,31 +96,32 @@ pub trait TModule: std::panic::UnwindSafe {
     fn get_version(&self) -> String;
     fn supported_versions(&self) -> Range<u64>;
 
-    fn init_settings(&self, data: &mut Values);
-    fn init_element_settings(&self, data: &mut Values);
+    fn init_settings(&self, data: &mut Values) -> Result<(), SessionError>;
+    fn init_element_settings(&self, data: &mut Values) -> Result<(), SessionError>;
+    fn init_location_settings(&self, data: &mut Values) -> Result<(), SessionError>;
 
-    fn init_element(&self, element_row: ERow);
+    fn init_element(&self, element_row: ERow) -> Result<(), SessionError>;
     fn step_element(
         &self,
         element_row: ERow,
         control_flow: &mut ControlFlow,
         storage: &mut Storage,
-    );
+    ) -> Result<(), SessionError>;
 
     fn accept_extension(&self, filename: &str) -> bool;
     fn accept_url(&self, url: String) -> bool;
     fn accepted_extensions(&self) -> Vec<String>;
     fn accepted_protocols(&self) -> Vec<String>;
 
-    fn init_location(&self, location_ref: LRef);
+    fn init_location(&self, location_ref: LRef) -> Result<(), SessionError>;
     fn step_location(
         &self,
         location_row: LRow,
         control_flow: &mut ControlFlow,
         storage: &mut Storage,
-    );
+    ) -> Result<(), SessionError>;
 
-    fn notify(&self, _ref: Ref, event: Event);
+    fn notify(&self, _ref: Ref, event: Event) -> Result<(), SessionError>;
 
     fn c(&self) -> Box<dyn TModule>;
 }
@@ -141,6 +143,7 @@ pub enum RawLibraryError {
     DontHaveSymbolInit,
     DontHaveSymbolInitSettings,
     DontHaveSymbolInitElementSettings,
+    DontHaveSymbolInitLocationSettings,
     DontHaveSymbolInitElement,
     DontHaveSymbolStepElement,
     DontHaveSymbolAcceptExtension,
@@ -158,10 +161,11 @@ impl From<RawLibraryError> for SessionError {
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub struct RawModule {
     lib: &'static Library,
 
-    fn_init: Symbol<'static, fn(MRef) -> Result<(), String>>,
+    fn_init: Symbol<'static, fn(MRef) -> Result<(), SessionError>>,
 
     fn_get_name: Symbol<'static, fn() -> String>,
     fn_get_desc: Symbol<'static, fn() -> String>,
@@ -170,21 +174,24 @@ pub struct RawModule {
     fn_get_version: Symbol<'static, fn() -> String>,
     fn_supported_versions: Symbol<'static, fn() -> Range<u64>>,
 
-    fn_init_settings: Symbol<'static, fn(&mut Values)>,
-    fn_init_element_settings: Symbol<'static, fn(&mut Values)>,
+    fn_init_settings: Symbol<'static, fn(&mut Values) -> Result<(), SessionError>>,
+    fn_init_element_settings: Symbol<'static, fn(&mut Values) -> Result<(), SessionError>>,
+    fn_init_location_settings: Symbol<'static, fn(&mut Values) -> Result<(), SessionError>>,
 
-    fn_init_element: Symbol<'static, fn(ERow)>,
-    fn_init_location: Symbol<'static, fn(LRef)>,
+    fn_init_element: Symbol<'static, fn(ERow) -> Result<(), SessionError>>,
+    fn_init_location: Symbol<'static, fn(LRef) -> Result<(), SessionError>>,
 
-    fn_step_element: Symbol<'static, fn(ERow, &mut ControlFlow, &mut Storage)>,
-    fn_step_location: Symbol<'static, fn(LRow, &mut ControlFlow, &mut Storage)>,
+    fn_step_element:
+        Symbol<'static, fn(ERow, &mut ControlFlow, &mut Storage) -> Result<(), SessionError>>,
+    fn_step_location:
+        Symbol<'static, fn(LRow, &mut ControlFlow, &mut Storage) -> Result<(), SessionError>>,
 
     fn_accept_extension: Symbol<'static, fn(&str) -> bool>,
     fn_accept_url: Symbol<'static, fn(String) -> bool>,
     fn_accepted_extensions: Symbol<'static, fn() -> Vec<String>>,
     fn_accepted_protocols: Symbol<'static, fn() -> Vec<String>>,
 
-    fn_notify: Symbol<'static, fn(Ref, Event)>,
+    fn_notify: Symbol<'static, fn(Ref, Event) -> Result<(), SessionError>>,
 }
 
 impl RawModule {
@@ -305,6 +312,13 @@ impl RawModule {
             return Err(RawLibraryError::DontHaveSymbolSupportedVersions);
         };
 
+        let fn_init_location_settings =
+            if let Ok(func) = unsafe { lib.get(b"init_location_settings\0") } {
+                func
+            } else {
+                return Err(RawLibraryError::DontHaveSymbolInitLocationSettings);
+            };
+
         Ok(Self {
             lib,
             fn_init,
@@ -324,6 +338,7 @@ impl RawModule {
             fn_get_version,
             fn_supported_versions,
             fn_accepted_extensions,
+            fn_init_location_settings,
         })
     }
 }
@@ -336,7 +351,7 @@ impl Drop for RawModule {
 }
 
 impl TModule for Arc<RawModule> {
-    fn init(&self, info: MRef) -> Result<(), String> {
+    fn init(&self, info: MRef) -> Result<(), SessionError> {
         (*self.fn_init)(info)
     }
 
@@ -360,19 +375,28 @@ impl TModule for Arc<RawModule> {
         (*self.fn_supported_versions)()
     }
 
-    fn init_settings(&self, data: &mut Values) {
+    fn init_settings(&self, data: &mut Values) -> Result<(), SessionError> {
         (*self.fn_init_settings)(data)
     }
 
-    fn init_element_settings(&self, data: &mut Values) {
+    fn init_element_settings(&self, data: &mut Values) -> Result<(), SessionError> {
         (*self.fn_init_element_settings)(data)
     }
 
-    fn init_element(&self, element: ERow) {
+    fn init_location_settings(&self, data: &mut Values) -> Result<(), SessionError> {
+        (*self.fn_init_location_settings)(data)
+    }
+
+    fn init_element(&self, element: ERow) -> Result<(), SessionError> {
         (*self.fn_init_element)(element)
     }
 
-    fn step_element(&self, element: ERow, control_flow: &mut ControlFlow, storage: &mut Storage) {
+    fn step_element(
+        &self,
+        element: ERow,
+        control_flow: &mut ControlFlow,
+        storage: &mut Storage,
+    ) -> Result<(), SessionError> {
         (*self.fn_step_element)(element, control_flow, storage)
     }
 
@@ -392,15 +416,20 @@ impl TModule for Arc<RawModule> {
         (*self.fn_accepted_protocols)()
     }
 
-    fn init_location(&self, location: LRef) {
+    fn init_location(&self, location: LRef) -> Result<(), SessionError> {
         (*self.fn_init_location)(location)
     }
 
-    fn step_location(&self, location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage) {
+    fn step_location(
+        &self,
+        location: LRow,
+        control_flow: &mut ControlFlow,
+        storage: &mut Storage,
+    ) -> Result<(), SessionError> {
         (*self.fn_step_location)(location, control_flow, storage)
     }
 
-    fn notify(&self, info: Ref, event: Event) {
+    fn notify(&self, info: Ref, event: Event) -> Result<(), SessionError> {
         (*self.fn_notify)(info, event)
     }
 
@@ -626,7 +655,8 @@ pub struct ModuleInfo {
     pub version: String,
     pub proxy: usize,
     pub settings: Values,
-    pub data: Values,
+    pub element_settings: Values,
+    pub location_settings: Values,
     pub supports_protocols: Vec<String>,
     pub supports_file_types: Vec<PathBuf>,
 }

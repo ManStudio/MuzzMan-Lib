@@ -56,9 +56,9 @@ impl LocalSession {
 }
 
 pub trait TLocalSession: TSession {
-    fn get_location(&self, info: &LocationId) -> Result<LRow, SessionError>;
-    fn get_element(&self, info: &ElementId) -> Result<ERow, SessionError>;
-    fn get_module(&self, info: &ModuleId) -> Result<MRow, SessionError>;
+    fn get_location(&self, location_id: &LocationId) -> Result<LRow, SessionError>;
+    fn get_element(&self, element_id: &ElementId) -> Result<ERow, SessionError>;
+    fn get_module(&self, module_id: &ModuleId) -> Result<MRow, SessionError>;
 
     fn add_module(
         &self,
@@ -132,9 +132,10 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                     module,
                     proxy: info.proxy,
                     settings: info.settings.clone(),
-                    data: info.data.clone(),
+                    element_settings: info.element_settings.clone(),
                     ref_id: ref_.clone(),
                     path,
+                    location_settings: info.location_settings.clone(),
                 }));
                 let module_old = self
                     .read()?
@@ -151,7 +152,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                                 module.desc = info.desc;
                                 module.proxy = info.proxy;
                                 module.settings = info.settings;
-                                module.data = info.data;
+                                module.element_settings = info.element_settings;
                             }
                             result = self.get_module_ref(&info.id);
                             break 'install_module;
@@ -235,24 +236,27 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
             }));
 
             let mut settings = Values::new();
-            let mut element_data = Values::new();
+            let mut element_settings = Values::new();
+            let mut location_settings = Values::new();
 
-            module.init_settings(&mut settings);
-            module.init_element_settings(&mut element_data);
+            module.init_settings(&mut settings)?;
+            module.init_element_settings(&mut element_settings)?;
+            module.init_location_settings(&mut location_settings)?;
 
             let module = Module {
                 name: module.get_name(),
                 desc: module.get_desc(),
                 module,
+                path,
                 proxy: 0,
                 settings,
-                data: element_data,
+                element_settings,
+                location_settings,
                 ref_id: info.clone(),
-                path,
             };
 
             if let Err(error) = module.module.init(info.clone()) {
-                result = Err(SessionError::CannotInstallModule(error));
+                result = Err(SessionError::CannotInstallModule(Box::new(error)));
                 break 'install_module;
             }
 
@@ -574,7 +578,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn module_get_element_settings(&self, module_id: &ModuleId) -> Result<Values, SessionError> {
-        Ok(self.get_module(module_id)?.read()?.data.clone())
+        Ok(self.get_module(module_id)?.read()?.element_settings.clone())
     }
 
     fn module_set_element_settings(
@@ -582,7 +586,24 @@ impl TSession for Arc<RwLock<LocalSession>> {
         module_id: &ModuleId,
         data: Values,
     ) -> Result<(), SessionError> {
-        self.get_module(module_id)?.write()?.data = data;
+        self.get_module(module_id)?.write()?.element_settings = data;
+        Ok(())
+    }
+
+    fn module_get_location_settings(&self, module_id: &ModuleId) -> Result<Values, SessionError> {
+        Ok(self
+            .get_module(module_id)?
+            .read()?
+            .location_settings
+            .clone())
+    }
+
+    fn module_set_location_settings(
+        &self,
+        module_id: &ModuleId,
+        data: Values,
+    ) -> Result<(), SessionError> {
+        self.get_module(module_id)?.write()?.location_settings = data;
         Ok(())
     }
 
@@ -595,7 +616,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         self.get_module(module_id)?
             .read()?
             .module
-            .init_location(location_info);
+            .init_location(location_info)?;
         Ok(())
     }
 
@@ -610,10 +631,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         {
             let mut element = element.write()?;
-            element.element_data = module.data.clone();
+            element.element_data = module.element_settings.clone();
             element.settings = module.settings.clone();
         }
-        module.module.init_element(element);
+        module.module.init_element(element)?;
 
         Ok(())
     }
@@ -714,7 +735,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let mut control_flow = control_flow;
         let mut storage = storage;
 
-        module.step_location(location, &mut control_flow, &mut storage);
+        module.step_location(location, &mut control_flow, &mut storage)?;
         Ok((control_flow, storage))
     }
 
@@ -1202,13 +1223,13 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let mut module = None;
         {
             let settings;
-            let data;
+            let element_settings;
 
             let __module;
             {
                 let element = element.read()?;
                 __module = element.module.clone();
-                data = element.element_data.clone();
+                element_settings = element.element_data.clone();
                 settings = element.settings.clone();
             }
 
@@ -1221,13 +1242,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     desc: __module.desc.clone(),
                     proxy: __module.proxy,
                     settings,
-                    data,
+                    element_settings,
                     id: __module.ref_id.id(),
                     path: __module.path.clone(),
                     uid: __module.module.get_uid(),
                     version: __module.module.get_version(),
                     supports_protocols: __module.module.accepted_protocols(),
-                    supports_file_types: Vec::new(), // !TODO: supports file types
+                    supports_file_types: Vec::new(),
+                    location_settings: __module.location_settings.clone(), // !TODO: supports file types
                 });
             }
         }
@@ -1265,7 +1287,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }
 
         let element_ref = self.get_element_ref(element_id)?;
-        raw_module.notify(Ref::Element(element_ref), event);
+        raw_module.notify(Ref::Element(element_ref), event)?;
 
         Ok(())
     }
@@ -1403,7 +1425,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let module_data;
 
         let module = if let Some(module_info) = info.module {
-            location_data = module_info.data.clone();
+            location_data = module_info.element_settings.clone();
             module_data = module_info.settings.clone();
             Some(self.find_module(module_info)?)
         } else {
@@ -1767,14 +1789,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
         let mut module = None;
         {
             let settings;
-            let data;
+            let location_settings;
 
             let __module;
             {
                 let location = self.get_location(location_id)?;
                 let location = location.read()?;
                 __module = location.module.clone();
-                data = location.location_data.clone();
+                location_settings = location.location_data.clone();
                 settings = location.settings.clone();
             }
 
@@ -1787,13 +1809,14 @@ impl TSession for Arc<RwLock<LocalSession>> {
                     desc: __module.desc.clone(),
                     proxy: __module.proxy,
                     settings,
-                    data,
+                    element_settings: __module.element_settings.clone(),
                     id: __module.ref_id.id(),
                     path: __module.path.clone(),
                     uid: __module.module.get_uid(),
                     version: __module.module.get_version(),
                     supports_protocols: __module.module.accepted_protocols(),
-                    supports_file_types: Vec::new(), // !TODO: Need to have file types in module
+                    supports_file_types: Vec::new(),
+                    location_settings,
                 });
             }
         }
@@ -1852,7 +1875,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         }
 
         let location_ref = self.get_location_ref(location_id)?;
-        raw_module.notify(Ref::Location(location_ref), event);
+        raw_module.notify(Ref::Location(location_ref), event)?;
 
         Ok(())
     }
@@ -1920,6 +1943,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(self.get_module(id)?.read()?.ref_id.clone())
     }
 
+    //
+    // Session
+    //
+
     fn get_element_ref(&self, id: &ElementId) -> Result<ERef, SessionError> {
         Ok(self.get_element(id)?.read()?.ref_id.clone())
     }
@@ -1927,10 +1954,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
     fn get_location_ref(&self, id: &LocationId) -> Result<LRef, SessionError> {
         Ok(self.get_location(id)?.read()?.ref_id.clone())
     }
-
-    //
-    // Session
-    //
 
     fn get_version(&self) -> Result<u64, SessionError> {
         Ok(VERSION)

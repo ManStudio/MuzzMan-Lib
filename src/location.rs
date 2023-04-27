@@ -188,6 +188,9 @@ pub struct Location {
     pub progress: f32,
     pub statuses: Vec<String>,
     pub status: usize,
+    pub is_error: bool,
+
+    pub enabled: bool,
 }
 
 impl TLocation for LRef {
@@ -225,6 +228,31 @@ impl TLocation for LRef {
             .location_set_should_save(&self.id(), should_save)
     }
 
+    fn get_module(&self) -> Result<Option<MRef>, SessionError> {
+        self.get_session()?.location_get_module(&self.id())
+    }
+
+    fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError> {
+        self.get_session()?.location_set_module(&self.id(), module)
+    }
+
+    fn get_settings(&self) -> Result<Values, SessionError> {
+        self.get_session()?.location_get_settings(&self.id())
+    }
+
+    fn set_settings(&self, data: Values) -> Result<(), SessionError> {
+        self.get_session()?.location_set_settings(&self.id(), data)
+    }
+
+    fn get_module_settings(&self) -> Result<Values, SessionError> {
+        self.get_session()?.location_get_module_settings(&self.id())
+    }
+
+    fn set_module_settings(&self, data: Values) -> Result<(), SessionError> {
+        self.get_session()?
+            .location_set_module_settings(&self.id(), data)
+    }
+
     fn get_elements(&self, range: Range<usize>) -> Result<Vec<ERef>, SessionError> {
         self.get_session()?.location_get_elements(&self.id(), range)
     }
@@ -253,12 +281,55 @@ impl TLocation for LRef {
         self.get_session()?.create_location(name, &self.id())
     }
 
+    fn get_statuses(&self) -> Result<Vec<String>, SessionError> {
+        self.get_session()?.location_get_statuses(&self.id())
+    }
+
+    fn set_statuses(&self, statuses: Vec<String>) -> Result<(), SessionError> {
+        self.get_session()?
+            .location_set_statuses(&self.id(), statuses)
+    }
+
+    fn get_status(&self) -> Result<usize, SessionError> {
+        self.get_session()?.location_get_status(&self.id())
+    }
+
+    fn get_status_msg(&self) -> Result<String, SessionError> {
+        todo!()
+    }
+
+    fn set_status(&self, status: usize) -> Result<(), SessionError> {
+        self.get_session()?.location_set_status(&self.id(), status)
+    }
+
+    fn get_progress(&self) -> Result<f32, SessionError> {
+        self.get_session()?.location_get_progress(&self.id())
+    }
+
+    fn set_progress(&self, progress: f32) -> Result<(), SessionError> {
+        self.get_session()?
+            .location_set_progress(&self.id(), progress)
+    }
+
+    fn is_enabled(&self) -> Result<bool, SessionError> {
+        self.get_session()?.location_is_enabled(&self.id())
+    }
+
+    fn set_enabled(&self, enabled: bool, storage: Option<Storage>) -> Result<(), SessionError> {
+        self.get_session()?
+            .location_set_enabled(&self.id(), enabled, storage)
+    }
+
     fn destroy(self) -> Result<LRow, SessionError> {
         self.get_session()?.destroy_location(self.id())
     }
 
     fn _move(&self, to: &LocationId) -> Result<(), SessionError> {
         self.get_session()?.move_location(&self.id(), to)
+    }
+
+    fn is_error(&self) -> Result<bool, SessionError> {
+        self.get_session()?.location_is_error(&self.id())
     }
 
     fn id(&self) -> LocationId {
@@ -314,6 +385,15 @@ pub trait TLocation {
     fn get_should_save(&self) -> Result<bool, SessionError>;
     fn set_should_save(&self, should_save: bool) -> Result<(), SessionError>;
 
+    fn get_module(&self) -> Result<Option<MRef>, SessionError>;
+    fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError>;
+
+    fn get_settings(&self) -> Result<Values, SessionError>;
+    fn set_settings(&self, data: Values) -> Result<(), SessionError>;
+
+    fn get_module_settings(&self) -> Result<Values, SessionError>;
+    fn set_module_settings(&self, data: Values) -> Result<(), SessionError>;
+
     fn get_elements(&self, range: Range<usize>) -> Result<Vec<ERef>, SessionError>;
     fn get_elements_len(&self) -> Result<usize, SessionError>;
     fn get_locations(&self, range: Range<usize>) -> Result<Vec<LRef>, SessionError>;
@@ -324,8 +404,26 @@ pub trait TLocation {
     fn create_element(&self, name: &str) -> Result<ERef, SessionError>;
     fn create_location(&self, name: &str) -> Result<LRef, SessionError>;
 
+    fn get_statuses(&self) -> Result<Vec<String>, SessionError>;
+    fn set_statuses(&self, statuses: Vec<String>) -> Result<(), SessionError>;
+
+    fn get_status(&self) -> Result<usize, SessionError>;
+    fn get_status_msg(&self) -> Result<String, SessionError>;
+    fn set_status(&self, status: usize) -> Result<(), SessionError>;
+
+    fn get_data(&self) -> Result<Data, SessionError>;
+    fn set_data(&self, data: Data) -> Result<(), SessionError>;
+
+    fn get_progress(&self) -> Result<f32, SessionError>;
+    fn set_progress(&self, progress: f32) -> Result<(), SessionError>;
+
+    fn is_enabled(&self) -> Result<bool, SessionError>;
+    fn set_enabled(&self, enabled: bool, storage: Option<Storage>) -> Result<(), SessionError>;
+
     fn destroy(self) -> Result<LRow, SessionError>;
     fn _move(&self, to: &LocationId) -> Result<(), SessionError>;
+
+    fn is_error(&self) -> Result<bool, SessionError>;
 
     fn id(&self) -> LocationId;
 }

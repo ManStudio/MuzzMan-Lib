@@ -65,11 +65,11 @@ pub trait TElement {
     fn get_meta(&self) -> Result<String, SessionError>;
     fn set_meta(&self, meta: &str) -> Result<(), SessionError>;
 
-    fn get_element_data(&self) -> Result<Values, SessionError>;
-    fn set_element_data(&self, data: Values) -> Result<(), SessionError>;
+    fn get_settings(&self) -> Result<Values, SessionError>;
+    fn set_settings(&self, data: Values) -> Result<(), SessionError>;
 
-    fn get_module_data(&self) -> Result<Values, SessionError>;
-    fn set_module_data(&self, data: Values) -> Result<(), SessionError>;
+    fn get_module_settings(&self) -> Result<Values, SessionError>;
+    fn set_module_settings(&self, data: Values) -> Result<(), SessionError>;
 
     fn get_module(&self) -> Result<Option<MRef>, SessionError>;
     fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError>;
@@ -102,6 +102,7 @@ pub trait TElement {
     fn get_element_info(&self) -> Result<ElementInfo, SessionError>;
 
     fn wait(&self) -> Result<(), SessionError>;
+    fn is_error(&self) -> Result<bool, SessionError>;
 
     fn destroy(self) -> Result<ERow, SessionError>;
 
@@ -126,6 +127,8 @@ pub struct Element {
     pub progress: f32,
     pub statuses: Vec<String>,
     pub status: usize,
+
+    pub is_error: bool,
 }
 
 unsafe impl Sync for Element {}
@@ -178,20 +181,20 @@ impl TElement for ERef {
         self.get_session()?.element_set_meta(&self.id(), meta)
     }
 
-    fn get_element_data(&self) -> Result<Values, SessionError> {
+    fn get_settings(&self) -> Result<Values, SessionError> {
         self.get_session()?.element_get_element_data(&self.id())
     }
 
-    fn set_element_data(&self, data: Values) -> Result<(), SessionError> {
+    fn set_settings(&self, data: Values) -> Result<(), SessionError> {
         self.get_session()?
             .element_set_element_data(&self.id(), data)
     }
 
-    fn get_module_data(&self) -> Result<Values, SessionError> {
+    fn get_module_settings(&self) -> Result<Values, SessionError> {
         self.get_session()?.element_get_module_data(&self.id())
     }
 
-    fn set_module_data(&self, data: Values) -> Result<(), SessionError> {
+    fn set_module_settings(&self, data: Values) -> Result<(), SessionError> {
         self.get_session()?
             .element_set_module_data(&self.id(), data)
     }
