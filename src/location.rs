@@ -175,7 +175,7 @@ pub struct Location {
     pub desc: String,
     pub where_is: WhereIsLocation,
     pub should_save: bool,
-    pub location_data: Values,
+    pub module_settings: Values,
     pub settings: Values,
     pub elements: Vec<Option<ERow>>,
     pub locations: Vec<Option<LRow>>,
@@ -410,9 +410,6 @@ pub trait TLocation {
     fn get_status(&self) -> Result<usize, SessionError>;
     fn get_status_msg(&self) -> Result<String, SessionError>;
     fn set_status(&self, status: usize) -> Result<(), SessionError>;
-
-    fn get_data(&self) -> Result<Data, SessionError>;
-    fn set_data(&self, data: Data) -> Result<(), SessionError>;
 
     fn get_progress(&self) -> Result<f32, SessionError>;
     fn set_progress(&self, progress: f32) -> Result<(), SessionError>;

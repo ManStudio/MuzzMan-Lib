@@ -304,6 +304,10 @@ impl TElement for ERef {
     fn set_url(&self, url: Option<String>) -> Result<(), SessionError> {
         self.get_session()?.element_set_url(&self.id(), url)
     }
+
+    fn is_error(&self) -> Result<bool, SessionError> {
+        self.get_session()?.element_is_error(&self.id())
+    }
 }
 
 impl Common for ERef {

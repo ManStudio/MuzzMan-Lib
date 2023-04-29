@@ -248,6 +248,8 @@ pub trait TSession: Send + Sync {
         storage: Option<Storage>,
     ) -> Result<(), SessionError>;
 
+    fn element_is_error(&self, element_id: &ElementId) -> Result<bool, SessionError>;
+
     fn element_resolv_module(&self, element_id: &ElementId) -> Result<bool, SessionError>;
 
     /// Blocking the current thread until is done!
@@ -317,6 +319,61 @@ pub trait TSession: Send + Sync {
         location_id: &LocationId,
         range: Range<usize>,
     ) -> Result<Vec<ERef>, SessionError>;
+
+    fn location_get_module(&self, location_id: &LocationId) -> Result<Option<MRef>, SessionError>;
+    fn location_set_module(
+        &self,
+        location_id: &LocationId,
+        module_id: Option<ModuleId>,
+    ) -> Result<(), SessionError>;
+
+    fn location_get_settings(&self, location_id: &LocationId) -> Result<Values, SessionError>;
+    fn location_set_settings(
+        &self,
+        location_id: &LocationId,
+        data: Values,
+    ) -> Result<(), SessionError>;
+
+    fn location_get_module_settings(
+        &self,
+        location_id: &LocationId,
+    ) -> Result<Values, SessionError>;
+    fn location_set_module_settings(
+        &self,
+        location_id: &LocationId,
+        data: Values,
+    ) -> Result<(), SessionError>;
+
+    fn location_get_statuses(&self, location_id: &LocationId) -> Result<Vec<String>, SessionError>;
+    fn location_set_statuses(
+        &self,
+        location_id: &LocationId,
+        statuses: Vec<String>,
+    ) -> Result<(), SessionError>;
+
+    fn location_get_status(&self, location_id: &LocationId) -> Result<usize, SessionError>;
+    fn location_set_status(
+        &self,
+        location_id: &LocationId,
+        status: usize,
+    ) -> Result<(), SessionError>;
+
+    fn location_get_progress(&self, location_id: &LocationId) -> Result<f32, SessionError>;
+    fn location_set_progress(
+        &self,
+        location_id: &LocationId,
+        progress: f32,
+    ) -> Result<(), SessionError>;
+
+    fn location_is_enabled(&self, location_id: &LocationId) -> Result<bool, SessionError>;
+    fn location_set_enabled(
+        &self,
+        location_id: &LocationId,
+        enabled: bool,
+        storage: Option<Storage>,
+    ) -> Result<(), SessionError>;
+
+    fn location_is_error(&self, location_id: &LocationId) -> Result<bool, SessionError>;
 
     fn location_get_location_info(
         &self,
