@@ -50,6 +50,13 @@ impl<'a, T> From<std::sync::PoisonError<std::sync::RwLockWriteGuard<'a, T>>> for
         Self::PosionErrorCannotLocakForWrite
     }
 }
+
+impl From<String> for SessionError {
+    fn from(value: String) -> Self {
+        Self::Custom(value)
+    }
+}
+
 pub type Actions = Vec<(String, MRef, Vec<(String, Value)>)>;
 
 // TODO: all the functions should be async
