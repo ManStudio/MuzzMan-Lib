@@ -73,6 +73,11 @@ pub fn module_link(
         }
 
         #[no_mangle]
+        fn init_location_settings(data: &mut Values) -> Result<(), SessionError>{
+            MODULE.init_location_settings(data)
+        }
+
+        #[no_mangle]
         fn init_element(element: ERow) -> Result<(), SessionError> {
             MODULE.init_element(element)
         }
@@ -82,18 +87,8 @@ pub fn module_link(
         }
 
         #[no_mangle]
-        fn step_location(location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage) -> Result<(), SessionError> {
-            MODULE.step_location(location, control_flow, storage)
-        }
-
-        #[no_mangle]
         fn accept_extension(filename: &str) -> bool {
             MODULE.accept_extension(filename)
-        }
-
-        #[no_mangle]
-        fn accepted_protocols() -> Vec<String>{
-            MODULE.accepted_protocols()
         }
 
         #[no_mangle]
@@ -107,8 +102,18 @@ pub fn module_link(
         }
 
         #[no_mangle]
+        fn accepted_protocols() -> Vec<String>{
+            MODULE.accepted_protocols()
+        }
+
+        #[no_mangle]
         fn init_location(location: LRef) -> Result<(), SessionError> {
             MODULE.init_location(location)
+        }
+
+        #[no_mangle]
+        fn step_location(location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage) -> Result<(), SessionError> {
+            MODULE.step_location(location, control_flow, storage)
         }
 
         #[no_mangle]
