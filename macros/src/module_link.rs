@@ -63,26 +63,26 @@ pub fn module_link(
         }
 
         #[no_mangle]
-        fn init_settings(data: &mut Values) {
+        fn init_settings(data: &mut Values) -> Result<(), SessionError> {
             MODULE.init_settings(data)
         }
 
         #[no_mangle]
-        fn init_element_settings(data: &mut Values) {
+        fn init_element_settings(data: &mut Values) -> Result<(), SessionError> {
             MODULE.init_element_settings(data)
         }
 
         #[no_mangle]
-        fn init_element(element: ERow) {
+        fn init_element(element: ERow) -> Result<(), SessionError> {
             MODULE.init_element(element)
         }
         #[no_mangle]
-        fn step_element(element: ERow, control_flow: &mut ControlFlow, storage: &mut Storage) {
+        fn step_element(element: ERow, control_flow: &mut ControlFlow, storage: &mut Storage) -> Result<(), SessionError> {
             MODULE.step_element(element, control_flow, storage)
         }
 
         #[no_mangle]
-        fn step_location(location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage){
+        fn step_location(location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage) -> Result<(), SessionError> {
             MODULE.step_location(location, control_flow, storage)
         }
 
@@ -107,12 +107,12 @@ pub fn module_link(
         }
 
         #[no_mangle]
-        fn init_location(location: LRef) {
+        fn init_location(location: LRef) -> Result<(), SessionError> {
             MODULE.init_location(location)
         }
 
         #[no_mangle]
-        fn notify(_ref: Ref, event: Event){
+        fn notify(_ref: Ref, event: Event) -> Result<(), SessionError> {
             MODULE.notify(_ref, event)
         }
     }
