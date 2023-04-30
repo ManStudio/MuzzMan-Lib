@@ -1184,6 +1184,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(())
     }
 
+    fn element_is_error(&self, element_id: &ElementId) -> Result<bool, SessionError> {
+        Ok(self.get_element(element_id)?.read()?.is_error)
+    }
+
     fn element_resolv_module(&self, element_id: &ElementId) -> Result<bool, SessionError> {
         let len = self.get_modules_len()?;
 
@@ -1792,6 +1796,117 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(element_infos)
     }
 
+    fn location_get_module(&self, location_id: &LocationId) -> Result<Option<MRef>, SessionError> {
+        Ok(self.get_location(location_id)?.read()?.module.clone())
+    }
+
+    fn location_set_module(
+        &self,
+        location_id: &LocationId,
+        module_id: Option<ModuleId>,
+    ) -> Result<(), SessionError> {
+        self.get_location(location_id)?.write()?.module = if let Some(module_id) = module_id {
+            Some(self.get_module_ref(&module_id)?)
+        } else {
+            None
+        };
+
+        Ok(())
+    }
+
+    fn location_get_settings(&self, location_id: &LocationId) -> Result<Values, SessionError> {
+        Ok(self.get_location(location_id)?.read()?.settings.clone())
+    }
+
+    fn location_set_settings(
+        &self,
+        location_id: &LocationId,
+        data: Values,
+    ) -> Result<(), SessionError> {
+        self.get_location(location_id)?.write()?.settings = data;
+        Ok(())
+    }
+
+    fn location_get_module_settings(
+        &self,
+        location_id: &LocationId,
+    ) -> Result<Values, SessionError> {
+        Ok(self
+            .get_location(location_id)?
+            .read()?
+            .module_settings
+            .clone())
+    }
+
+    //
+    // Session
+    //
+
+    fn location_set_module_settings(
+        &self,
+        location_id: &LocationId,
+        data: Values,
+    ) -> Result<(), SessionError> {
+        self.get_location(location_id)?.write()?.module_settings = data;
+        Ok(())
+    }
+
+    fn location_get_statuses(&self, location_id: &LocationId) -> Result<Vec<String>, SessionError> {
+        Ok(self.get_location(location_id)?.read()?.statuses.clone())
+    }
+
+    fn location_set_statuses(
+        &self,
+        location_id: &LocationId,
+        statuses: Vec<String>,
+    ) -> Result<(), SessionError> {
+        self.get_location(location_id)?.write()?.statuses = statuses;
+        Ok(())
+    }
+
+    fn location_get_status(&self, location_id: &LocationId) -> Result<usize, SessionError> {
+        Ok(self.get_location(location_id)?.read()?.status)
+    }
+
+    fn location_set_status(
+        &self,
+        location_id: &LocationId,
+        status: usize,
+    ) -> Result<(), SessionError> {
+        self.get_location(location_id)?.write()?.status = status;
+        Ok(())
+    }
+
+    fn location_get_progress(&self, location_id: &LocationId) -> Result<f32, SessionError> {
+        Ok(self.get_location(location_id)?.read()?.progress)
+    }
+
+    fn location_set_progress(
+        &self,
+        location_id: &LocationId,
+        progress: f32,
+    ) -> Result<(), SessionError> {
+        self.get_location(location_id)?.write()?.progress = progress;
+        Ok(())
+    }
+
+    fn location_is_enabled(&self, location_id: &LocationId) -> Result<bool, SessionError> {
+        Ok(self.get_location(location_id)?.read()?.enabled)
+    }
+
+    fn location_set_enabled(
+        &self,
+        location_id: &LocationId,
+        enabled: bool,
+        storage: Option<Storage>,
+    ) -> Result<(), SessionError> {
+        todo!()
+    }
+
+    fn location_is_error(&self, location_id: &LocationId) -> Result<bool, SessionError> {
+        Ok(self.get_location(location_id)?.read()?.is_error)
+    }
+
     fn location_get_location_info(
         &self,
         location_id: &LocationId,
@@ -1953,10 +2068,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(self.get_module(id)?.read()?.ref_id.clone())
     }
 
-    //
-    // Session
-    //
-
     fn get_element_ref(&self, id: &ElementId) -> Result<ERef, SessionError> {
         Ok(self.get_element(id)?.read()?.ref_id.clone())
     }
@@ -1977,116 +2088,5 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn c(&self) -> Box<dyn TSession> {
         Box::new(self.clone())
-    }
-
-    fn element_is_error(&self, element_id: &ElementId) -> Result<bool, SessionError> {
-        Ok(self.get_element(element_id)?.read()?.is_error)
-    }
-
-    fn location_get_module(&self, location_id: &LocationId) -> Result<Option<MRef>, SessionError> {
-        Ok(self.get_location(location_id)?.read()?.module.clone())
-    }
-
-    fn location_set_module(
-        &self,
-        location_id: &LocationId,
-        module_id: Option<ModuleId>,
-    ) -> Result<(), SessionError> {
-        self.get_location(location_id)?.write()?.module = if let Some(module_id) = module_id {
-            Some(self.get_module_ref(&module_id)?)
-        } else {
-            None
-        };
-
-        Ok(())
-    }
-
-    fn location_get_settings(&self, location_id: &LocationId) -> Result<Values, SessionError> {
-        Ok(self.get_location(location_id)?.read()?.settings.clone())
-    }
-
-    fn location_set_settings(
-        &self,
-        location_id: &LocationId,
-        data: Values,
-    ) -> Result<(), SessionError> {
-        self.get_location(location_id)?.write()?.settings = data;
-        Ok(())
-    }
-
-    fn location_get_module_settings(
-        &self,
-        location_id: &LocationId,
-    ) -> Result<Values, SessionError> {
-        Ok(self
-            .get_location(location_id)?
-            .read()?
-            .module_settings
-            .clone())
-    }
-
-    fn location_set_module_settings(
-        &self,
-        location_id: &LocationId,
-        data: Values,
-    ) -> Result<(), SessionError> {
-        self.get_location(location_id)?.write()?.module_settings = data;
-        Ok(())
-    }
-
-    fn location_get_statuses(&self, location_id: &LocationId) -> Result<Vec<String>, SessionError> {
-        Ok(self.get_location(location_id)?.read()?.statuses.clone())
-    }
-
-    fn location_set_statuses(
-        &self,
-        location_id: &LocationId,
-        statuses: Vec<String>,
-    ) -> Result<(), SessionError> {
-        self.get_location(location_id)?.write()?.statuses = statuses;
-        Ok(())
-    }
-
-    fn location_get_status(&self, location_id: &LocationId) -> Result<usize, SessionError> {
-        Ok(self.get_location(location_id)?.read()?.status)
-    }
-
-    fn location_set_status(
-        &self,
-        location_id: &LocationId,
-        status: usize,
-    ) -> Result<(), SessionError> {
-        self.get_location(location_id)?.write()?.status = status;
-        Ok(())
-    }
-
-    fn location_get_progress(&self, location_id: &LocationId) -> Result<f32, SessionError> {
-        Ok(self.get_location(location_id)?.read()?.progress)
-    }
-
-    fn location_set_progress(
-        &self,
-        location_id: &LocationId,
-        progress: f32,
-    ) -> Result<(), SessionError> {
-        self.get_location(location_id)?.write()?.progress = progress;
-        Ok(())
-    }
-
-    fn location_is_enabled(&self, location_id: &LocationId) -> Result<bool, SessionError> {
-        Ok(self.get_location(location_id)?.read()?.enabled)
-    }
-
-    fn location_set_enabled(
-        &self,
-        location_id: &LocationId,
-        enabled: bool,
-        storage: Option<Storage>,
-    ) -> Result<(), SessionError> {
-        todo!()
-    }
-
-    fn location_is_error(&self, location_id: &LocationId) -> Result<bool, SessionError> {
-        Ok(self.get_location(location_id)?.read()?.is_error)
     }
 }
