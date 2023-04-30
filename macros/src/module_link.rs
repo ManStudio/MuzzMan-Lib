@@ -33,7 +33,7 @@ pub fn module_link(
         static MODULE: #name = #name;
 
         #[no_mangle]
-        fn init(info: MRef) -> Result<(), String> {
+        fn init(info: MRef) -> Result<(), SessionError> {
             MODULE.init(info)
         }
 
