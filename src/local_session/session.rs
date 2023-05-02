@@ -257,20 +257,21 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                 ref_id: info.clone(),
             };
 
-            if let Err(error) = module.module.init(info.clone()) {
-                result = Err(SessionError::CannotInstallModule(Box::new(error)));
-                break 'install_module;
-            }
-
             // we need to remove and add in a single Atomic action
             // because if a other thread trying to get a module after the removed module
             // will have problems
+            let module = Arc::new(RwLock::new(module));
             {
                 let mut s = self.write()?;
-                s.modules.push(Some(Arc::new(RwLock::new(module))));
+                s.modules.push(Some(module.clone()));
                 if let Some(finded) = finded {
                     s.modules.swap_remove(finded);
                 }
+            }
+
+            if let Err(error) = module.read()?.module.init(info.clone()) {
+                result = Err(SessionError::CannotInstallModule(Box::new(error)));
+                break 'install_module;
             }
 
             notifications.push(SessionEvent::NewModule(info.read()?.uid));
