@@ -6,6 +6,9 @@ thread_local! {
     pub static WHO_IAM: RwLock<Iam> = RwLock::new(Iam::MuzzManLib)
 }
 
+#[no_mangle]
+pub static LOGGER_STATE: RwLock<State> = RwLock::new(State::new());
+
 #[derive(Clone)]
 pub enum Iam {
     Element { uid: u128, id: ElementId },
@@ -24,8 +27,10 @@ pub struct Record {
     pub line: Option<u32>,
 }
 
+pub type Callback = Box<dyn Fn(&Iam, &Record) + Sync + Send>;
+
 pub struct State {
-    pub callbacks: Vec<Box<dyn Fn(&Iam, &Record) + Sync + Send>>,
+    pub callbacks: Vec<Callback>,
 }
 
 impl State {
@@ -39,10 +44,10 @@ impl State {
             callback(&who_iam, &record)
         }
     }
+    pub fn register_callback(&mut self, callback: Callback) {
+        self.callbacks.push(callback)
+    }
 }
-
-#[no_mangle]
-pub static STATE: RwLock<State> = RwLock::new(State::new());
 
 pub struct Logger;
 impl log::Log for Logger {
