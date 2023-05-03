@@ -41,7 +41,7 @@ impl State {
     }
 }
 
-static STATE: RwLock<State> = RwLock::new(State::new());
+pub static STATE: RwLock<State> = RwLock::new(State::new());
 
 pub struct Logger;
 impl log::Log for Logger {
