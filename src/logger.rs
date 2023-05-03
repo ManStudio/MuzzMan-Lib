@@ -41,6 +41,7 @@ impl State {
     }
 }
 
+#[no_mangle]
 pub static STATE: RwLock<State> = RwLock::new(State::new());
 
 pub struct Logger;
