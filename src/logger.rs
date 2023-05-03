@@ -1,4 +1,4 @@
-use std::{io::Write, sync::RwLock};
+use std::sync::RwLock;
 
 use crate::{element::ElementId, prelude::LocationId};
 
@@ -14,6 +14,7 @@ pub enum Iam {
     Daemon,
 }
 
+#[derive(Clone)]
 pub struct Record {
     pub time: std::time::Instant,
     pub level: log::Level,
@@ -24,16 +25,23 @@ pub struct Record {
 }
 
 pub struct State {
-    pub logs: Vec<(Iam, Record)>,
+    pub callbacks: Vec<Box<dyn Fn(&Iam, &Record) + Sync + Send>>,
 }
 
 impl State {
+    const fn new() -> Self {
+        Self {
+            callbacks: Vec::new(),
+        }
+    }
     pub fn log(&mut self, who_iam: Iam, record: Record) {
-        self.logs.push((who_iam, record));
+        for callback in self.callbacks.iter() {
+            callback(&who_iam, &record)
+        }
     }
 }
 
-static STATE: RwLock<State> = RwLock::new(State { logs: Vec::new() });
+static STATE: RwLock<State> = RwLock::new(State::new());
 
 pub struct Logger;
 impl log::Log for Logger {
@@ -57,7 +65,7 @@ impl log::Log for Logger {
     fn flush(&self) {}
 }
 
-fn init(level: log::LevelFilter) {
+pub fn init(level: log::LevelFilter) {
     log::set_logger(&Logger);
     log::set_max_level(level);
 }
