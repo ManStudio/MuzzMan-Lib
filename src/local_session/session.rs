@@ -1133,6 +1133,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
             };
 
             loop {
+                let id = element.read().unwrap().ref_id.read().unwrap().id.clone();
+                WHO_IAM.with(|w| *w.write().unwrap() = Iam::Element { uid: 0, id });
                 // TODO: Change to be async spawn
                 if let ControlFlow::Break = control_flow {
                     break;
@@ -1164,11 +1166,10 @@ impl TSession for Arc<RwLock<LocalSession>> {
                                 storage = s;
                             }
                             Err(error) => {
-                                let mut logger = element.get_logger(None);
-                                logger.error(format!(
+                                log::info!(
                                     "Module crashed: {}, with error: {error:?}",
                                     module.get_name().unwrap(),
-                                ));
+                                );
 
                                 break;
                             }
@@ -1312,7 +1313,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
         match &mut event {
             Event::Element(info, _) => *info = element_id.clone(),
             Event::Location(_, _) => return Err(SessionError::IsNotLocation),
-            Event::Log(r, _) => *r = ID::Element(element_id.clone()),
             Event::SessionEvent(_) => return Ok(()),
         }
 
@@ -2017,7 +2017,6 @@ impl TSession for Arc<RwLock<LocalSession>> {
         match &mut event {
             Event::Element(_, _) => return Err(SessionError::IsNotElement),
             Event::Location(info, _) => *info = location_id.clone(),
-            Event::Log(r, _) => *r = ID::Location(location_id.clone()),
             Event::SessionEvent(_) => return Ok(()),
         }
 

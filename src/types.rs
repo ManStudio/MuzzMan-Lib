@@ -24,6 +24,21 @@ pub enum ID {
     Location(LocationId),
 }
 
+#[derive(Clone)]
+pub enum Ref {
+    Element(ERef),
+    Location(LRef),
+}
+
+impl From<Ref> for ID {
+    fn from(value: Ref) -> Self {
+        match value {
+            Ref::Element(e) => ID::Element(e.read().unwrap().id.clone()),
+            Ref::Location(l) => ID::Location(l.read().unwrap().id.clone()),
+        }
+    }
+}
+
 impl PartialEq for ID {
     fn eq(&self, other: &Self) -> bool {
         match self {
@@ -60,7 +75,7 @@ use crate::{
     element::ElementId,
     enums::{AdvanceEnum, CustomEnum},
     prelude::{
-        Data, Element, Location, LocationId, Module, Ref, RefElement, RefLocation, RefModule,
+        Data, Element, Location, LocationId, Module, RefElement, RefLocation, RefModule,
         SessionError, TSession,
     },
 };

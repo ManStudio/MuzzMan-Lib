@@ -31,7 +31,6 @@ pub enum SessionEvent {
 pub enum Event {
     Element(ElementId, ElementNotify),
     Location(LocationId, LocationNotify),
-    Log(ID, Log),
     SessionEvent(SessionEvent),
 }
 

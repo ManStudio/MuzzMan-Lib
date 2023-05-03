@@ -1,142 +1,63 @@
-use std::{
-    fs::File,
-    io::Write,
-    sync::{Arc, Mutex},
-};
+use std::{io::Write, sync::RwLock};
 
-use crate::{
-    common::Common,
-    events::Event,
-    prelude::{ERef, LRef},
-    types::ID,
-};
+use crate::{element::ElementId, prelude::LocationId};
 
-use bytes_kman::TBytes;
-
-#[derive(Clone, Debug, bytes_kman::Bytes)]
-pub enum Log {
-    Info(String),
-    Warning(String),
-    Error(String),
-}
-
-pub trait TLogger {
-    fn info(&mut self, data: impl Into<String>);
-    fn warn(&mut self, data: impl Into<String>);
-    fn error(&mut self, data: impl Into<String>);
-
-    fn flush(&mut self);
-    fn set_instant(&mut self, instant: bool);
-}
-
-pub trait TGetLogger {
-    fn get_logger(&self, dst: Option<Arc<Mutex<File>>>) -> Logger;
+thread_local! {
+    pub static WHO_IAM: RwLock<Iam> = RwLock::new(Iam::MuzzManLib)
 }
 
 #[derive(Clone)]
-pub enum Ref {
-    Element(ERef),
-    Location(LRef),
+pub enum Iam {
+    Element { uid: u128, id: ElementId },
+    Location { uid: u128, id: LocationId },
+    MuzzManLib,
+    Daemon,
 }
 
-impl From<Ref> for ID {
-    fn from(value: Ref) -> Self {
-        match value {
-            Ref::Element(e) => ID::Element(e.read().unwrap().id.clone()),
-            Ref::Location(l) => ID::Location(l.read().unwrap().id.clone()),
-        }
-    }
+pub struct Record {
+    pub time: std::time::Instant,
+    pub level: log::Level,
+    pub log: String,
+    pub module_path: Option<String>,
+    pub file: Option<String>,
+    pub line: Option<u32>,
 }
 
-pub struct Logger {
-    dst: Option<Arc<Mutex<File>>>,
-    logs: Vec<Log>,
-    _ref: Ref,
-    instant: bool,
+pub struct State {
+    pub logs: Vec<(Iam, Record)>,
 }
 
-unsafe impl Sync for Logger {}
-unsafe impl Send for Logger {}
-
-impl Logger {
-    pub fn for_location(dst: Option<Arc<Mutex<File>>>, _ref: LRef) -> Self {
-        Self {
-            dst,
-            _ref: Ref::Location(_ref),
-            instant: false,
-            logs: Vec::new(),
-        }
-    }
-
-    pub fn for_element(dst: Option<Arc<Mutex<File>>>, _ref: ERef) -> Self {
-        Self {
-            dst,
-            _ref: Ref::Element(_ref),
-            instant: false,
-            logs: Vec::new(),
-        }
+impl State {
+    pub fn log(&mut self, who_iam: Iam, record: Record) {
+        self.logs.push((who_iam, record));
     }
 }
 
-impl TLogger for Logger {
-    fn info(&mut self, data: impl Into<String>) {
-        let data: String = data.into();
+static STATE: RwLock<State> = RwLock::new(State { logs: Vec::new() });
 
-        if let Some(dst) = &self.dst {
-            let _ = write!(dst.lock().unwrap(), "Info: {data}");
-        }
-
-        self.logs.push(Log::Info(data));
-
-        if self.instant {
-            self.flush()
-        }
+pub struct Logger;
+impl log::Log for Logger {
+    fn enabled(&self, _metadata: &log::Metadata) -> bool {
+        true
     }
 
-    fn warn(&mut self, data: impl Into<String>) {
-        let data: String = data.into();
-
-        if let Some(dst) = &self.dst {
-            let _ = write!(dst.lock().unwrap(), "Warning: {data}");
-        }
-
-        self.logs.push(Log::Warning(data));
-
-        if self.instant {
-            self.flush()
-        }
+    fn log(&self, record: &log::Record) {
+        let who_iam = WHO_IAM.with(|w| w.read().unwrap().clone());
+        let record = Record {
+            time: std::time::Instant::now(),
+            level: record.level(),
+            log: std::fmt::format(*record.args()),
+            module_path: record.module_path().map(|m| m.to_string()),
+            file: record.file().map(|f| f.to_string()),
+            line: record.line(),
+        };
+        STATE.write().unwrap().log(who_iam, record);
     }
 
-    fn error(&mut self, data: impl Into<String>) {
-        let data: String = data.into();
-
-        if let Some(dst) = &self.dst {
-            let _ = write!(dst.lock().unwrap(), "Error: {data}");
-        }
-
-        self.logs.push(Log::Error(data));
-
-        if self.instant {
-            self.flush()
-        }
-    }
-
-    fn flush(&mut self) {
-        for log in self.logs.iter() {
-            let _ = self
-                ._ref
-                .emit(Event::Log(self._ref.clone().into(), log.clone()));
-        }
-        self.logs.clear();
-    }
-
-    fn set_instant(&mut self, instant: bool) {
-        self.instant = instant;
-    }
+    fn flush(&self) {}
 }
 
-impl Drop for Logger {
-    fn drop(&mut self) {
-        self.flush();
-    }
+fn init(level: log::LevelFilter) {
+    log::set_logger(&Logger);
+    log::set_max_level(level);
 }
