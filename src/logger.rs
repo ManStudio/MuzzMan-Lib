@@ -16,7 +16,7 @@ pub enum Iam {
 
 #[derive(Clone)]
 pub struct Record {
-    pub time: std::time::Instant,
+    pub time: std::time::SystemTime,
     pub level: log::Level,
     pub log: String,
     pub module_path: Option<String>,
@@ -52,7 +52,7 @@ impl log::Log for Logger {
     fn log(&self, record: &log::Record) {
         let who_iam = WHO_IAM.with(|w| w.read().unwrap().clone());
         let record = Record {
-            time: std::time::Instant::now(),
+            time: std::time::SystemTime::now(),
             level: record.level(),
             log: std::fmt::format(*record.args()),
             module_path: record.module_path().map(|m| m.to_string()),
