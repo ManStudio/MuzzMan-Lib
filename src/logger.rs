@@ -1,4 +1,6 @@
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
+
+use once_cell::sync::Lazy;
 
 use crate::{element::ElementId, prelude::LocationId};
 
@@ -7,7 +9,8 @@ thread_local! {
 }
 
 #[no_mangle]
-pub static LOGGER_STATE: RwLock<State> = RwLock::new(State::new());
+pub static LOGGER_STATE: Lazy<Arc<RwLock<State>>> =
+    Lazy::new(|| Arc::new(RwLock::new(State::new())));
 
 #[derive(Clone)]
 pub enum Iam {
@@ -65,7 +68,7 @@ impl log::Log for Logger {
             file: record.file().map(|f| f.to_string()),
             line: record.line(),
         };
-        STATE.write().unwrap().log(who_iam, record);
+        LOGGER_STATE.write().unwrap().log(who_iam, record);
     }
 
     fn flush(&self) {}
