@@ -692,31 +692,28 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
         let element = self.get_element(element_id)?;
 
-        let control_flow = Rc::new(Mutex::new(control_flow));
-        let storage = Rc::new(Mutex::new(storage));
-        let cf = control_flow.clone();
-        let s = storage.clone();
+        let control_flow = Mutex::new(control_flow);
+        let storage = Mutex::new(storage);
 
-        let has_error = {
-            let mut control_flow = cf.lock().unwrap();
-            let mut storage = s.lock().unwrap();
+        let result = {
+            let mut control_flow = control_flow.lock().unwrap();
+            let mut storage = storage.lock().unwrap();
             std::panic::catch_unwind(move || {
-                module.step_element(element, &mut control_flow, &mut storage);
+                module.step_element(element, &mut control_flow, &mut storage)
             })
-            .is_err()
         };
-
-        let Ok(control_flow) =
-            std::rc::Rc::try_unwrap(control_flow) else {return Err(SessionError::Custom("Cannot get control_flow".into()))};
-        let Ok(storage) = std::rc::Rc::try_unwrap(storage) else {return Err(SessionError::Custom("Cannot get storage".into()))};
 
         let control_flow = control_flow.into_inner().unwrap();
         let storage = storage.into_inner().unwrap();
 
-        if has_error {
-            Err(SessionError::StepOnElementPaniced)
-        } else {
-            Ok((control_flow, storage))
+        match result {
+            Ok(res) => {
+                if let Err(err) = res {
+                    log::error!("{err:?}");
+                }
+                Ok((control_flow, storage))
+            }
+            Err(_) => Err(SessionError::StepOnElementPaniced),
         }
     }
 
