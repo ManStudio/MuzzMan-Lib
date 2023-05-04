@@ -707,8 +707,8 @@ impl TSession for Arc<RwLock<LocalSession>> {
         };
 
         let Ok(control_flow) =
-            std::rc::Rc::try_unwrap(control_flow) else {return Err(SessionError::PosionErrorCannotLocakForWrite)};
-        let Ok(storage) = std::rc::Rc::try_unwrap(storage) else {return Err(SessionError::PosionErrorCannotLocakForWrite)};
+            std::rc::Rc::try_unwrap(control_flow) else {return Err(SessionError::Custom("Cannot get control_flow".into()))};
+        let Ok(storage) = std::rc::Rc::try_unwrap(storage) else {return Err(SessionError::Custom("Cannot get storage".into()))};
 
         let control_flow = control_flow.into_inner().unwrap();
         let storage = storage.into_inner().unwrap();
