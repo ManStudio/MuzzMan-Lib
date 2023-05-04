@@ -1166,7 +1166,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
                                 storage = s;
                             }
                             Err(error) => {
-                                log::info!(
+                                log::error!(
                                     "Module crashed: {}, with error: {error:?}",
                                     module.get_name().unwrap(),
                                 );
