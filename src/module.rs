@@ -324,7 +324,7 @@ impl RawModule {
                 *mut once_cell::sync::Lazy<std::sync::Arc<std::sync::RwLock<crate::logger::State>>,
             >>(b"LOGGER_STATE\0")
         } {
-            let state = LOGGER_STATE.clone();
+            let state = logger::LOGGER_STATE.clone();
             unsafe {
                 let dylib_state = once_cell::sync::Lazy::<
                     std::sync::Arc<std::sync::RwLock<crate::logger::State>>,

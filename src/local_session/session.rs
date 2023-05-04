@@ -1134,7 +1134,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
             loop {
                 let id = element.read().unwrap().ref_id.read().unwrap().id.clone();
-                WHO_IAM.with(|w| *w.write().unwrap() = Iam::Element { uid: 0, id });
+                logger::WHO_IAM.with(|w| *w.write().unwrap() = logger::Iam::Element { uid: 0, id });
                 // TODO: Change to be async spawn
                 if let ControlFlow::Break = control_flow {
                     break;
