@@ -319,7 +319,7 @@ impl RawModule {
                 return Err(RawLibraryError::DontHaveSymbolInitLocationSettings);
             };
 
-        if let Ok(mut logger_state) = unsafe {
+        if let Ok(logger_state) = unsafe {
             lib.get::<
                 *mut once_cell::sync::Lazy<std::sync::Arc<std::sync::RwLock<crate::logger::State>>,
             >>(b"LOGGER_STATE\0")
@@ -331,11 +331,8 @@ impl RawModule {
                     fn() -> std::sync::Arc<std::sync::RwLock<crate::logger::State>>,
                 >::force_mut(logger_state.as_mut().unwrap());
 
-                std::mem::replace(dylib_state, state);
+                let _ = std::mem::replace(dylib_state, state);
             }
-            println!("Logger state set for module!");
-        } else {
-            println!("Logger is not set");
         }
 
         Ok(Self {
