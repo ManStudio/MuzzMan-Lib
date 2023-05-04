@@ -20,7 +20,7 @@ pub use local_session::LocalSession;
 
 pub mod prelude {
     pub use crate::{
-        action::*, common::*, data::*, element::*, enums::*, events::*, location::*, logger::*,
+        action::*, common::*, data::*, element::*, enums::*, events::*, location::*, logger,
         module::*, session::*, storage::*, types::*,
     };
     pub use get_ref::*;

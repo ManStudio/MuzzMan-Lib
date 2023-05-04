@@ -34,12 +34,14 @@ pub type Callback = Box<dyn Fn(&Iam, &Record) + Sync + Send>;
 
 pub struct State {
     pub callbacks: Vec<Callback>,
+    pub log_level: log::LevelFilter,
 }
 
 impl State {
     const fn new() -> Self {
         Self {
             callbacks: Vec::new(),
+            log_level: log::LevelFilter::Off,
         }
     }
     pub fn log(&mut self, who_iam: Iam, record: Record) {
@@ -74,7 +76,8 @@ impl log::Log for Logger {
     fn flush(&self) {}
 }
 
-pub fn init(level: log::LevelFilter) {
+pub fn init() {
+    let level = LOGGER_STATE.read().unwrap().log_level;
     log::set_logger(&Logger);
     log::set_max_level(level);
 }
