@@ -41,6 +41,44 @@ pub struct ModuleId {
     pub session: Option<Box<dyn TSession>>,
 }
 
+impl Clone for ModuleId {
+    fn clone(&self) -> Self {
+        Self {
+            uid: self.uid,
+            session: match &self.session {
+                Some(session) => Some(session.c()),
+                None => None,
+            },
+        }
+    }
+}
+
+impl bytes_kman::TBytes for ModuleId {
+    fn size(&self) -> usize {
+        self.uid.size()
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.uid.to_bytes()
+    }
+
+    fn from_bytes(buffer: &mut Vec<u8>) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        Some(Self {
+            uid: UID::from_bytes(buffer)?,
+            session: None,
+        })
+    }
+}
+
+impl Debug for ModuleId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ModuleId").field("uid", &self.uid).finish()
+    }
+}
+
 impl From<MRef> for ModulePath {
     fn from(value: MRef) -> Self {
         value.read().unwrap().index

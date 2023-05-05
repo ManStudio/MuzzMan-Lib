@@ -110,6 +110,46 @@ pub struct LocationId {
     pub session: Option<Box<dyn TSession>>,
 }
 
+impl Clone for LocationId {
+    fn clone(&self) -> Self {
+        Self {
+            uid: self.uid,
+            session: match &self.session {
+                Some(session) => Some(session.c()),
+                None => None,
+            },
+        }
+    }
+}
+
+impl bytes_kman::TBytes for LocationId {
+    fn size(&self) -> usize {
+        self.uid.size()
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.uid.to_bytes()
+    }
+
+    fn from_bytes(buffer: &mut Vec<u8>) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        Some(Self {
+            uid: UID::from_bytes(buffer)?,
+            session: None,
+        })
+    }
+}
+
+impl Debug for LocationId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LocationId")
+            .field("uid", &self.uid)
+            .finish()
+    }
+}
+
 impl std::ops::Deref for LocationPath {
     type Target = Vec<u64>;
 
