@@ -1,13 +1,18 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    sync::{Arc, RwLock},
+    thread::LocalKey,
+};
 
 use once_cell::sync::Lazy;
 
 use crate::{element::ElementId, prelude::LocationId};
 
 thread_local! {
-    #[no_mangle]
-    pub static WHO_IAM: RwLock<Arc<RwLock<Iam>>> = RwLock::new(Arc::new(RwLock::new(Iam::MuzzManLib)));
+    static WHO_IAM: RwLock<Iam> = RwLock::new(Iam::MuzzManLib);
 }
+
+#[no_mangle]
+pub static LOGGER_WHO_IAM: Lazy<Arc<LocalKey<RwLock<Iam>>>> = Lazy::new(|| Arc::new(WHO_IAM));
 
 #[no_mangle]
 pub static LOGGER_STATE: Lazy<Arc<RwLock<State>>> =
@@ -71,10 +76,7 @@ impl log::Log for Logger {
             file: record.file().map(|f| f.to_string()),
             line: record.line(),
         };
-        LOGGER_STATE
-            .write()
-            .unwrap()
-            .log(who_iam.read().unwrap().clone(), record);
+        LOGGER_STATE.write().unwrap().log(who_iam, record);
     }
 
     fn flush(&self) {}
