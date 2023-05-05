@@ -13,7 +13,7 @@ use bytes_kman::TBytes;
 #[derive(Debug, Clone, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum ElementNotify {
     Complited,
-    ModuleChanged(Option<ModuleId>),
+    ModuleChanged(Option<ModulePath>),
     StatusChanged(usize),
     Progress(f32),
 }
@@ -23,14 +23,19 @@ impl_get_ref!(ElementNotify);
 #[derive(
     Debug, Clone, Hash, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, bytes_kman::Bytes,
 )]
-pub struct ElementId {
-    pub uid: u64,
-    pub location_id: LocationId,
+pub struct ElementPath {
+    pub index: u64,
+    pub location_id: LocationPath,
 }
 
-impl ElementId {
-    pub fn into_ref(self, session: Box<dyn TSession>) -> RefElement {
-        RefElement {
+#[derive(
+    Debug, Clone, Hash, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, bytes_kman::Bytes,
+)]
+pub struct ElementId(pub UID);
+
+impl ElementPath {
+    pub fn into_ref(self, session: Box<dyn TSession>) -> RefElementPath {
+        RefElementPath {
             session: Some(session),
             id: self,
         }
@@ -38,22 +43,22 @@ impl ElementId {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct RefElement {
+pub struct RefElementPath {
     #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
-    pub id: ElementId,
+    pub id: ElementPath,
 }
 
-unsafe impl Sync for RefElement {}
-unsafe impl Send for RefElement {}
+unsafe impl Sync for RefElementPath {}
+unsafe impl Send for RefElementPath {}
 
-impl Debug for RefElement {
+impl Debug for RefElementPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RefElement").field("id", &self.id).finish()
     }
 }
 
-impl PartialEq for RefElement {
+impl PartialEq for RefElementPath {
     fn eq(&self, other: &Self) -> bool {
         self.id.eq(&other.id) && self.id.location_id.eq(&other.id.location_id)
     }
@@ -72,7 +77,7 @@ pub trait TElement {
     fn set_module_settings(&self, data: Values) -> Result<(), SessionError>;
 
     fn get_module(&self) -> Result<Option<MRef>, SessionError>;
-    fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError>;
+    fn set_module(&self, module: Option<ModulePath>) -> Result<(), SessionError>;
 
     fn resolv_module(&self) -> Result<bool, SessionError>;
     fn init(&self) -> Result<bool, SessionError>;
@@ -106,7 +111,7 @@ pub trait TElement {
 
     fn destroy(self) -> Result<ERow, SessionError>;
 
-    fn id(&self) -> ElementId;
+    fn id(&self) -> ElementPath;
 }
 
 pub struct Element {
@@ -203,7 +208,7 @@ impl TElement for ERef {
         self.get_session()?.element_get_module(&self.id())
     }
 
-    fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError> {
+    fn set_module(&self, module: Option<ModulePath>) -> Result<(), SessionError> {
         self.get_session()?.element_set_module(&self.id(), module)
     }
 
@@ -293,7 +298,7 @@ impl TElement for ERef {
         self.get_session()?.destroy_element(self.id())
     }
 
-    fn id(&self) -> ElementId {
+    fn id(&self) -> ElementPath {
         self.read().unwrap().id.clone()
     }
 
@@ -358,5 +363,5 @@ pub struct ElementInfo {
     pub data: Data,
     pub should_save: bool,
     pub enabled: bool,
-    pub id: ElementId,
+    pub id: ElementPath,
 }

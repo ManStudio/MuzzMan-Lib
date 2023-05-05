@@ -13,24 +13,24 @@ pub struct Events {
 
 #[derive(Clone, Debug, bytes_kman::Bytes)]
 pub enum SessionEvent {
-    NewElement(ElementId),
-    NewLocation(LocationId),
-    NewModule(ModuleId),
+    NewElement(ElementPath),
+    NewLocation(LocationPath),
+    NewModule(ModulePath),
 
-    DestroyedElement(ElementId),
-    DestroyedLocation(LocationId),
-    DestroyedModule(ModuleId),
+    DestroyedElement(ElementPath),
+    DestroyedLocation(LocationPath),
+    DestroyedModule(ModulePath),
 
     // old, new
-    ElementIdChanged(ElementId, ElementId),
-    LocationIdChanged(LocationId, LocationId),
-    ModuleIdChanged(ModuleId, ModuleId),
+    ElementIdChanged(ElementPath, ElementPath),
+    LocationIdChanged(LocationPath, LocationPath),
+    ModuleIdChanged(ModulePath, ModulePath),
 }
 
 #[derive(Clone, Debug, bytes_kman::Bytes)]
 pub enum Event {
-    Element(ElementId, ElementNotify),
-    Location(LocationId, LocationNotify),
+    Element(ElementPath, ElementNotify),
+    Location(LocationPath, LocationNotify),
     SessionEvent(SessionEvent),
 }
 

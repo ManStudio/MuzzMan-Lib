@@ -8,9 +8,9 @@ use std::{
 
 use bytes_kman::TBytes;
 
-pub type LRef = Arc<RwLock<RefLocation>>;
-pub type ERef = Arc<RwLock<RefElement>>;
-pub type MRef = Arc<RwLock<RefModule>>;
+pub type LRef = Arc<RwLock<RefLocationPath>>;
+pub type ERef = Arc<RwLock<RefElementPath>>;
+pub type MRef = Arc<RwLock<RefModulePath>>;
 
 pub type LRow = Arc<RwLock<Location>>;
 pub type ERow = Arc<RwLock<Element>>;
@@ -20,8 +20,8 @@ pub type UID = u64;
 
 #[derive(Debug, Clone, bytes_kman::Bytes)]
 pub enum ID {
-    Element(ElementId),
-    Location(LocationId),
+    Element(ElementPath),
+    Location(LocationPath),
 }
 
 #[derive(Clone)]
@@ -72,11 +72,11 @@ impl ID {
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    element::ElementId,
+    element::ElementPath,
     enums::{AdvanceEnum, CustomEnum},
     prelude::{
-        Data, Element, Location, LocationId, Module, RefElement, RefLocation, RefModule,
-        SessionError, TSession,
+        Data, Element, Location, LocationPath, Module, RefElementPath, RefLocationPath,
+        RefModulePath, SessionError, TSession,
     },
 };
 

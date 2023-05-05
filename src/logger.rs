@@ -5,7 +5,7 @@ use std::{
 
 use once_cell::sync::Lazy;
 
-use crate::{element::ElementId, prelude::LocationId};
+use crate::{element::ElementPath, prelude::LocationPath};
 
 thread_local! {
     static WHO_IAM: RwLock<Iam> = RwLock::new(Iam::MuzzManLib);
@@ -20,8 +20,8 @@ pub static LOGGER_STATE: Lazy<Arc<RwLock<State>>> =
 
 #[derive(Clone)]
 pub enum Iam {
-    Element { uid: u128, id: ElementId },
-    Location { uid: u128, id: LocationId },
+    Element { uid: u128, id: ElementPath },
+    Location { uid: u128, id: LocationPath },
     MuzzManLib,
     Daemon,
 }

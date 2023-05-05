@@ -31,30 +31,31 @@ pub enum ControlFlow {
     Hash,
     bytes_kman::Bytes,
 )]
-pub struct ModuleId(pub u64);
 
-impl From<MRef> for ModuleId {
+pub struct ModulePath(pub UID);
+
+impl From<MRef> for ModulePath {
     fn from(value: MRef) -> Self {
-        value.read().unwrap().uid
+        value.read().unwrap().index
     }
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct RefModule {
+pub struct RefModulePath {
     #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
-    pub uid: ModuleId,
+    pub index: ModulePath,
 }
 
-impl Debug for RefModule {
+impl Debug for RefModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ModuleInfo").finish()
     }
 }
 
-impl PartialEq for RefModule {
+impl PartialEq for RefModulePath {
     fn eq(&self, other: &Self) -> bool {
-        self.uid == other.uid
+        self.index == other.index
     }
 }
 
@@ -507,13 +508,13 @@ pub trait TModuleInfo {
 
     fn step_element(
         &self,
-        element_info: &ElementId,
+        element_info: &ElementPath,
         control_flow: ControlFlow,
         storage: Storage,
     ) -> Result<(ControlFlow, Storage), SessionError>;
     fn step_location(
         &self,
-        location_info: &LocationId,
+        location_info: &LocationPath,
         control_flow: ControlFlow,
         storage: Storage,
     ) -> Result<(ControlFlow, Storage), SessionError>;
@@ -523,12 +524,12 @@ pub trait TModuleInfo {
     fn accepted_protocols(&self) -> Result<Vec<String>, SessionError>;
     fn accepted_extensions(&self) -> Result<Vec<String>, SessionError>;
 
-    fn init_element(&self, element_info: &ElementId) -> Result<(), SessionError>;
-    fn init_location(&self, location_info: &LocationId) -> Result<(), SessionError>;
+    fn init_element(&self, element_info: &ElementPath) -> Result<(), SessionError>;
+    fn init_location(&self, location_info: &LocationPath) -> Result<(), SessionError>;
 
     fn notify(&self, info: ID, event: Event) -> Result<(), SessionError>;
 
-    fn id(&self) -> ModuleId;
+    fn id(&self) -> ModulePath;
 }
 
 impl TModuleInfo for MRef {
@@ -621,7 +622,7 @@ impl TModuleInfo for MRef {
 
     fn step_element(
         &self,
-        element_info: &ElementId,
+        element_info: &ElementPath,
         control_flow: ControlFlow,
         storage: Storage,
     ) -> Result<(ControlFlow, Storage), SessionError> {
@@ -631,7 +632,7 @@ impl TModuleInfo for MRef {
 
     fn step_location(
         &self,
-        location_info: &LocationId,
+        location_info: &LocationPath,
         control_flow: ControlFlow,
         storage: Storage,
     ) -> Result<(ControlFlow, Storage), SessionError> {
@@ -656,12 +657,12 @@ impl TModuleInfo for MRef {
         self.get_session()?.module_accepted_extensions(&self.id())
     }
 
-    fn init_element(&self, element_info: &ElementId) -> Result<(), SessionError> {
+    fn init_element(&self, element_info: &ElementPath) -> Result<(), SessionError> {
         self.get_session()?
             .module_init_element(&self.id(), element_info)
     }
 
-    fn init_location(&self, location_info: &LocationId) -> Result<(), SessionError> {
+    fn init_location(&self, location_info: &LocationPath) -> Result<(), SessionError> {
         self.get_session()?
             .module_init_location(&self.id(), location_info)
     }
@@ -674,8 +675,8 @@ impl TModuleInfo for MRef {
         }
     }
 
-    fn id(&self) -> ModuleId {
-        self.read().unwrap().uid
+    fn id(&self) -> ModulePath {
+        self.read().unwrap().index
     }
 }
 
@@ -684,7 +685,7 @@ pub struct ModuleInfo {
     pub name: String,
     pub desc: String,
     pub path: Option<PathBuf>,
-    pub id: ModuleId,
+    pub id: ModulePath,
     pub uid: u64,
     pub version: String,
     pub proxy: usize,

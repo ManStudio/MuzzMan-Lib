@@ -15,7 +15,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum LocationNotify {
     ElementNotify(usize, ElementNotify),
-    ModuleChanged(Option<ModuleId>),
+    ModuleChanged(Option<ModulePath>),
     ElementsAllCompleted,
     Completed,
 }
@@ -101,9 +101,9 @@ pub enum WhereIsLocation {
     Hash,
     bytes_kman::Bytes,
 )]
-pub struct LocationId(pub Vec<u64>);
+pub struct LocationPath(pub Vec<u64>);
 
-impl std::ops::Deref for LocationId {
+impl std::ops::Deref for LocationPath {
     type Target = Vec<u64>;
 
     fn deref(&self) -> &Self::Target {
@@ -111,13 +111,13 @@ impl std::ops::Deref for LocationId {
     }
 }
 
-impl std::ops::DerefMut for LocationId {
+impl std::ops::DerefMut for LocationPath {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl std::iter::IntoIterator for LocationId {
+impl std::iter::IntoIterator for LocationPath {
     type Item = u64;
 
     type IntoIter = std::vec::IntoIter<u64>;
@@ -127,9 +127,9 @@ impl std::iter::IntoIterator for LocationId {
     }
 }
 
-impl LocationId {
-    pub fn into_ref(self, session: Box<dyn TSession>) -> RefLocation {
-        RefLocation {
+impl LocationPath {
+    pub fn into_ref(self, session: Box<dyn TSession>) -> RefLocationPath {
+        RefLocationPath {
             session: Some(session),
             id: self,
         }
@@ -137,13 +137,13 @@ impl LocationId {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct RefLocation {
+pub struct RefLocationPath {
     #[serde(skip)]
     pub session: Option<Box<dyn TSession>>,
-    pub id: LocationId,
+    pub id: LocationPath,
 }
 
-impl Debug for RefLocation {
+impl Debug for RefLocationPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LocatioInfo")
             .field("uid", &self.id)
@@ -151,7 +151,7 @@ impl Debug for RefLocation {
     }
 }
 
-impl Clone for RefLocation {
+impl Clone for RefLocationPath {
     fn clone(&self) -> Self {
         Self {
             id: self.id.clone(),
@@ -164,7 +164,7 @@ impl Clone for RefLocation {
     }
 }
 
-impl PartialEq for RefLocation {
+impl PartialEq for RefLocationPath {
     fn eq(&self, other: &Self) -> bool {
         self.id.eq(&other.id)
     }
@@ -232,7 +232,7 @@ impl TLocation for LRef {
         self.get_session()?.location_get_module(&self.id())
     }
 
-    fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError> {
+    fn set_module(&self, module: Option<ModulePath>) -> Result<(), SessionError> {
         self.get_session()?.location_set_module(&self.id(), module)
     }
 
@@ -324,7 +324,7 @@ impl TLocation for LRef {
         self.get_session()?.destroy_location(self.id())
     }
 
-    fn _move(&self, to: &LocationId) -> Result<(), SessionError> {
+    fn _move(&self, to: &LocationPath) -> Result<(), SessionError> {
         self.get_session()?.move_location(&self.id(), to)
     }
 
@@ -332,7 +332,7 @@ impl TLocation for LRef {
         self.get_session()?.location_is_error(&self.id())
     }
 
-    fn id(&self) -> LocationId {
+    fn id(&self) -> LocationPath {
         self.read().unwrap().id.clone()
     }
 }
@@ -386,7 +386,7 @@ pub trait TLocation {
     fn set_should_save(&self, should_save: bool) -> Result<(), SessionError>;
 
     fn get_module(&self) -> Result<Option<MRef>, SessionError>;
-    fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError>;
+    fn set_module(&self, module: Option<ModulePath>) -> Result<(), SessionError>;
 
     fn get_settings(&self) -> Result<Values, SessionError>;
     fn set_settings(&self, data: Values) -> Result<(), SessionError>;
@@ -418,18 +418,18 @@ pub trait TLocation {
     fn set_enabled(&self, enabled: bool, storage: Option<Storage>) -> Result<(), SessionError>;
 
     fn destroy(self) -> Result<LRow, SessionError>;
-    fn _move(&self, to: &LocationId) -> Result<(), SessionError>;
+    fn _move(&self, to: &LocationPath) -> Result<(), SessionError>;
 
     fn is_error(&self) -> Result<bool, SessionError>;
 
-    fn id(&self) -> LocationId;
+    fn id(&self) -> LocationPath;
 }
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize, Hash, bytes_kman::Bytes)]
 pub struct LocationInfo {
     pub name: String,
     pub desc: String,
-    pub id: LocationId,
+    pub id: LocationPath,
     pub where_is: WhereIsLocation,
     pub shoud_save: bool,
     pub elements: Vec<ElementInfo>,
