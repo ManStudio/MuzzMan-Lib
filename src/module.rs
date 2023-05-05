@@ -335,6 +335,23 @@ impl RawModule {
             }
         }
 
+        if let Ok(logger_state) = unsafe {
+            lib.get::<*mut std::thread::LocalKey<
+                std::sync::RwLock<std::sync::Arc<std::sync::RwLock<crate::logger::Iam>>>,
+            >>(b"WHO_IAM\0")
+        } {
+            let state = logger::WHO_IAM.with(|w| w.read().unwrap().clone());
+            unsafe {
+                std::thread::LocalKey::<
+                    std::sync::RwLock<std::sync::Arc<std::sync::RwLock<crate::logger::Iam>>>,
+                >::with(logger_state.as_mut().unwrap(), |d| {
+                    let mut lock = d.write().unwrap();
+                    let lock = &mut *lock;
+                    let _ = std::mem::replace(lock, state);
+                });
+            }
+        }
+
         Ok(Self {
             lib,
             fn_init,

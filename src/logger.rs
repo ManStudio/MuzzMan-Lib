@@ -5,7 +5,8 @@ use once_cell::sync::Lazy;
 use crate::{element::ElementId, prelude::LocationId};
 
 thread_local! {
-    pub static WHO_IAM: RwLock<Iam> = RwLock::new(Iam::MuzzManLib)
+    #[no_mangle]
+    pub static WHO_IAM: RwLock<Arc<RwLock<Iam>>> = RwLock::new(Arc::new(RwLock::new(Iam::MuzzManLib)));
 }
 
 #[no_mangle]
@@ -70,7 +71,10 @@ impl log::Log for Logger {
             file: record.file().map(|f| f.to_string()),
             line: record.line(),
         };
-        LOGGER_STATE.write().unwrap().log(who_iam, record);
+        LOGGER_STATE
+            .write()
+            .unwrap()
+            .log(who_iam.read().unwrap().clone(), record);
     }
 
     fn flush(&self) {}
