@@ -103,6 +103,13 @@ pub enum WhereIsLocation {
 )]
 pub struct LocationPath(pub Vec<u64>);
 
+#[derive(Serialize, Deserialize)]
+pub struct LocationId {
+    pub uid: UID,
+    #[serde(skip)]
+    pub session: Option<Box<dyn TSession>>,
+}
+
 impl std::ops::Deref for LocationPath {
     type Target = Vec<u64>;
 

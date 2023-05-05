@@ -34,6 +34,13 @@ pub enum ControlFlow {
 
 pub struct ModulePath(pub UID);
 
+#[derive(Serialize, Deserialize)]
+pub struct ModuleId {
+    pub uid: UID,
+    #[serde(skip)]
+    pub session: Option<Box<dyn TSession>>,
+}
+
 impl From<MRef> for ModulePath {
     fn from(value: MRef) -> Self {
         value.read().unwrap().index

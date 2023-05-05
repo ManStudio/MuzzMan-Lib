@@ -28,10 +28,12 @@ pub struct ElementPath {
     pub location_id: LocationPath,
 }
 
-#[derive(
-    Debug, Clone, Hash, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, bytes_kman::Bytes,
-)]
-pub struct ElementId(pub UID);
+#[derive(Serialize, Deserialize)]
+pub struct ElementId {
+    pub uid: UID,
+    #[serde(skip)]
+    pub session: Option<Box<dyn TSession>>,
+}
 
 impl ElementPath {
     pub fn into_ref(self, session: Box<dyn TSession>) -> RefElementPath {
