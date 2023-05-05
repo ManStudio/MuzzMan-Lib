@@ -67,7 +67,7 @@ impl log::Log for Logger {
     }
 
     fn log(&self, record: &log::Record) {
-        let who_iam = WHO_IAM.with(|w| w.read().unwrap().clone());
+        let who_iam = LOGGER_WHO_IAM.with(|w| w.read().unwrap().clone());
         let record = Record {
             time: std::time::SystemTime::now(),
             level: record.level(),

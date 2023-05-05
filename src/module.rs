@@ -335,21 +335,21 @@ impl RawModule {
             }
         }
 
-        if let Ok(logger_state) = unsafe {
+        if let Ok(logger_who_iam) = unsafe {
             lib.get::<*mut once_cell::sync::Lazy<
                 std::sync::Arc<std::thread::LocalKey<std::sync::RwLock<crate::logger::Iam>>>,
             >>(b"LOGGER_WHO_IAM\0")
         } {
             let state = logger::LOGGER_WHO_IAM.clone();
             unsafe {
-                let dylib_state = once_cell::sync::Lazy::<
+                let dylib_who_iam = once_cell::sync::Lazy::<
                     std::sync::Arc<std::thread::LocalKey<std::sync::RwLock<crate::logger::Iam>>>,
                     fn() -> std::sync::Arc<
                         std::thread::LocalKey<std::sync::RwLock<crate::logger::Iam>>,
                     >,
-                >::force_mut(logger_state.as_mut().unwrap());
+                >::force_mut(logger_who_iam.as_mut().unwrap());
 
-                let _ = std::mem::replace(dylib_state, state);
+                let _ = std::mem::replace(dylib_who_iam, state);
             }
         }
 
