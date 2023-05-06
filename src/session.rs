@@ -326,6 +326,14 @@ pub trait TSession: Send + Sync {
     fn get_location_id(&self, uid: UID) -> Result<LocationId, SessionError>;
     fn get_id(&self, uid: UID) -> Result<ID, SessionError>;
 
+    fn get_module_path(&self, uid: UID) -> Result<ModulePath, SessionError>;
+    fn get_element_path(&self, uid: UID) -> Result<ElementPath, SessionError>;
+    fn get_location_path(&self, uid: UID) -> Result<LocationPath, SessionError>;
+
+    fn get_module_from_path(&self, path: ModulePath) -> Result<ModuleId, SessionError>;
+    fn get_element_from_path(&self, path: ElementPath) -> Result<ElementId, SessionError>;
+    fn get_location_from_path(&self, path: LocationPath) -> Result<LocationId, SessionError>;
+
     //
     // Session
     //

@@ -119,7 +119,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         module: Box<dyn TModule>,
         path: Option<PathBuf>,
         info: Option<ModuleInfo>,
-    ) -> Result<MRef, SessionError> {
+    ) -> Result<ModuleId, SessionError> {
         let result;
         let mut notifications = Vec::new();
 
@@ -158,7 +158,10 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                                 module.settings = info.settings;
                                 module.element_settings = info.element_settings;
                             }
-                            result = self.get_module_id(&info.id);
+                            result = ModuleId {
+                                uid: *module.read()?.ref_id.read()?.module()?.1,
+                                session: Some(self.c()),
+                            };
                             break 'install_module;
                         } else {
                             // if we not have the correct module
@@ -172,12 +175,16 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                             let (last_id, new_id) = {
                                 let old = module_old.read()?;
                                 let mut id = old.ref_id.write()?;
-                                let last = id.index;
-                                id.index.0 = len as u64;
-                                (last, id.index)
+                                let id = id.module_mut()?;
+                                let last = id.0 .0;
+                                id.0 .0 = len as u64;
+                                (last, id.0 .0)
                             };
 
-                            notifications.push(SessionEvent::ModuleIdChanged(last_id, new_id));
+                            notifications.push(SessionEvent::ModuleIdChanged(
+                                ModulePath(last_id),
+                                ModulePath(new_id),
+                            ));
 
                             result = Ok(ref_);
                             break 'install_module;

@@ -123,7 +123,7 @@ pub struct Module {
     /// default data
     pub element_settings: Values,
     pub location_settings: Values,
-    pub ref_id: MRef,
+    pub ref_id: Ref,
 }
 
 impl Debug for Module {

@@ -33,6 +33,56 @@ pub enum Path {
     None,
 }
 
+impl Path {
+    pub fn element(&self) -> Result<(&ElementPath, &UID), SessionError> {
+        if let Self::Element(element, uid) = self {
+            Ok((element, uid))
+        } else {
+            Err(SessionError::IsNotElement)
+        }
+    }
+
+    pub fn location(&self) -> Result<(&LocationPath, &UID), SessionError> {
+        if let Self::Location(location, uid) = self {
+            Ok((location, uid))
+        } else {
+            Err(SessionError::IsNotLocation)
+        }
+    }
+
+    pub fn module(&self) -> Result<(&ModulePath, &UID), SessionError> {
+        if let Self::Module(module, uid) = self {
+            Ok((module, uid))
+        } else {
+            Err(SessionError::IsNotModule)
+        }
+    }
+
+    pub fn element_mut(&mut self) -> Result<(&mut ElementPath, &mut UID), SessionError> {
+        if let Self::Element(element, uid) = self {
+            Ok((element, uid))
+        } else {
+            Err(SessionError::IsNotElement)
+        }
+    }
+
+    pub fn location_mut(&mut self) -> Result<(&mut LocationPath, &mut UID), SessionError> {
+        if let Self::Location(location, uid) = self {
+            Ok((location, uid))
+        } else {
+            Err(SessionError::IsNotLocation)
+        }
+    }
+
+    pub fn module_mut(&mut self) -> Result<(&mut ModulePath, &mut UID), SessionError> {
+        if let Self::Module(module, uid) = self {
+            Ok((module, uid))
+        } else {
+            Err(SessionError::IsNotModule)
+        }
+    }
+}
+
 pub type Ref = Arc<RwLock<Path>>;
 
 impl PartialEq for ID {
