@@ -42,14 +42,8 @@ impl Events {
             self.cursour = 0;
         }
 
-        self.subscribers.retain(|subscriber| {
-            if let Ok(subscriber) = &subscriber.get_ref(session.as_ref()) {
-                let _ = subscriber.notify(event.clone());
-                true
-            } else {
-                false
-            }
-        })
+        self.subscribers
+            .retain(|subscriber| subscriber.notify(event.clone()).is_ok())
     }
 
     pub fn is_subscribed(&self, _ref: &ID) -> bool {

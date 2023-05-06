@@ -73,6 +73,12 @@ impl bytes_kman::TBytes for ModuleId {
     }
 }
 
+impl PartialEq for ModuleId {
+    fn eq(&self, other: &Self) -> bool {
+        self.uid == other.uid
+    }
+}
+
 impl Debug for ModuleId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ModuleId").field("uid", &self.uid).finish()
@@ -518,7 +524,7 @@ impl TModule for Arc<RawModule> {
     }
 }
 
-pub trait TModuleInfo {
+pub trait TModuleHelper {
     fn get_session(&self) -> Result<Box<dyn TSession>, SessionError>;
 
     fn get_name(&self) -> Result<String, SessionError>;
@@ -553,13 +559,13 @@ pub trait TModuleInfo {
 
     fn step_element(
         &self,
-        element_info: &ElementPath,
+        element_info: ElementId,
         control_flow: ControlFlow,
         storage: Storage,
     ) -> Result<(ControlFlow, Storage), SessionError>;
     fn step_location(
         &self,
-        location_info: &LocationPath,
+        location_info: LocationId,
         control_flow: ControlFlow,
         storage: Storage,
     ) -> Result<(ControlFlow, Storage), SessionError>;
@@ -569,82 +575,79 @@ pub trait TModuleInfo {
     fn accepted_protocols(&self) -> Result<Vec<String>, SessionError>;
     fn accepted_extensions(&self) -> Result<Vec<String>, SessionError>;
 
-    fn init_element(&self, element_info: &ElementPath) -> Result<(), SessionError>;
-    fn init_location(&self, location_info: &LocationPath) -> Result<(), SessionError>;
+    fn init_element(&self, element_id: ElementId) -> Result<(), SessionError>;
+    fn init_location(&self, location_id: LocationId) -> Result<(), SessionError>;
 
     fn notify(&self, info: ID, event: Event) -> Result<(), SessionError>;
-
-    fn id(&self) -> ModulePath;
 }
 
-impl TModuleInfo for MRef {
+impl TModuleHelper for ModuleId {
     fn get_session(&self) -> Result<Box<dyn TSession>, SessionError> {
-        if let Some(session) = &self.read().unwrap().session {
+        if let Some(session) = &self.session {
             return Ok(session.c());
         }
         Err(SessionError::InvalidSession)
     }
 
     fn get_name(&self) -> Result<String, SessionError> {
-        self.get_session()?.module_get_name(&self.id())
+        self.get_session()?.module_get_name(self.uid)
     }
 
     fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.module_set_name(&self.id(), name.into())
+        self.get_session()?.module_set_name(self.uid, name.into())
     }
 
     fn get_default_name(&self) -> Result<String, SessionError> {
-        self.get_session()?.module_get_default_name(&self.id())
+        self.get_session()?.module_get_default_name(self.uid)
     }
 
     fn uid(&self) -> Result<UID, SessionError> {
-        self.get_session()?.module_get_uid(&self.id())
+        self.get_session()?.module_get_uid(self.uid)
     }
 
     fn version(&self) -> Result<String, SessionError> {
-        self.get_session()?.module_get_version(&self.id())
+        self.get_session()?.module_get_version(self.uid)
     }
 
     fn supported_versions(&self) -> Result<Range<u64>, SessionError> {
-        self.get_session()?.module_supported_versions(&self.id())
+        self.get_session()?.module_supported_versions(self.uid)
     }
 
     fn get_desc(&self) -> Result<String, SessionError> {
-        self.get_session()?.module_get_desc(&self.id())
+        self.get_session()?.module_get_desc(self.uid)
     }
 
     fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError> {
-        self.get_session()?.module_set_desc(&self.id(), desc.into())
+        self.get_session()?.module_set_desc(self.uid, desc.into())
     }
 
     fn get_default_desc(&self) -> Result<String, SessionError> {
-        self.get_session()?.module_get_default_desc(&self.id())
+        self.get_session()?.module_get_default_desc(self.uid)
     }
 
     fn get_proxy(&self) -> Result<usize, SessionError> {
-        self.get_session()?.module_get_proxy(&self.id())
+        self.get_session()?.module_get_proxy(self.uid)
     }
 
     fn set_proxy(&self, proxy: usize) -> Result<(), SessionError> {
-        self.get_session()?.module_set_proxy(&self.id(), proxy)
+        self.get_session()?.module_set_proxy(self.uid, proxy)
     }
 
     fn get_settings(&self) -> Result<Values, SessionError> {
-        self.get_session()?.module_get_settings(&self.id())
+        self.get_session()?.module_get_settings(self.uid)
     }
 
     fn set_settings(&self, settings: Values) -> Result<(), SessionError> {
-        self.get_session()?
-            .module_set_settings(&self.id(), settings)
+        self.get_session()?.module_set_settings(self.uid, settings)
     }
 
     fn get_element_settings(&self) -> Result<Values, SessionError> {
-        self.get_session()?.module_get_element_settings(&self.id())
+        self.get_session()?.module_get_element_settings(self.uid)
     }
 
     fn set_element_settings(&self, settings: Values) -> Result<(), SessionError> {
         self.get_session()?
-            .module_set_element_settings(&self.id(), settings)
+            .module_set_element_settings(self.uid, settings)
     }
 
     fn register_action(
@@ -654,74 +657,71 @@ impl TModuleInfo for MRef {
         callback: fn(MRef, values: Vec<Type>),
     ) -> Result<(), SessionError> {
         self.get_session()?
-            .register_action(&self.id(), name, values, callback)
+            .register_action(self.uid, name, values, callback)
     }
 
     fn remove_action(&self, name: String) -> Result<(), SessionError> {
-        self.get_session()?.remove_action(&self.id(), name)
+        self.get_session()?.remove_action(self.uid, name)
     }
 
     fn run_action(&self, name: String, data: Vec<Type>) -> Result<(), SessionError> {
-        self.get_session()?.run_action(&self.id(), name, data)
+        self.get_session()?.run_action(self.uid, name, data)
     }
 
     fn step_element(
         &self,
-        element_info: &ElementPath,
+        element_id: ElementId,
         control_flow: ControlFlow,
         storage: Storage,
     ) -> Result<(ControlFlow, Storage), SessionError> {
         self.get_session()?
-            .module_step_element(&self.id(), element_info, control_flow, storage)
+            .module_step_element(self.uid, element_id.uid, control_flow, storage)
     }
 
     fn step_location(
         &self,
-        location_info: &LocationPath,
+        location_id: LocationId,
         control_flow: ControlFlow,
         storage: Storage,
     ) -> Result<(ControlFlow, Storage), SessionError> {
         self.get_session()?
-            .module_step_location(&self.id(), location_info, control_flow, storage)
+            .module_step_location(self.uid, location_id.uid, control_flow, storage)
     }
 
     fn accept_url(&self, url: String) -> Result<bool, SessionError> {
-        self.get_session()?.module_accept_url(&self.id(), url)
+        self.get_session()?.module_accept_url(self.uid, url)
     }
 
     fn accept_extension(&self, filename: impl Into<String>) -> Result<bool, SessionError> {
         self.get_session()?
-            .module_accept_extension(&self.id(), &filename.into())
+            .module_accept_extension(self.uid, &filename.into())
     }
 
     fn accepted_protocols(&self) -> Result<Vec<String>, SessionError> {
-        self.get_session()?.module_accepted_protocols(&self.id())
+        self.get_session()?.module_accepted_protocols(self.uid)
     }
 
     fn accepted_extensions(&self) -> Result<Vec<String>, SessionError> {
-        self.get_session()?.module_accepted_extensions(&self.id())
+        self.get_session()?.module_accepted_extensions(self.uid)
     }
 
-    fn init_element(&self, element_info: &ElementPath) -> Result<(), SessionError> {
+    fn init_element(&self, element_id: ElementId) -> Result<(), SessionError> {
         self.get_session()?
-            .module_init_element(&self.id(), element_info)
+            .module_init_element(self.uid, element_id.uid)
     }
 
-    fn init_location(&self, location_info: &LocationPath) -> Result<(), SessionError> {
+    fn init_location(&self, location_id: LocationId) -> Result<(), SessionError> {
         self.get_session()?
-            .module_init_location(&self.id(), location_info)
+            .module_init_location(self.uid, location_id.uid)
     }
 
     fn notify(&self, info: ID, event: Event) -> Result<(), SessionError> {
         let session = self.get_session()?;
         match info {
-            ID::Element(e) => session.element_notify(&e, event),
-            ID::Location(l) => session.location_notify(&l, event),
+            ID::Element(e) => session.element_notify(e.uid, event),
+            ID::Location(l) => session.location_notify(l.uid, event),
+            _ => Ok(()),
         }
-    }
-
-    fn id(&self) -> ModulePath {
-        self.read().unwrap().index
     }
 }
 

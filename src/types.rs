@@ -20,24 +20,20 @@ pub type UID = u64;
 
 #[derive(Debug, Clone, bytes_kman::Bytes)]
 pub enum ID {
-    Element(ElementPath),
-    Location(LocationPath),
+    Element(ElementId),
+    Location(LocationId),
+    Module(ModuleId),
 }
 
 #[derive(Clone)]
-pub enum Ref {
-    Element(ERef),
-    Location(LRef),
+pub enum Path {
+    Element(ElementPath, UID),
+    Location(LocationPath, UID),
+    Module(ModulePath, UID),
+    None,
 }
 
-impl From<Ref> for ID {
-    fn from(value: Ref) -> Self {
-        match value {
-            Ref::Element(e) => ID::Element(e.read().unwrap().id.clone()),
-            Ref::Location(l) => ID::Location(l.read().unwrap().id.clone()),
-        }
-    }
-}
+pub type Ref = Arc<RwLock<Path>>;
 
 impl PartialEq for ID {
     fn eq(&self, other: &Self) -> bool {
@@ -56,15 +52,13 @@ impl PartialEq for ID {
                     false
                 }
             }
-        }
-    }
-}
-
-impl ID {
-    pub fn get_ref(&self, session: &dyn TSession) -> Result<Ref, SessionError> {
-        match self {
-            ID::Element(e) => Ok(Ref::Element(session.get_element_ref(e)?)),
-            ID::Location(l) => Ok(Ref::Location(session.get_location_ref(l)?)),
+            ID::Module(m) => {
+                if let ID::Module(sl) = other {
+                    m == sl
+                } else {
+                    false
+                }
+            }
         }
     }
 }
@@ -72,11 +66,11 @@ impl ID {
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    element::ElementPath,
+    element::{ElementId, ElementPath},
     enums::{AdvanceEnum, CustomEnum},
     prelude::{
-        Data, Element, Location, LocationPath, Module, RefElementPath, RefLocationPath,
-        RefModulePath, SessionError, TSession,
+        Data, Element, Location, LocationId, LocationPath, Module, ModuleId, ModulePath,
+        RefElementPath, RefLocationPath, RefModulePath, SessionError, TSession,
     },
 };
 

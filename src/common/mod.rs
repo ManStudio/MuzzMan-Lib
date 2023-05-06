@@ -33,7 +33,7 @@ pub fn get_modules() -> Vec<PathBuf> {
 
 use crate::{
     events::Event,
-    prelude::{Ref, SessionError},
+    prelude::{Ref, SessionError, TModuleHelper},
     types::ID,
 };
 
@@ -51,60 +51,68 @@ pub trait Common {
     fn unsubscribe(&self, _ref: ID) -> Result<(), SessionError>;
 }
 
-impl Common for Ref {
+impl Common for ID {
     fn get_name(&self) -> Result<String, crate::prelude::SessionError> {
         match self {
-            Ref::Element(e) => e.get_name(),
-            Ref::Location(l) => l.get_name(),
+            ID::Element(e) => e.get_name(),
+            ID::Location(l) => l.get_name(),
+            ID::Module(m) => m.get_name(),
         }
     }
 
     fn set_name(&self, name: impl Into<String>) -> Result<(), crate::prelude::SessionError> {
         match self {
-            Ref::Element(e) => e.set_name(name),
-            Ref::Location(l) => l.set_name(name),
+            ID::Element(e) => e.set_name(name),
+            ID::Location(l) => l.set_name(name),
+            ID::Module(m) => m.set_name(name),
         }
     }
 
     fn get_desc(&self) -> Result<String, crate::prelude::SessionError> {
         match self {
-            Ref::Element(e) => e.get_desc(),
-            Ref::Location(l) => l.get_desc(),
+            ID::Element(e) => e.get_desc(),
+            ID::Location(l) => l.get_desc(),
+            ID::Module(m) => m.get_desc(),
         }
     }
 
     fn set_desc(&self, desc: impl Into<String>) -> Result<(), crate::prelude::SessionError> {
         match self {
-            Ref::Element(e) => e.set_desc(desc),
-            Ref::Location(l) => l.set_desc(desc),
+            ID::Element(e) => e.set_desc(desc),
+            ID::Location(l) => l.set_desc(desc),
+            ID::Module(m) => m.set_desc(desc),
         }
     }
 
     fn notify(&self, event: crate::events::Event) -> Result<(), crate::prelude::SessionError> {
         match self {
-            Ref::Element(e) => e.notify(event),
-            Ref::Location(l) => l.notify(event),
+            ID::Element(e) => e.notify(event),
+            ID::Location(l) => l.notify(event),
+            ID::Module(_) => Ok(()),
         }
     }
 
     fn emit(&self, event: Event) -> Result<(), SessionError> {
         match self {
-            Ref::Element(e) => e.emit(event),
-            Ref::Location(l) => l.emit(event),
+            ID::Element(e) => e.emit(event),
+            ID::Location(l) => l.emit(event),
+            ID::Module(_) => Ok(()),
         }
     }
 
     fn subscribe(&self, _ref: ID) -> Result<(), SessionError> {
         match self {
-            Ref::Element(e) => e.subscribe(_ref),
-            Ref::Location(l) => l.subscribe(_ref),
+            ID::Element(e) => e.subscribe(_ref),
+            ID::Location(l) => l.subscribe(_ref),
+            ID::Module(_) => Ok(()),
         }
     }
 
     fn unsubscribe(&self, _ref: ID) -> Result<(), SessionError> {
         match self {
-            Ref::Element(e) => e.unsubscribe(_ref),
-            Ref::Location(l) => l.unsubscribe(_ref),
+            ID::Element(e) => e.unsubscribe(_ref),
+            ID::Location(l) => l.unsubscribe(_ref),
+            ID::Module(_) => Ok(()),
         }
     }
 }

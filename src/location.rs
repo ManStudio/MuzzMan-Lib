@@ -142,6 +142,12 @@ impl bytes_kman::TBytes for LocationId {
     }
 }
 
+impl PartialEq for LocationId {
+    fn eq(&self, other: &Self) -> bool {
+        self.uid == other.uid
+    }
+}
+
 impl Debug for LocationId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LocationId")
@@ -240,9 +246,9 @@ pub struct Location {
     pub enabled: bool,
 }
 
-impl TLocation for LRef {
+impl TLocation for LocationId {
     fn get_session(&self) -> Result<Box<dyn TSession>, SessionError> {
-        if let Some(session) = &self.read().unwrap().session {
+        if let Some(session) = &self.session {
             return Ok(session.c());
         }
 
@@ -250,95 +256,96 @@ impl TLocation for LRef {
     }
 
     fn get_path(&self) -> Result<PathBuf, SessionError> {
-        self.get_session()?.location_get_path(&self.id())
+        self.get_session()?.location_get_path(self.uid)
     }
 
     fn set_path(&self, path: PathBuf) -> Result<(), SessionError> {
-        self.get_session()?.location_set_path(&self.id(), path)
+        self.get_session()?.location_set_path(self.uid, path)
     }
 
     fn get_where_is(&self) -> Result<WhereIsLocation, SessionError> {
-        self.get_session()?.location_get_where_is(&self.id())
+        self.get_session()?.location_get_where_is(self.uid)
     }
 
     fn set_where_is(&self, where_is: WhereIsLocation) -> Result<(), SessionError> {
         self.get_session()?
-            .location_set_where_is(&self.id(), where_is)
+            .location_set_where_is(self.uid, where_is)
     }
 
     fn get_should_save(&self) -> Result<bool, SessionError> {
-        self.get_session()?.location_get_should_save(&self.id())
+        self.get_session()?.location_get_should_save(self.uid)
     }
 
     fn set_should_save(&self, should_save: bool) -> Result<(), SessionError> {
         self.get_session()?
-            .location_set_should_save(&self.id(), should_save)
+            .location_set_should_save(self.uid, should_save)
     }
 
-    fn get_module(&self) -> Result<Option<MRef>, SessionError> {
-        self.get_session()?.location_get_module(&self.id())
+    fn get_module(&self) -> Result<Option<ModuleId>, SessionError> {
+        self.get_session()?.location_get_module(self.uid)
     }
 
-    fn set_module(&self, module: Option<ModulePath>) -> Result<(), SessionError> {
-        self.get_session()?.location_set_module(&self.id(), module)
+    fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError> {
+        self.get_session()?
+            .location_set_module(self.uid, module.map(|m| m.uid))
     }
 
     fn get_settings(&self) -> Result<Values, SessionError> {
-        self.get_session()?.location_get_settings(&self.id())
+        self.get_session()?.location_get_settings(self.uid)
     }
 
     fn set_settings(&self, data: Values) -> Result<(), SessionError> {
-        self.get_session()?.location_set_settings(&self.id(), data)
+        self.get_session()?.location_set_settings(self.uid, data)
     }
 
     fn get_module_settings(&self) -> Result<Values, SessionError> {
-        self.get_session()?.location_get_module_settings(&self.id())
+        self.get_session()?.location_get_module_settings(self.uid)
     }
 
     fn set_module_settings(&self, data: Values) -> Result<(), SessionError> {
         self.get_session()?
-            .location_set_module_settings(&self.id(), data)
+            .location_set_module_settings(self.uid, data)
     }
 
     fn get_elements(&self, range: Range<usize>) -> Result<Vec<ERef>, SessionError> {
-        self.get_session()?.location_get_elements(&self.id(), range)
+        self.get_session()?.location_get_elements(self.uid, range)
     }
 
     fn get_elements_len(&self) -> Result<usize, SessionError> {
-        self.get_session()?.location_get_elements_len(&self.id())
+        self.get_session()?.location_get_elements_len(self.uid)
     }
 
     fn get_locations(&self, range: Range<usize>) -> Result<Vec<LRef>, SessionError> {
-        self.get_session()?.get_locations(&self.id(), range)
+        self.get_session()?.get_locations(self.uid, range)
     }
 
     fn get_locations_len(&self) -> Result<usize, SessionError> {
-        self.get_session()?.get_locations_len(&self.id())
+        self.get_session()?.get_locations_len(self.uid)
     }
 
     fn get_location_info(&self) -> Result<LocationInfo, SessionError> {
-        self.get_session()?.location_get_location_info(&self.id())
+        self.get_session()?.location_get_location_info(self.uid)
     }
 
     fn create_element(&self, name: &str) -> Result<ERef, SessionError> {
-        self.get_session()?.create_element(name, &self.id())
+        self.get_session()?.create_element(name, self.uid)
     }
 
     fn create_location(&self, name: &str) -> Result<LRef, SessionError> {
-        self.get_session()?.create_location(name, &self.id())
+        self.get_session()?.create_location(name, self.uid)
     }
 
     fn get_statuses(&self) -> Result<Vec<String>, SessionError> {
-        self.get_session()?.location_get_statuses(&self.id())
+        self.get_session()?.location_get_statuses(self.uid)
     }
 
     fn set_statuses(&self, statuses: Vec<String>) -> Result<(), SessionError> {
         self.get_session()?
-            .location_set_statuses(&self.id(), statuses)
+            .location_set_statuses(self.uid, statuses)
     }
 
     fn get_status(&self) -> Result<usize, SessionError> {
-        self.get_session()?.location_get_status(&self.id())
+        self.get_session()?.location_get_status(self.uid)
     }
 
     fn get_status_msg(&self) -> Result<String, SessionError> {
@@ -346,77 +353,73 @@ impl TLocation for LRef {
     }
 
     fn set_status(&self, status: usize) -> Result<(), SessionError> {
-        self.get_session()?.location_set_status(&self.id(), status)
+        self.get_session()?.location_set_status(self.uid, status)
     }
 
     fn get_progress(&self) -> Result<f32, SessionError> {
-        self.get_session()?.location_get_progress(&self.id())
+        self.get_session()?.location_get_progress(self.uid)
     }
 
     fn set_progress(&self, progress: f32) -> Result<(), SessionError> {
         self.get_session()?
-            .location_set_progress(&self.id(), progress)
+            .location_set_progress(self.uid, progress)
     }
 
     fn is_enabled(&self) -> Result<bool, SessionError> {
-        self.get_session()?.location_is_enabled(&self.id())
+        self.get_session()?.location_is_enabled(self.uid)
     }
 
     fn set_enabled(&self, enabled: bool, storage: Option<Storage>) -> Result<(), SessionError> {
         self.get_session()?
-            .location_set_enabled(&self.id(), enabled, storage)
+            .location_set_enabled(self.uid, enabled, storage)
     }
 
     fn destroy(self) -> Result<LRow, SessionError> {
-        self.get_session()?.destroy_location(self.id())
+        self.get_session()?.destroy_location(self.uid)
     }
 
-    fn _move(&self, to: &LocationPath) -> Result<(), SessionError> {
-        self.get_session()?.move_location(&self.id(), to)
+    fn _move(&self, to: LocationId) -> Result<(), SessionError> {
+        self.get_session()?.move_location(self.uid, to.uid)
     }
 
     fn is_error(&self) -> Result<bool, SessionError> {
-        self.get_session()?.location_is_error(&self.id())
-    }
-
-    fn id(&self) -> LocationPath {
-        self.read().unwrap().id.clone()
+        self.get_session()?.location_is_error(self.uid)
     }
 }
 
-impl Common for LRef {
+impl Common for LocationId {
     fn get_name(&self) -> Result<String, SessionError> {
-        self.get_session()?.location_get_name(&self.id())
+        self.get_session()?.location_get_name(self.uid)
     }
 
     fn set_name(&self, name: impl Into<String>) -> Result<(), SessionError> {
         self.get_session()?
-            .location_set_name(&self.id(), &name.into())
+            .location_set_name(self.uid, &name.into())
     }
 
     fn get_desc(&self) -> Result<String, SessionError> {
-        self.get_session()?.location_get_desc(&self.id())
+        self.get_session()?.location_get_desc(self.uid)
     }
 
     fn set_desc(&self, desc: impl Into<String>) -> Result<(), SessionError> {
         self.get_session()?
-            .location_set_desc(&self.id(), &desc.into())
+            .location_set_desc(self.uid, &desc.into())
     }
 
     fn notify(&self, event: Event) -> Result<(), SessionError> {
-        self.get_session()?.location_notify(&self.id(), event)
+        self.get_session()?.location_notify(self.uid, event)
     }
 
     fn emit(&self, event: Event) -> Result<(), SessionError> {
-        self.get_session()?.location_emit(&self.id(), event)
+        self.get_session()?.location_emit(self.uid, event)
     }
 
     fn subscribe(&self, _ref: ID) -> Result<(), SessionError> {
-        self.get_session()?.location_subscribe(&self.id(), _ref)
+        self.get_session()?.location_subscribe(self.uid, _ref)
     }
 
     fn unsubscribe(&self, _ref: ID) -> Result<(), SessionError> {
-        self.get_session()?.location_unsubscribe(&self.id(), _ref)
+        self.get_session()?.location_unsubscribe(self.uid, _ref)
     }
 }
 
@@ -432,8 +435,8 @@ pub trait TLocation {
     fn get_should_save(&self) -> Result<bool, SessionError>;
     fn set_should_save(&self, should_save: bool) -> Result<(), SessionError>;
 
-    fn get_module(&self) -> Result<Option<MRef>, SessionError>;
-    fn set_module(&self, module: Option<ModulePath>) -> Result<(), SessionError>;
+    fn get_module(&self) -> Result<Option<ModuleId>, SessionError>;
+    fn set_module(&self, module: Option<ModuleId>) -> Result<(), SessionError>;
 
     fn get_settings(&self) -> Result<Values, SessionError>;
     fn set_settings(&self, data: Values) -> Result<(), SessionError>;
@@ -465,11 +468,9 @@ pub trait TLocation {
     fn set_enabled(&self, enabled: bool, storage: Option<Storage>) -> Result<(), SessionError>;
 
     fn destroy(self) -> Result<LRow, SessionError>;
-    fn _move(&self, to: &LocationPath) -> Result<(), SessionError>;
+    fn _move(&self, to: LocationId) -> Result<(), SessionError>;
 
     fn is_error(&self) -> Result<bool, SessionError>;
-
-    fn id(&self) -> LocationPath;
 }
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize, Hash, bytes_kman::Bytes)]

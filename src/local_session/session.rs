@@ -15,6 +15,8 @@ pub struct LocalSession {
     pub modules: Vec<Option<MRow>>,
     pub actions: Vec<Arc<RwLock<Action>>>,
     pub callback: Option<Box<dyn Fn(SessionEvent)>>,
+
+    pub refs: Vec<Ref>,
 }
 
 unsafe impl Send for LocalSession {}
@@ -156,7 +158,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                                 module.settings = info.settings;
                                 module.element_settings = info.element_settings;
                             }
-                            result = self.get_module_ref(&info.id);
+                            result = self.get_module_id(&info.id);
                             break 'install_module;
                         } else {
                             // if we not have the correct module
@@ -816,7 +818,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
 
     fn load_element_info(&self, info: ElementInfo) -> Result<ERef, SessionError> {
         let location = self.get_location(&info.id.location_id)?;
-        let location_ref = self.get_location_ref(&info.id.location_id)?;
+        let location_ref = self.get_location_id(&info.id.location_id)?;
         let location_id = info.id.location_id;
 
         let element_id = Arc::new(RwLock::new(RefElementPath {
@@ -923,7 +925,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn destroy_element(&self, element_id: ElementPath) -> Result<ERow, SessionError> {
-        let _ = self.get_element_ref(&element_id)?;
+        let _ = self.get_element_id(&element_id)?;
 
         let _ = self.notify_all(vec![SessionEvent::DestroyedElement(element_id.clone())]);
 
@@ -1040,7 +1042,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         module: Option<ModulePath>,
     ) -> Result<(), SessionError> {
         self.get_element(element_id)?.write()?.module = match &module {
-            Some(module_id) => Some(self.get_module_ref(module_id)?),
+            Some(module_id) => Some(self.get_module_id(module_id)?),
             None => None,
         };
         Ok(())
@@ -1304,7 +1306,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             raw_module = __module.read()?.module.c();
         }
 
-        let element_ref = self.get_element_ref(element_id)?;
+        let element_ref = self.get_element_id(element_id)?;
         raw_module.notify(Ref::Element(element_ref), event)?;
 
         Ok(())
@@ -1673,7 +1675,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
     }
 
     fn destroy_location(&self, location_id: LocationPath) -> Result<LRow, SessionError> {
-        let _ = self.get_location_ref(&location_id)?;
+        let _ = self.get_location_id(&location_id)?;
         let _ = self.notify_all(vec![SessionEvent::DestroyedLocation(location_id.clone())]);
 
         let mut location_uid = location_id;
@@ -1834,7 +1836,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         module_id: Option<ModulePath>,
     ) -> Result<(), SessionError> {
         self.get_location(location_id)?.write()?.module = if let Some(module_id) = module_id {
-            Some(self.get_module_ref(&module_id)?)
+            Some(self.get_module_id(&module_id)?)
         } else {
             None
         };
@@ -2034,7 +2036,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
             raw_module = __module.read()?.module.c();
         }
 
-        let location_ref = self.get_location_ref(location_id)?;
+        let location_ref = self.get_location_id(location_id)?;
         raw_module.notify(Ref::Location(location_ref), event)?;
 
         Ok(())
@@ -2077,11 +2079,7 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(())
     }
 
-    fn location_unsubscribe(
-        &self,
-        location_id: &LocationPath,
-        _ref: ID,
-    ) -> Result<(), SessionError> {
+    fn location_unsubscribe(&self, uid: UID, _ref: ID) -> Result<(), SessionError> {
         // validate if element is valid
         {
             let _ = self.get_location(location_id)?;
@@ -2102,16 +2100,56 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Ok(())
     }
 
-    fn get_module_ref(&self, id: &ModulePath) -> Result<MRef, SessionError> {
-        Ok(self.get_module(id)?.read()?.ref_id.clone())
+    fn get_module_id(&self, uid: UID) -> Result<ModuleId, SessionError> {
+        self.get_id(uid)
+            .map_or(Err(SessionError::InvalidUID), |id| {
+                if let ID::Module(id) = id {
+                    Ok(id)
+                } else {
+                    Err(SessionError::IsNotModule)
+                }
+            })
     }
 
-    fn get_element_ref(&self, id: &ElementPath) -> Result<ERef, SessionError> {
-        Ok(self.get_element(id)?.read()?.ref_id.clone())
+    fn get_element_id(&self, uid: UID) -> Result<ElementId, SessionError> {
+        self.get_id(uid)
+            .map_or(Err(SessionError::InvalidUID), |id| {
+                if let ID::Element(id) = id {
+                    Ok(id)
+                } else {
+                    Err(SessionError::IsNotElement)
+                }
+            })
     }
 
-    fn get_location_ref(&self, id: &LocationPath) -> Result<LRef, SessionError> {
-        Ok(self.get_location(id)?.read()?.ref_id.clone())
+    fn get_location_id(&self, uid: UID) -> Result<LocationId, SessionError> {
+        self.get_id(uid)
+            .map_or(Err(SessionError::InvalidUID), |id| {
+                if let ID::Location(id) = id {
+                    Ok(id)
+                } else {
+                    Err(SessionError::IsNotLocation)
+                }
+            })
+    }
+
+    fn get_id(&self, uid: UID) -> Result<ID, SessionError> {
+        let Some(_ref) = self.read()?.refs.get(uid as usize) else {return Err(SessionError::InvalidUID)};
+        match &*_ref.read()? {
+            Path::Element(_, uid) => Ok(ID::Element(ElementId {
+                uid: *uid,
+                session: Some(self.c()),
+            })),
+            Path::Location(_, uid) => Ok(ID::Location(LocationId {
+                uid: *uid,
+                session: Some(self.c()),
+            })),
+            Path::Module(_, uid) => Ok(ID::Module(ModuleId {
+                uid: *uid,
+                session: Some(self.c()),
+            })),
+            Path::None => Err(SessionError::InvalidUID),
+        }
     }
 
     fn get_version(&self) -> Result<u64, SessionError> {
