@@ -60,9 +60,9 @@ impl LocalSession {
 }
 
 pub trait TLocalSession: TSession {
-    fn get_location(&self, location_id: &LocationPath) -> Result<LRow, SessionError>;
-    fn get_element(&self, element_id: &ElementPath) -> Result<ERow, SessionError>;
-    fn get_module(&self, module_id: &ModulePath) -> Result<MRow, SessionError>;
+    fn get_location(&self, location_id: &LocationId) -> Result<LRow, SessionError>;
+    fn get_element(&self, element_id: &ElementId) -> Result<ERow, SessionError>;
+    fn get_module(&self, module_id: &ModuleId) -> Result<MRow, SessionError>;
 
     fn add_module(
         &self,
@@ -71,11 +71,15 @@ pub trait TLocalSession: TSession {
         info: Option<ModuleInfo>,
     ) -> Result<MRef, SessionError>;
 
+    fn register_module(&self, _ref: Ref) -> Result<ModuleId, SessionError>;
+    fn register_element(&self, _ref: Ref) -> Result<ElementId, SessionError>;
+    fn register_location(&self, _ref: Ref) -> Result<LocationId, SessionError>;
+
     fn notify_all(&self, events: Vec<SessionEvent>) -> Result<(), SessionError>;
 }
 
 impl TLocalSession for Arc<RwLock<LocalSession>> {
-    fn get_location(&self, location_id: &LocationPath) -> Result<LRow, SessionError> {
+    fn get_location(&self, location_id: &LocationId) -> Result<LRow, SessionError> {
         if let Some(location) = &self.read()?.location {
             let mut loc = location.clone();
             for i in location_id.0.clone() {
@@ -93,7 +97,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         Err(SessionError::InvalidLocation)
     }
 
-    fn get_element(&self, element_id: &ElementPath) -> Result<ERow, SessionError> {
+    fn get_element(&self, element_id: &ElementId) -> Result<ERow, SessionError> {
         if let Some(Some(element)) = self
             .get_location(&element_id.location_id)?
             .read()?
@@ -106,7 +110,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         }
     }
 
-    fn get_module(&self, module_id: &ModulePath) -> Result<MRow, SessionError> {
+    fn get_module(&self, module_id: &ModuleId) -> Result<MRow, SessionError> {
         if let Some(Some(module)) = self.read()?.modules.get(module_id.0 as usize) {
             Ok(module.clone())
         } else {
@@ -120,16 +124,17 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
         path: Option<PathBuf>,
         info: Option<ModuleInfo>,
     ) -> Result<ModuleId, SessionError> {
-        let result;
+        enum Res {
+            ModulePath(Ref),
+            ModuleId(ModuleId),
+            None,
+        }
+        let result = Res::None;
         let mut notifications = Vec::new();
 
         'install_module: {
             if let Some(info) = info {
-                let ref_ = Arc::new(RwLock::new(RefModulePath {
-                    index: info.id,
-                    session: Some(self.c()),
-                }));
-
+                let ref_ = Arc::new(RwLock::new(info.id.into()));
                 let module = Arc::new(RwLock::new(Module {
                     name: info.name.clone(),
                     desc: info.desc.clone(),
@@ -158,10 +163,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                                 module.settings = info.settings;
                                 module.element_settings = info.element_settings;
                             }
-                            result = ModuleId {
-                                uid: *module.read()?.ref_id.read()?.module()?.1,
-                                session: Some(self.c()),
-                            };
+                            result = Res::ModulePath(module.read()?.ref_id.clone());
                             break 'install_module;
                         } else {
                             // if we not have the correct module
@@ -186,7 +188,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                                 ModulePath(new_id),
                             ));
 
-                            result = Ok(ref_);
+                            result = Res::ModulePath(ref_);
                             break 'install_module;
                         }
                     } else {
@@ -195,7 +197,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                         s.modules.push(Some(module));
                         s.modules.swap_remove(info.id.0 as usize);
 
-                        result = Ok(ref_);
+                        result = Res::ModulePath(ref_);
                         break 'install_module;
                     }
                 } else {
@@ -208,7 +210,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
 
                             notifications.push(SessionEvent::NewModule(info.id));
 
-                            result = Ok(ref_);
+                            result = Res::ModulePath(ref_);
                             break 'install_module;
                         }
                         s.modules.push(None);
@@ -223,8 +225,8 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                 let uid = module.get_uid();
                 for m in self.get_modules(0..len)? {
                     if m.uid()? == uid {
-                        self.get_module(&m.id())?.write()?.module = module;
-                        result = Ok(m);
+                        self.get_module(&m)?.write()?.module = module;
+                        result = Res::ModuleId(m);
                         break 'install_module;
                     }
                 }
@@ -241,10 +243,7 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                 }
             }
 
-            let info = Arc::new(RwLock::new(RefModulePath {
-                index: ModulePath(new_id as u64),
-                session: Some(self.c()),
-            }));
+            let info = Arc::new(RwLock::new(ModulePath(new_id as u64).into()));
 
             let mut settings = Values::new();
             let mut element_settings = Values::new();
@@ -278,16 +277,25 @@ impl TLocalSession for Arc<RwLock<LocalSession>> {
                 }
             }
 
-            if let Err(error) = module.read()?.module.init(info.clone()) {
-                result = Err(SessionError::CannotInstallModule(Box::new(error)));
-                break 'install_module;
-            }
-
-            notifications.push(SessionEvent::NewModule(info.read()?.index));
-            result = Ok(info);
+            result = Res::ModulePath(info);
         }
 
         let _ = self.notify_all(notifications);
+
+        let result = match result {
+            Res::ModulePath(path) => {
+                let id = self.register_module(path)?;
+
+                notifications.push(SessionEvent::NewModule(id.clone()));
+
+                if let Err(error) = module.init(id.clone()) {
+                    return Err(SessionError::CannotInstallModule(Box::new(error)));
+                }
+                Ok(id)
+            }
+            Res::ModuleId(id) => Ok(id),
+            Res::None => panic!("This should not happen!"),
+        };
 
         result
     }

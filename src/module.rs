@@ -34,6 +34,18 @@ pub enum ControlFlow {
 
 pub struct ModulePath(pub UID);
 
+impl From<ModulePath> for crate::types::Path {
+    fn from(value: ModulePath) -> Self {
+        Self::UnModule(value)
+    }
+}
+
+impl From<(ModulePath, UID)> for crate::types::Path {
+    fn from(value: (ModulePath, UID)) -> Self {
+        Self::Module(value.0, value.1)
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct ModuleId {
     pub uid: UID,
@@ -139,7 +151,7 @@ impl Debug for Module {
 }
 
 pub trait TModule: std::panic::UnwindSafe {
-    fn init(&self, module_ref: MRef) -> Result<(), SessionError>;
+    fn init(&self, module_ref: ModuleId) -> Result<(), SessionError>;
 
     fn get_name(&self) -> String;
     fn get_desc(&self) -> String;
@@ -152,7 +164,7 @@ pub trait TModule: std::panic::UnwindSafe {
     fn init_element_settings(&self, data: &mut Values) -> Result<(), SessionError>;
     fn init_location_settings(&self, data: &mut Values) -> Result<(), SessionError>;
 
-    fn init_element(&self, element_row: ERow) -> Result<(), SessionError>;
+    fn init_element(&self, element_row: ElementId) -> Result<(), SessionError>;
     fn step_element(
         &self,
         element_row: ERow,
@@ -165,7 +177,7 @@ pub trait TModule: std::panic::UnwindSafe {
     fn accepted_extensions(&self) -> Vec<String>;
     fn accepted_protocols(&self) -> Vec<String>;
 
-    fn init_location(&self, location_ref: LRef) -> Result<(), SessionError>;
+    fn init_location(&self, location_ref: LocationId) -> Result<(), SessionError>;
     fn step_location(
         &self,
         location_row: LRow,
@@ -217,7 +229,7 @@ impl From<RawLibraryError> for SessionError {
 pub struct RawModule {
     lib: &'static Library,
 
-    fn_init: Symbol<'static, fn(MRef) -> Result<(), SessionError>>,
+    fn_init: Symbol<'static, fn(ModuleId) -> Result<(), SessionError>>,
 
     fn_get_name: Symbol<'static, fn() -> String>,
     fn_get_desc: Symbol<'static, fn() -> String>,
@@ -230,8 +242,8 @@ pub struct RawModule {
     fn_init_element_settings: Symbol<'static, fn(&mut Values) -> Result<(), SessionError>>,
     fn_init_location_settings: Symbol<'static, fn(&mut Values) -> Result<(), SessionError>>,
 
-    fn_init_element: Symbol<'static, fn(ERow) -> Result<(), SessionError>>,
-    fn_init_location: Symbol<'static, fn(LRef) -> Result<(), SessionError>>,
+    fn_init_element: Symbol<'static, fn(ElementId) -> Result<(), SessionError>>,
+    fn_init_location: Symbol<'static, fn(LocationId) -> Result<(), SessionError>>,
 
     fn_step_element:
         Symbol<'static, fn(ERow, &mut ControlFlow, &mut Storage) -> Result<(), SessionError>>,
@@ -437,8 +449,8 @@ impl Drop for RawModule {
 }
 
 impl TModule for Arc<RawModule> {
-    fn init(&self, info: MRef) -> Result<(), SessionError> {
-        (*self.fn_init)(info)
+    fn init(&self, id: ModuleId) -> Result<(), SessionError> {
+        (*self.fn_init)(id)
     }
 
     fn get_name(&self) -> String {
@@ -473,8 +485,8 @@ impl TModule for Arc<RawModule> {
         (*self.fn_init_location_settings)(data)
     }
 
-    fn init_element(&self, element: ERow) -> Result<(), SessionError> {
-        (*self.fn_init_element)(element)
+    fn init_element(&self, id: ElementId) -> Result<(), SessionError> {
+        (*self.fn_init_element)(id)
     }
 
     fn step_element(
@@ -502,8 +514,8 @@ impl TModule for Arc<RawModule> {
         (*self.fn_accepted_protocols)()
     }
 
-    fn init_location(&self, location: LRef) -> Result<(), SessionError> {
-        (*self.fn_init_location)(location)
+    fn init_location(&self, id: LocationId) -> Result<(), SessionError> {
+        (*self.fn_init_location)(id)
     }
 
     fn step_location(

@@ -30,6 +30,12 @@ pub enum Path {
     Element(ElementPath, UID),
     Location(LocationPath, UID),
     Module(ModulePath, UID),
+    /// # UnRegistredElement
+    UnElement(ElementPath),
+    /// # UnRegistredLocation
+    UnLocation(LocationPath),
+    /// # UnRegisteredModule
+    UnModule(ModulePath),
     None,
 }
 
@@ -79,6 +85,18 @@ impl Path {
             Ok((module, uid))
         } else {
             Err(SessionError::IsNotModule)
+        }
+    }
+
+    pub fn uid(&self) -> Result<UID, SessionError> {
+        match self {
+            Path::Element(_, uid) => Ok(*uid),
+            Path::Location(_, uid) => Ok(*uid),
+            Path::Module(_, uid) => Ok(*uid),
+            Path::UnElement(_) => Err(SessionError::UnRegisteredElement),
+            Path::UnLocation(_) => Err(SessionError::UnRegisteredLocation),
+            Path::UnModule(_) => Err(SessionError::UnRegisteredModule),
+            Path::None => Err(SessionError::InvalidUID),
         }
     }
 }
