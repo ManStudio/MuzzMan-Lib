@@ -1723,18 +1723,17 @@ impl TSession for Arc<RwLock<LocalSession>> {
         Err(SessionError::InvalidLocation)
     }
 
-    fn get_default_location(&self) -> Result<LRef, SessionError> {
+    fn get_default_location(&self) -> Result<LocationId, SessionError> {
         if let Some(location) = &self.read()?.location {
-            return Ok(location.read()?.ref_id.clone());
+            return Ok(LocationId {
+                uid: *location.read()?.ref_id.read()?.location()?.1,
+                session: Some(self.c()),
+            });
         }
         Err(SessionError::InvalidLocation)
     }
 
-    fn move_location(
-        &self,
-        location_id: &LocationPath,
-        to: &LocationPath,
-    ) -> Result<(), SessionError> {
+    fn move_location(&self, location_id: UID, to: UID) -> Result<(), SessionError> {
         let location = self.destroy_location(location_id.clone())?;
         let mut new = to.clone();
         new.push(self.get_locations_len(to)? as u64);

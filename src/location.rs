@@ -232,7 +232,7 @@ pub struct Location {
     pub settings: Values,
     pub elements: Vec<Option<ERow>>,
     pub locations: Vec<Option<LRow>>,
-    pub ref_id: LRef,
+    pub ref_id: Ref,
     pub path: PathBuf,
     pub thread: Option<JoinHandle<()>>,
     pub module: Option<MRef>,

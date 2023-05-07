@@ -217,11 +217,6 @@ pub trait TSession: Send + Sync {
     fn element_wait(&self, element_id: UID) -> Result<(), SessionError>;
 
     fn element_get_element_info(&self, element_id: UID) -> Result<ElementInfo, SessionError>;
-    fn element_notify(&self, element_id: UID, event: Event) -> Result<(), SessionError>;
-
-    fn element_emit(&self, element_id: UID, event: Event) -> Result<(), SessionError>;
-    fn element_subscribe(&self, element_id: UID, _ref: ID) -> Result<(), SessionError>;
-    fn element_unsubscribe(&self, element_id: UID, _ref: ID) -> Result<(), SessionError>;
 
     //
     // End Element
@@ -240,7 +235,7 @@ pub trait TSession: Send + Sync {
         range: Range<usize>,
     ) -> Result<Vec<LRef>, SessionError>;
     fn destroy_location(&self, location_id: UID) -> Result<LRow, SessionError>;
-    fn get_default_location(&self) -> Result<LRef, SessionError>;
+    fn get_default_location(&self) -> Result<LocationId, SessionError>;
     fn move_location(&self, location_id: UID, to: UID) -> Result<(), SessionError>;
 
     fn location_get_name(&self, location_id: UID) -> Result<String, SessionError>;
@@ -314,11 +309,11 @@ pub trait TSession: Send + Sync {
     fn location_is_error(&self, location_id: UID) -> Result<bool, SessionError>;
 
     fn location_get_location_info(&self, location_id: UID) -> Result<LocationInfo, SessionError>;
-    fn location_notify(&self, location_id: UID, event: Event) -> Result<(), SessionError>;
 
-    fn location_emit(&self, location_id: UID, event: Event) -> Result<(), SessionError>;
-    fn location_subscribe(&self, location_id: UID, _ref: ID) -> Result<(), SessionError>;
-    fn location_unsubscribe(&self, location_id: UID, _ref: ID) -> Result<(), SessionError>;
+    fn notify(&self, uid: UID, event: Event) -> Result<(), SessionError>;
+    fn emit(&self, who_emited: UID, event: Event) -> Result<(), SessionError>;
+    fn subscribe(&self, uid: UID, to: UID) -> Result<(), SessionError>;
+    fn unsubscribe(&self, uid: UID, to: UID) -> Result<(), SessionError>;
 
     //
     // End Location
@@ -329,9 +324,7 @@ pub trait TSession: Send + Sync {
     fn get_location_id(&self, uid: UID) -> Result<LocationId, SessionError>;
     fn get_id(&self, uid: UID) -> Result<ID, SessionError>;
 
-    fn get_module_path(&self, uid: UID) -> Result<ModulePath, SessionError>;
-    fn get_element_path(&self, uid: UID) -> Result<ElementPath, SessionError>;
-    fn get_location_path(&self, uid: UID) -> Result<LocationPath, SessionError>;
+    fn get_ref(&self, uid: UID) -> Result<Ref, SessionError>;
 
     fn get_module_from_path(&self, path: ModulePath) -> Result<ModuleId, SessionError>;
     fn get_element_from_path(&self, path: ElementPath) -> Result<ElementId, SessionError>;
