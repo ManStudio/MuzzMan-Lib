@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::prelude::*;
-use bytes_kman::TBytes;
+use bytes_kman::prelude::*;
 use libloading::{Library, Symbol};
 use serde::{Deserialize, Serialize};
 
@@ -36,7 +36,7 @@ pub struct ModulePath(pub UID);
 
 impl From<ModulePath> for crate::types::Path {
     fn from(value: ModulePath) -> Self {
-        Self::UnModule(value)
+        Self::UnRModule(value)
     }
 }
 
@@ -590,7 +590,7 @@ pub trait TModuleHelper {
     fn init_element(&self, element_id: ElementId) -> Result<(), SessionError>;
     fn init_location(&self, location_id: LocationId) -> Result<(), SessionError>;
 
-    fn notify(&self, info: ID, event: Event) -> Result<(), SessionError>;
+    fn notify(&self, info: UID, event: Event) -> Result<(), SessionError>;
 }
 
 impl TModuleHelper for ModuleId {
@@ -727,11 +727,11 @@ impl TModuleHelper for ModuleId {
             .module_init_location(self.uid, location_id.uid)
     }
 
-    fn notify(&self, info: ID, event: Event) -> Result<(), SessionError> {
+    fn notify(&self, info: UID, event: Event) -> Result<(), SessionError> {
         let session = self.get_session()?;
         match info {
-            ID::Element(e) => session.element_notify(e.uid, event),
-            ID::Location(l) => session.location_notify(l.uid, event),
+            UID::Element(e) => session.element_notify(e.uid, event),
+            UID::Location(l) => session.location_notify(l.uid, event),
             _ => Ok(()),
         }
     }

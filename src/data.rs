@@ -5,7 +5,7 @@ use crate::{
     types::Type,
 };
 
-use bytes_kman::TBytes;
+use bytes_kman::prelude::*;
 
 use std::{
     collections::HashMap,

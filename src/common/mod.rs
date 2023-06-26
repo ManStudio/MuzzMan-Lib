@@ -34,7 +34,7 @@ pub fn get_modules() -> Vec<PathBuf> {
 use crate::{
     events::Event,
     prelude::{Ref, SessionError, TModuleHelper},
-    types::ID,
+    types::{ID, UID},
 };
 
 pub trait Common {
@@ -47,8 +47,8 @@ pub trait Common {
     fn notify(&self, event: Event) -> Result<(), SessionError>;
 
     fn emit(&self, event: Event) -> Result<(), SessionError>;
-    fn subscribe(&self, _ref: ID) -> Result<(), SessionError>;
-    fn unsubscribe(&self, _ref: ID) -> Result<(), SessionError>;
+    fn subscribe(&self, uid: UID) -> Result<(), SessionError>;
+    fn unsubscribe(&self, uid: UID) -> Result<(), SessionError>;
 }
 
 impl Common for ID {
@@ -100,18 +100,18 @@ impl Common for ID {
         }
     }
 
-    fn subscribe(&self, _ref: ID) -> Result<(), SessionError> {
+    fn subscribe(&self, uid: UID) -> Result<(), SessionError> {
         match self {
-            ID::Element(e) => e.subscribe(_ref),
-            ID::Location(l) => l.subscribe(_ref),
+            ID::Element(e) => e.subscribe(uid),
+            ID::Location(l) => l.subscribe(uid),
             ID::Module(_) => Ok(()),
         }
     }
 
-    fn unsubscribe(&self, _ref: ID) -> Result<(), SessionError> {
+    fn unsubscribe(&self, uid: UID) -> Result<(), SessionError> {
         match self {
-            ID::Element(e) => e.unsubscribe(_ref),
-            ID::Location(l) => l.unsubscribe(_ref),
+            ID::Element(e) => e.unsubscribe(uid),
+            ID::Location(l) => l.unsubscribe(uid),
             ID::Module(_) => Ok(()),
         }
     }

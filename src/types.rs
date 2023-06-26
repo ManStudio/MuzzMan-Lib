@@ -6,7 +6,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use bytes_kman::TBytes;
+use bytes_kman::prelude::*;
 
 pub type LRef = Arc<RwLock<RefLocationPath>>;
 pub type ERef = Arc<RwLock<RefElementPath>>;
@@ -25,17 +25,17 @@ pub enum ID {
     Module(ModuleId),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Path {
     Element(ElementPath, UID),
     Location(LocationPath, UID),
     Module(ModulePath, UID),
     /// # UnRegistredElement
-    UnElement(ElementPath),
+    UnRElement(ElementPath),
     /// # UnRegistredLocation
-    UnLocation(LocationPath),
+    UnRLocation(LocationPath),
     /// # UnRegisteredModule
-    UnModule(ModulePath),
+    UnRModule(ModulePath),
     None,
 }
 
@@ -93,9 +93,9 @@ impl Path {
             Path::Element(_, uid) => Ok(*uid),
             Path::Location(_, uid) => Ok(*uid),
             Path::Module(_, uid) => Ok(*uid),
-            Path::UnElement(_) => Err(SessionError::UnRegisteredElement),
-            Path::UnLocation(_) => Err(SessionError::UnRegisteredLocation),
-            Path::UnModule(_) => Err(SessionError::UnRegisteredModule),
+            Path::UnRElement(_) => Err(SessionError::UnRegisteredElement),
+            Path::UnRLocation(_) => Err(SessionError::UnRegisteredLocation),
+            Path::UnRModule(_) => Err(SessionError::UnRegisteredModule),
             Path::None => Err(SessionError::InvalidUID),
         }
     }

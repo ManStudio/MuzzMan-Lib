@@ -8,7 +8,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::*;
-use bytes_kman::TBytes;
+use bytes_kman::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum ElementNotify {
@@ -171,7 +171,7 @@ pub struct Element {
     pub enabled: bool,
     pub thread: Option<JoinHandle<()>>,
     pub events: Arc<RwLock<Events>>,
-    pub ref_id: ERef,
+    pub ref_id: Ref,
 
     pub progress: f32,
     pub statuses: Vec<String>,
@@ -370,19 +370,19 @@ impl Common for ElementId {
     }
 
     fn notify(&self, event: Event) -> Result<(), SessionError> {
-        self.get_session()?.element_notify(self.uid, event)
+        self.get_session()?.notify(self.uid, event)
     }
 
     fn emit(&self, event: Event) -> Result<(), SessionError> {
-        self.get_session()?.element_emit(self.uid, event)
+        self.get_session()?.emit(self.uid, event)
     }
 
-    fn subscribe(&self, _ref: ID) -> Result<(), SessionError> {
-        self.get_session()?.element_subscribe(self.uid, _ref)
+    fn subscribe(&self, uid: UID) -> Result<(), SessionError> {
+        self.get_session()?.subscribe(self.uid, uid)
     }
 
-    fn unsubscribe(&self, _ref: ID) -> Result<(), SessionError> {
-        self.get_session()?.element_unsubscribe(self.uid, _ref)
+    fn unsubscribe(&self, uid: UID) -> Result<(), SessionError> {
+        self.get_session()?.unsubscribe(self.uid, uid)
     }
 }
 

@@ -1,4 +1,4 @@
-use bytes_kman::TBytes;
+use bytes_kman::prelude::*;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::net::{IpAddr, TcpStream};
@@ -414,11 +414,11 @@ impl Common for LocationId {
         self.get_session()?.location_emit(self.uid, event)
     }
 
-    fn subscribe(&self, _ref: ID) -> Result<(), SessionError> {
+    fn subscribe(&self, _ref: UID) -> Result<(), SessionError> {
         self.get_session()?.location_subscribe(self.uid, _ref)
     }
 
-    fn unsubscribe(&self, _ref: ID) -> Result<(), SessionError> {
+    fn unsubscribe(&self, _ref: UID) -> Result<(), SessionError> {
         self.get_session()?.location_unsubscribe(self.uid, _ref)
     }
 }

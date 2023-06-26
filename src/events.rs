@@ -1,7 +1,7 @@
 use std::time::SystemTime;
 
 use crate::prelude::*;
-use bytes_kman::TBytes;
+use bytes_kman::prelude::*;
 
 #[derive(Default, Clone, Debug)]
 pub struct Events {
@@ -46,31 +46,31 @@ impl Events {
             .retain(|subscriber| subscriber.notify(event.clone()).is_ok())
     }
 
-    pub fn is_subscribed(&self, _ref: &ID) -> bool {
+    pub fn is_subscribed(&self, id: &ID) -> bool {
         for r in self.subscribers.iter() {
-            if r == _ref {
+            if r == id {
                 return true;
             }
         }
         false
     }
 
-    pub fn subscribe(&mut self, _ref: ID) -> bool {
-        if self.is_subscribed(&_ref) {
+    pub fn subscribe(&mut self, id: ID) -> bool {
+        if self.is_subscribed(&id) {
             return false;
         }
 
-        self.subscribers.push(_ref);
+        self.subscribers.push(id);
 
         true
     }
 
-    pub fn unsubscribe(&mut self, _ref: ID) -> bool {
-        if !self.is_subscribed(&_ref) {
+    pub fn unsubscribe(&mut self, id: ID) -> bool {
+        if !self.is_subscribed(&id) {
             return false;
         }
 
-        self.subscribers.retain(|e| *e != _ref);
+        self.subscribers.retain(|e| *e != id);
 
         true
     }

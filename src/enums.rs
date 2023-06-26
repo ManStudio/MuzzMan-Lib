@@ -2,7 +2,7 @@
 
 use std::{collections::HashMap, hash::Hash};
 
-use bytes_kman::TBytes;
+use bytes_kman::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Serialize, Deserialize, bytes_kman::Bytes)]

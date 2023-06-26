@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::*;
 
-use bytes_kman::TBytes;
+use bytes_kman::prelude::*;
 
 #[derive(Clone, Debug, Serialize, Deserialize, bytes_kman::Bytes)]
 pub enum SessionError {
@@ -322,8 +322,8 @@ pub trait TSession: Send + Sync {
     fn get_module_id(&self, uid: UID) -> Result<ModuleId, SessionError>;
     fn get_element_id(&self, uid: UID) -> Result<ElementId, SessionError>;
     fn get_location_id(&self, uid: UID) -> Result<LocationId, SessionError>;
-    fn get_id(&self, uid: UID) -> Result<ID, SessionError>;
 
+    fn get_id(&self, uid: UID) -> Result<UID, SessionError>;
     fn get_ref(&self, uid: UID) -> Result<Ref, SessionError>;
 
     fn get_module_from_path(&self, path: ModulePath) -> Result<ModuleId, SessionError>;
