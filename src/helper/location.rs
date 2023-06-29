@@ -8,6 +8,11 @@ pub struct LocationId {
 }
 
 pub trait TLocationHelper: TCommonHelper {
+    fn create_location(&self, name: String) -> SessionResult<LocationId>;
+    fn create_element(&self, name: String) -> SessionResult<ElementId>;
+
+    fn get_parent(&self) -> SessionResult<LocationId>;
+
     fn get_locations_len(&self) -> SessionResult<usize>;
     /// Range Inclusive
     /// That means if we pass start: 0, end: 2 will return 0, 1, 2
@@ -46,6 +51,9 @@ pub trait TLocationHelper: TCommonHelper {
 
     fn get_settings(&self) -> SessionResult<Settings>;
     fn set_settings(&self, settings: Settings) -> SessionResult<()>;
+
+    fn get_module(&self) -> SessionResult<Option<ModuleId>>;
+    fn set_module(&self, module_id: Option<ModuleId>) -> SessionResult<()>;
 
     fn _move(&self, to: LocationId) -> SessionResult<()>;
     fn path(&self) -> SessionResult<Vec<usize>>;

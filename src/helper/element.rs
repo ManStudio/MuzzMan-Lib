@@ -11,6 +11,8 @@ pub trait TElementHelper: TCommonHelper {
     fn _move(&self, location_uid: UID) -> SessionResult<()>;
     fn path(&self) -> SessionResult<Vec<usize>>;
 
+    fn get_parent(&self) -> SessionResult<LocationId>;
+
     fn get_enabled(&self) -> SessionResult<bool>;
     fn set_enabled(&self, enabled: bool) -> SessionResult<()>;
 
@@ -39,6 +41,9 @@ pub trait TElementHelper: TCommonHelper {
 
     fn get_settings(&self) -> SessionResult<Settings>;
     fn set_settings(&self, settings: Settings) -> SessionResult<()>;
+
+    fn get_module(&self) -> SessionResult<Option<ModuleId>>;
+    fn set_module(&self, module_id: Option<ModuleId>) -> SessionResult<()>;
 
     fn wait(&self) -> SessionResult<()>;
 
