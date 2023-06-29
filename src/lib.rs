@@ -1,4 +1,5 @@
 mod element;
+mod error;
 mod helper;
 mod location;
 mod module;
@@ -12,7 +13,7 @@ mod types;
 
 pub mod prelude {
     pub use crate::{
-        element::*, helper::*, location::*, module::*, session::TSession,
+        element::*, error::*, helper::*, location::*, module::*, session::TSession,
         session_common::TSessionCommon, session_element::TSessionElement,
         session_location::TSessionLocation, session_module::TSessionModule, settings::*, types::*,
     };
