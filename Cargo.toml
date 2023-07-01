@@ -13,7 +13,7 @@ keywords = ["download", "upload"]
 default = []
 
 [workspace]
-members = ["macros"]
+members = ["macros", "local-session"]
 
 [profile.dev]
 panic = 'unwind'
