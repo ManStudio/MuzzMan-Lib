@@ -7,6 +7,7 @@ pub type SessionResult<T> = std::result::Result<T, SessionError>;
 
 pub enum Event {}
 
+#[derive(Debug)]
 pub enum Stream {
     File(
         std::fs::File,
@@ -14,6 +15,15 @@ pub enum Stream {
         BufReader<std::fs::File>,
     ),
     None,
+}
+
+impl Clone for Stream {
+    fn clone(&self) -> Self {
+        match self {
+            Stream::File(_, _, _) => unimplemented!("Cannot clone Stream type File"),
+            Stream::None => Stream::None,
+        }
+    }
 }
 
 impl Write for Stream {

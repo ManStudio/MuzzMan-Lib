@@ -1,8 +1,9 @@
 use crate::prelude::*;
 
+#[derive(Clone, Debug)]
 pub struct ModuleId {
     pub uid: UID,
-    pub session: Box<dyn TSession>,
+    pub session: Option<Session>,
 }
 
 pub trait TModuleHelper: TCommonHelper {
@@ -11,6 +12,11 @@ pub trait TModuleHelper: TCommonHelper {
 
     fn get_location_settings(&self) -> SessionResult<Settings>;
     fn set_location_settings(&self, settings: Settings) -> SessionResult<()>;
+
+    /// Should be like "http:, https:"
+    fn module_supports_protocols(&self) -> SessionResult<Vec<String>>;
+    /// Should be like "html, exe"
+    fn module_supports_extensions(&self) -> SessionResult<Vec<String>>;
 
     fn path(&self) -> SessionResult<usize>;
 

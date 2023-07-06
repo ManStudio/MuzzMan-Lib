@@ -2,9 +2,10 @@ use std::{collections::HashMap, path::PathBuf};
 
 use crate::prelude::*;
 
+#[derive(Clone, Debug)]
 pub struct LocationId {
     pub uid: UID,
-    pub session: Box<dyn TSession>,
+    pub session: Option<Session>,
 }
 
 pub trait TLocationHelper: TCommonHelper {

@@ -7,7 +7,7 @@ pub trait TSessionLocation {
     fn get_location(&self, path: Vec<usize>) -> SessionResult<LocationId>;
     fn get_default_location(&self) -> SessionResult<LocationId>;
 
-    fn location_get_parent(&self, location: LocationId) -> SessionResult<LocationId>;
+    fn location_get_parent(&self, location: LocationId) -> SessionResult<Option<LocationId>>;
 
     fn location_get_locations_len(&self, location: LocationId) -> SessionResult<usize>;
     /// Range Inclusive

@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use crate::prelude::*;
 
 pub trait TSessionModule {
@@ -19,6 +17,11 @@ pub trait TSessionModule {
         module: ModuleId,
         settings: Settings,
     ) -> SessionResult<()>;
+
+    /// Should be like "http:, https:"
+    fn module_supports_protocols(&self, module: ModuleId) -> SessionResult<Vec<String>>;
+    /// Should be like "html, exe"
+    fn module_supports_extensions(&self, module: ModuleId) -> SessionResult<Vec<String>>;
 
     fn module_path(&self, module: ModuleId) -> SessionResult<usize>;
 
