@@ -5,7 +5,7 @@ pub trait TSessionCommon {
     fn set_name(&self, uid: UID, name: String) -> SessionResult<()>;
 
     fn get_desc(&self, uid: UID) -> SessionResult<String>;
-    fn set_desc(&self, uid: UID, name: String) -> SessionResult<()>;
+    fn set_desc(&self, uid: UID, desc: String) -> SessionResult<()>;
 
     fn emit(&self, uid: UID, event: Event) -> SessionResult<()>;
     fn notify(&self, uid: UID, to: UID, event: Event) -> SessionResult<()>;
