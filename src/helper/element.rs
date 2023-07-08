@@ -8,6 +8,14 @@ pub struct ElementId {
     pub session: Option<Session>,
 }
 
+impl ElementId {
+    pub fn get_session(&self) -> SessionResult<Session> {
+        self.session
+            .clone()
+            .map_or_else(|| Err(SessionError::NoSession), Ok)
+    }
+}
+
 pub trait TElementHelper: TCommonHelper {
     fn _move(&self, location_uid: UID) -> SessionResult<()>;
     fn path(&self) -> SessionResult<Vec<usize>>;

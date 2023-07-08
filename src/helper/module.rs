@@ -6,6 +6,14 @@ pub struct ModuleId {
     pub session: Option<Session>,
 }
 
+impl ModuleId {
+    pub fn get_session(&self) -> SessionResult<Session> {
+        self.session
+            .clone()
+            .map_or_else(|| Err(SessionError::NoSession), Ok)
+    }
+}
+
 pub trait TModuleHelper: TCommonHelper {
     fn get_element_settings(&self) -> SessionResult<Settings>;
     fn set_element_settings(&self, settings: Settings) -> SessionResult<()>;

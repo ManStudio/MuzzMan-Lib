@@ -8,6 +8,14 @@ pub struct LocationId {
     pub session: Option<Session>,
 }
 
+impl LocationId {
+    pub fn get_session(&self) -> SessionResult<Session> {
+        self.session
+            .clone()
+            .map_or_else(|| Err(SessionError::NoSession), Ok)
+    }
+}
+
 pub trait TLocationHelper: TCommonHelper {
     fn create_location(&self, name: String) -> SessionResult<LocationId>;
     fn create_element(&self, name: String) -> SessionResult<ElementId>;

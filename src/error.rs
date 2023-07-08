@@ -6,6 +6,8 @@ pub enum SessionError {
     UIDIsNotALocation,
     UIDIsNotAElement,
 
+    NoSession,
+
     ThereAreLessLocations,
     ThereAreLessElements,
 
