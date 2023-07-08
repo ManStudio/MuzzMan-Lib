@@ -32,4 +32,17 @@ pub struct LocationWraper {
     pub path: Path,
 }
 
+#[derive(Clone, Debug)]
+pub struct ModuleWraper {
+    pub module: Arc<RwLock<Module>>,
+    pub path: Path,
+}
+
+#[derive(Clone, Debug)]
+pub enum Wraper {
+    Element(ElementWraper),
+    Location(LocationWraper),
+    Module(ModuleWraper),
+}
+
 pub use session::*;

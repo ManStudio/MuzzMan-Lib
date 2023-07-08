@@ -1,14 +1,14 @@
 use muzzman_lib::prelude::*;
 
-use crate::{TLocalSession, UIDPath};
+use crate::{TLocalSession, UIDPath, Wraper};
 
 impl TSessionLocation for Box<dyn TLocalSession> {
     fn create_location(&self, location: LocationId, name: String) -> SessionResult<LocationId> {
         let inner = move || {
-            let location_parent = self.as_ref().get_location(location.uid)?;
+            let Wraper::Location(location_parent) = self.as_ref().get(location.uid)? else {return Err(SessionError::UIDIsNotALocation)};
             let UIDPath::Location(mut path) = location_parent.path.read().unwrap().clone() else {return Err(SessionError::UIDIsNotALocation)};
             path.push(usize::MAX);
-            let location = self.as_ref().create_location(name, path);
+            let location = self.as_ref().create_location(name, &path);
             let id = location.location.read().unwrap().id.clone();
             Ok(id)
         };
@@ -16,7 +16,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
     }
 
     fn get_location(&self, path: Vec<usize>) -> SessionResult<LocationId> {
-        let location = self.as_ref().create_location("Get Location".into(), path);
+        let location = self.as_ref().create_location("Get Location".into(), &path);
         let id = location.location.read().unwrap().id.clone();
         Ok(id)
     }
@@ -26,19 +26,19 @@ impl TSessionLocation for Box<dyn TLocalSession> {
     }
 
     fn location_get_parent(&self, location: LocationId) -> SessionResult<Option<LocationId>> {
-        let location = self
+        let Wraper::Location(location) = self
             .as_ref()
-            .get_location(location.uid)
-            .map_err(|e| SessionError::LocationGetParent(Box::new(e)))?;
+            .get(location.uid)
+            .map_err(|e| SessionError::LocationGetParent(Box::new(e)))? else {return Err(SessionError::UIDIsNotALocation)};
         let parent = location.location.read().unwrap().parent.clone();
         Ok(parent)
     }
 
     fn location_get_locations_len(&self, location: LocationId) -> SessionResult<usize> {
-        let location = self
+        let Wraper::Location(location) = self
             .as_ref()
-            .get_location(location.uid)
-            .map_err(|e| SessionError::LocationGetLocationsLen(Box::new(e)))?;
+            .get(location.uid)
+            .map_err(|e| SessionError::LocationGetLocationsLen(Box::new(e)))? else {return Err(SessionError::UIDIsNotALocation)};
         let len = location.locations.read().unwrap().len();
         Ok(len)
     }
@@ -49,10 +49,10 @@ impl TSessionLocation for Box<dyn TLocalSession> {
         start: usize,
         end: usize,
     ) -> SessionResult<Vec<LocationId>> {
-        let location = self
+        let Wraper::Location(location) = self
             .as_ref()
-            .get_location(location.uid)
-            .map_err(|e| SessionError::LocationGetLocations(Box::new(e)))?;
+            .get(location.uid)
+            .map_err(|e| SessionError::LocationGetLocations(Box::new(e)))?else {return Err(SessionError::UIDIsNotALocation)};
         let location = location.location.read().unwrap();
         if start < end && location.locations.len() <= end {
             Err(SessionError::LocationGetLocations(Box::new(
@@ -65,10 +65,10 @@ impl TSessionLocation for Box<dyn TLocalSession> {
     }
 
     fn location_get_elements_len(&self, location: LocationId) -> SessionResult<usize> {
-        let location = self
+        let Wraper::Location(location) = self
             .as_ref()
-            .get_location(location.uid)
-            .map_err(|e| SessionError::LocationGetElementsLen(Box::new(e)))?;
+            .get(location.uid)
+            .map_err(|e| SessionError::LocationGetElementsLen(Box::new(e)))?else {return Err(SessionError::UIDIsNotALocation)};
         let len = location.elements.read().unwrap().len();
         Ok(len)
     }
@@ -79,7 +79,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
         start: usize,
         end: usize,
     ) -> SessionResult<Vec<ElementId>> {
-        let location = self.as_ref().get_location(location.uid)?;
+        let Wraper::Location(location) = self.as_ref().get(location.uid)?else {return Err(SessionError::UIDIsNotALocation)};
         let location = location.location.read().unwrap();
 
         if start < end && location.locations.len() <= end {

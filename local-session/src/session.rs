@@ -5,7 +5,7 @@ use std::{
 
 use muzzman_lib::prelude::*;
 
-use crate::{ElementWraper, LocationWraper, Path, UIDPath};
+use crate::{ElementWraper, LocationWraper, Path, UIDPath, Wraper};
 
 pub struct LocalSession {
     pub location: LocationWraper,
@@ -67,12 +67,11 @@ impl LocalSession {
 
 pub trait TLocalSession {
     /// create or get
-    fn create_location(&self, name: String, path: Vec<usize>) -> LocationWraper;
+    fn create_location(&self, name: String, path: &[usize]) -> LocationWraper;
     /// create or get
-    fn create_element(&self, name: String, path: Vec<usize>) -> ElementWraper;
+    fn create_element(&self, name: String, path: &[usize]) -> ElementWraper;
 
-    fn get_location(&self, uid: UID) -> SessionResult<LocationWraper>;
-    fn get_element(&self, uid: UID) -> SessionResult<ElementWraper>;
+    fn get(&self, uid: UID) -> SessionResult<Wraper>;
 
     fn get_default_location(&self) -> SessionResult<LocationId>;
 
@@ -80,7 +79,7 @@ pub trait TLocalSession {
 }
 
 impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
-    fn create_location(&self, name: String, path: Vec<usize>) -> LocationWraper {
+    fn create_location(&self, name: String, path: &[usize]) -> LocationWraper {
         let session = Session::from(Box::new(self.c()) as Box<dyn TSession>);
         let mut location = self.read().unwrap().location.clone();
 
@@ -89,7 +88,7 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
         for index in path {
             let res = {
                 let location = location.locations.read().unwrap();
-                location.get(index).cloned()
+                location.get(*index).cloned()
             };
             if let Some(tmp_location) = res {
                 location = tmp_location;
@@ -144,24 +143,24 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
                 };
                 location = tmp_location;
             }
-            traversed_path.push(index);
+            traversed_path.push(*index);
         }
 
         location
     }
 
-    fn create_element(&self, name: String, mut path: Vec<usize>) -> ElementWraper {
-        let mut tmp_path = path.clone();
-        let element_index = tmp_path.pop().unwrap();
-        let location = self.create_location("Need an element".into(), tmp_path);
+    fn create_element(&self, name: String, path: &[usize]) -> ElementWraper {
+        let element_index = path.last().unwrap();
+        let location = self.create_location("Need an element".into(), &path[..path.len() - 1]);
         let mut elements = location.elements.write().unwrap();
 
-        if let Some(element) = elements.get(element_index) {
+        if let Some(element) = elements.get(*element_index) {
             element.clone()
         } else {
             let session = Session::from(Box::new(self.c()) as Box<dyn TSession>);
             let mut s = self.write().unwrap();
             let mut location = location.location.write().unwrap();
+            let mut path = path.to_vec();
             path.pop();
             path.push(elements.len());
             let path = Arc::new(RwLock::new(crate::UIDPath::Element(path, elements.len())));
@@ -201,51 +200,6 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
         }
     }
 
-    fn get_location(&self, uid: UID) -> SessionResult<LocationWraper> {
-        let res = self.read().unwrap().refs.get(uid as usize).cloned();
-        if let Some(path) = res {
-            let path = path.read().unwrap().clone();
-            if let UIDPath::Location(path) = path {
-                let mut location = self.read().unwrap().location.clone();
-                for index in path {
-                    let tmp_location = location.locations.read().unwrap().get(index).cloned();
-                    if let Some(tmp_location) = tmp_location {
-                        location = tmp_location.clone()
-                    } else {
-                        return Err(SessionError::UIDIsNotALocation);
-                    }
-                }
-                return Ok(location);
-            } else {
-                return Err(SessionError::UIDIsNotALocation);
-            }
-        } else {
-            Err(SessionError::InvalidUID)
-        }
-    }
-
-    fn get_element(&self, uid: UID) -> SessionResult<ElementWraper> {
-        let res = self.read().unwrap().refs.get(uid as usize).cloned();
-        if let Some(path) = res {
-            let mut path = path.read().unwrap().clone();
-            if let UIDPath::Element(mut path, index) = path {
-                let location = self.create_location("Trying to find element".into(), path);
-                let res = location
-                    .elements
-                    .read()
-                    .unwrap()
-                    .get(index as usize)
-                    .cloned();
-                if let Some(element) = res {
-                    return Ok(element);
-                }
-            }
-            return Err(SessionError::UIDIsNotAElement);
-        } else {
-            Err(SessionError::InvalidUID)
-        }
-    }
-
     fn c(&self) -> Box<dyn TLocalSession> {
         Box::new(self.clone())
     }
@@ -254,6 +208,39 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
         let location = self.read().unwrap().location.clone();
         let id = location.location.read().unwrap().id.clone();
         Ok(id)
+    }
+
+    fn get(&self, uid: UID) -> SessionResult<Wraper> {
+        let res = self.read().unwrap().refs.get(uid as usize).cloned();
+        if let Some(path) = res {
+            let path = &*path.read().unwrap();
+            match path {
+                UIDPath::Element(path, index) => {
+                    let location = self.create_location("Trying to find element".into(), path);
+                    let res = location.elements.read().unwrap().get(*index).cloned();
+                    if let Some(element) = res {
+                        return Ok(Wraper::Element(element));
+                    }
+                }
+                UIDPath::Location(path) => {
+                    let mut location = self.read().unwrap().location.clone();
+                    for index in path {
+                        let tmp_location = location.locations.read().unwrap().get(*index).cloned();
+                        if let Some(tmp_location) = tmp_location {
+                            location = tmp_location.clone()
+                        } else {
+                            return Err(SessionError::UIDIsNotALocation);
+                        }
+                    }
+                    return Ok(Wraper::Location(location));
+                }
+                UIDPath::Module(index) => {
+                    unimplemented!()
+                }
+                UIDPath::None => return Err(SessionError::UIDWasDestroyed),
+            }
+        }
+        Err(SessionError::InvalidUID)
     }
 }
 

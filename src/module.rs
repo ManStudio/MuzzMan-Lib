@@ -40,6 +40,18 @@ pub enum ModuleSource {
     Box(Box<dyn TModule>),
 }
 
+impl std::fmt::Debug for ModuleSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ModuleSource::Wasm(_) => f.write_str("ModuleSource::Wasm"),
+            ModuleSource::Dynamic(_) => f.write_str("ModuleSource::Dynamic"),
+            ModuleSource::DynamicLoaded(_, _) => f.write_str("ModuleSource::DynamicLoaded"),
+            ModuleSource::Box(_) => f.write_str("ModuleSource::Box"),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Module {
     pub name: String,
     pub desc: String,
