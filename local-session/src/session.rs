@@ -5,7 +5,7 @@ use std::{
 
 use muzzman_lib::prelude::*;
 
-use crate::{ElementWraper, LocationWraper, Path};
+use crate::{ElementWraper, LocationWraper, Path, UIDPath};
 
 pub struct LocalSession {
     pub location: LocationWraper,
@@ -14,7 +14,7 @@ pub struct LocalSession {
 
 impl LocalSession {
     fn new() -> Box<dyn TLocalSession> {
-        let path = Arc::new(RwLock::new(Some(vec![])));
+        let path = Arc::new(RwLock::new(crate::UIDPath::Location(vec![])));
         let location = LocationWraper {
             location: Arc::new(RwLock::new(Location {
                 name: "Default Location".into(),
@@ -37,6 +37,9 @@ impl LocalSession {
                 upload_speed_counter: 0,
                 total_download: 0,
                 total_upload: 0,
+                enabled: false,
+                is_error: false,
+                is_completed: false,
             })),
             locations: Default::default(),
             elements: Default::default(),
@@ -52,12 +55,13 @@ impl LocalSession {
             session: Some(Session::from(Box::new(s.c()) as Box<dyn TSession>)),
         };
 
-        s.write()
-            .unwrap()
-            .refs
-            .push(Arc::new(RwLock::new(Some(vec![]))));
-
         s.c()
+    }
+
+    pub(crate) fn register_path(&mut self, path: Path) -> UID {
+        let id = self.refs.len();
+        self.refs.push(path);
+        id as UID
     }
 }
 
@@ -90,50 +94,54 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
             if let Some(tmp_location) = res {
                 location = tmp_location;
             } else {
-                let mut s = self.write().unwrap();
-                let path = Arc::new(RwLock::new(Some(traversed_path.clone())));
-                let tmp_location = LocationWraper {
-                    location: Arc::new(RwLock::new(Location {
-                        name: name.clone(),
-                        desc: Default::default(),
-                        data: Default::default(),
-                        path: Default::default(),
-                        settings: Default::default(),
-                        module: None,
-                        id: LocationId {
-                            uid: s.refs.len() as UID,
-                            session: Some(session.clone()),
-                        },
-                        parent: Some(location.location.read().unwrap().id.clone()),
-                        locations: Vec::new(),
-                        elements: Vec::new(),
-                        progress: 0.0,
-                        download_speed: 0,
-                        upload_speed: 0,
-                        download_speed_counter: 0,
-                        upload_speed_counter: 0,
-                        total_download: 0,
-                        total_upload: 0,
-                    })),
-                    locations: Default::default(),
-                    elements: Default::default(),
-                    path: path.clone(),
-                };
-                location
-                    .locations
-                    .write()
-                    .unwrap()
-                    .push(tmp_location.clone());
-                location
-                    .location
-                    .write()
-                    .unwrap()
-                    .locations
-                    .push(LocationId {
-                        uid: s.refs.len() as UID,
+                let tmp_location = {
+                    let mut s = self.write().unwrap();
+                    let mut locations = location.locations.write().unwrap();
+                    let mut location = location.location.write().unwrap();
+                    let path = {
+                        let mut path = traversed_path.clone();
+                        path.push(locations.len());
+                        path
+                    };
+                    let path = Arc::new(RwLock::new(crate::UIDPath::Location(path)));
+                    let uid = s.register_path(path.clone());
+                    let tmp_location = LocationWraper {
+                        location: Arc::new(RwLock::new(Location {
+                            name: name.clone(),
+                            desc: Default::default(),
+                            data: Default::default(),
+                            path: Default::default(),
+                            settings: Default::default(),
+                            module: None,
+                            id: LocationId {
+                                uid,
+                                session: Some(session.clone()),
+                            },
+                            parent: Some(location.id.clone()),
+                            locations: Vec::new(),
+                            elements: Vec::new(),
+                            progress: 0.0,
+                            download_speed: 0,
+                            upload_speed: 0,
+                            download_speed_counter: 0,
+                            upload_speed_counter: 0,
+                            total_download: 0,
+                            total_upload: 0,
+                            enabled: false,
+                            is_error: false,
+                            is_completed: false,
+                        })),
+                        locations: Default::default(),
+                        elements: Default::default(),
+                        path: path.clone(),
+                    };
+                    locations.push(tmp_location.clone());
+                    location.locations.push(LocationId {
+                        uid,
                         session: Some(session.clone()),
                     });
-                s.refs.push(path);
+                    tmp_location
+                };
                 location = tmp_location;
             }
             traversed_path.push(index);
@@ -153,24 +161,25 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
         } else {
             let session = Session::from(Box::new(self.c()) as Box<dyn TSession>);
             let mut s = self.write().unwrap();
+            let mut location = location.location.write().unwrap();
             path.pop();
             path.push(elements.len());
-            let path = Arc::new(RwLock::new(Some(path)));
-            let uid = s.refs.len();
+            let path = Arc::new(RwLock::new(crate::UIDPath::Element(path, elements.len())));
+            let uid = s.register_path(path.clone());
             let id = ElementId {
-                uid: uid as UID,
+                uid: uid,
                 session: Some(session),
             };
             let element = ElementWraper {
                 element: Arc::new(RwLock::new(Element {
-                    name,
+                    name: name.clone(),
                     desc: Default::default(),
                     data: Default::default(),
                     settings: Default::default(),
-                    path: location.location.read().unwrap().path.clone(),
+                    path: location.path.clone().join(name),
                     module: None,
                     id: id.clone(),
-                    parent: location.location.read().unwrap().id.clone(),
+                    parent: location.id.clone(),
                     stream: Stream::None,
                     progress: 0.0,
                     download_speed: 0,
@@ -179,14 +188,15 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
                     upload_speed_counter: 0,
                     total_download: 0,
                     total_upload: 0,
+                    enabled: false,
+                    is_error: false,
+                    is_completed: false,
                 })),
                 path: path.clone(),
             };
 
             elements.push(element.clone());
-            location.location.write().unwrap().elements.push(id);
-
-            s.refs.push(path);
+            location.elements.push(id);
             element
         }
     }
@@ -195,7 +205,7 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
         let res = self.read().unwrap().refs.get(uid as usize).cloned();
         if let Some(path) = res {
             let path = path.read().unwrap().clone();
-            if let Some(path) = path {
+            if let UIDPath::Location(path) = path {
                 let mut location = self.read().unwrap().location.clone();
                 for index in path {
                     let tmp_location = location.locations.read().unwrap().get(index).cloned();
@@ -218,8 +228,7 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
         let res = self.read().unwrap().refs.get(uid as usize).cloned();
         if let Some(path) = res {
             let mut path = path.read().unwrap().clone();
-            if let Some(mut path) = path {
-                let Some(index) = path.pop() else {return Err(SessionError::UIDIsNotAElement)};
+            if let UIDPath::Element(mut path, index) = path {
                 let location = self.create_location("Trying to find element".into(), path);
                 let res = location
                     .elements
@@ -228,13 +237,10 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
                     .get(index as usize)
                     .cloned();
                 if let Some(element) = res {
-                    Ok(element)
-                } else {
-                    return Err(SessionError::UIDIsNotAElement);
+                    return Ok(element);
                 }
-            } else {
-                return Err(SessionError::UIDIsNotALocation);
             }
+            return Err(SessionError::UIDIsNotAElement);
         } else {
             Err(SessionError::InvalidUID)
         }

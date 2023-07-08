@@ -8,7 +8,15 @@ use std::sync::{Arc, RwLock};
 
 use muzzman_lib::prelude::*;
 
-pub type Path = Arc<RwLock<Option<Vec<usize>>>>;
+pub type Path = Arc<RwLock<UIDPath>>;
+
+#[derive(Clone, Debug)]
+pub enum UIDPath {
+    Element(Vec<usize>, usize),
+    Location(Vec<usize>),
+    Module(usize),
+    None,
+}
 
 #[derive(Clone, Debug)]
 pub struct ElementWraper {
