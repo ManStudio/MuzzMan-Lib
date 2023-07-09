@@ -16,6 +16,9 @@ pub struct Element {
 
     pub stream: Stream,
 
+    pub status: usize,
+    pub statuses: Vec<String>,
+
     pub progress: f32,
     /// This should only be updated per seccond from download_speed_counter
     pub download_speed: usize,

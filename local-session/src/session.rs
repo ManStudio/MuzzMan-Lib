@@ -5,7 +5,7 @@ use std::{
 
 use muzzman_lib::prelude::*;
 
-use crate::{ElementWraper, LocationWraper, Path, UIDPath, Wraper};
+use crate::{ElementWraper, LocationWraper, ModuleWraper, Path, UIDPath, Wraper};
 
 pub struct LocalSession {
     pub location: LocationWraper,
@@ -30,6 +30,8 @@ impl LocalSession {
                 parent: None,
                 locations: vec![],
                 elements: vec![],
+                status: 0,
+                statuses: vec![],
                 progress: 0.0,
                 download_speed: 0,
                 upload_speed: 0,
@@ -72,6 +74,10 @@ pub trait TLocalSession {
     fn create_element(&self, name: String, path: &[usize]) -> ElementWraper;
 
     fn get(&self, uid: UID) -> SessionResult<Wraper>;
+
+    fn get_location(&self, uid: UID) -> SessionResult<LocationWraper>;
+    fn get_element(&self, uid: UID) -> SessionResult<ElementWraper>;
+    fn get_module(&self, uid: UID) -> SessionResult<ModuleWraper>;
 
     fn get_default_location(&self) -> SessionResult<LocationId>;
 
@@ -119,6 +125,8 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
                             parent: Some(location.id.clone()),
                             locations: Vec::new(),
                             elements: Vec::new(),
+                            status: 0,
+                            statuses: vec![],
                             progress: 0.0,
                             download_speed: 0,
                             upload_speed: 0,
@@ -180,6 +188,8 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
                     id: id.clone(),
                     parent: location.id.clone(),
                     stream: Stream::None,
+                    status: 0,
+                    statuses: vec![],
                     progress: 0.0,
                     download_speed: 0,
                     upload_speed: 0,
@@ -198,16 +208,6 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
             location.elements.push(id);
             element
         }
-    }
-
-    fn c(&self) -> Box<dyn TLocalSession> {
-        Box::new(self.clone())
-    }
-
-    fn get_default_location(&self) -> SessionResult<LocationId> {
-        let location = self.read().unwrap().location.clone();
-        let id = location.location.read().unwrap().id.clone();
-        Ok(id)
     }
 
     fn get(&self, uid: UID) -> SessionResult<Wraper> {
@@ -241,6 +241,31 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
             }
         }
         Err(SessionError::InvalidUID)
+    }
+
+    fn get_location(&self, uid: UID) -> SessionResult<LocationWraper> {
+        let Wraper::Location(location) = self.get(uid)?else {return Err(SessionError::UIDIsNotALocation)};
+        Ok(location)
+    }
+
+    fn get_element(&self, uid: UID) -> SessionResult<ElementWraper> {
+        let Wraper::Element(element) = self.get(uid)?else {return Err(SessionError::UIDIsNotAElement)};
+        Ok(element)
+    }
+
+    fn get_module(&self, uid: UID) -> SessionResult<ModuleWraper> {
+        let Wraper::Module(module) = self.get(uid)?else {return Err(SessionError::UIDIsNotAModule)};
+        Ok(module)
+    }
+
+    fn get_default_location(&self) -> SessionResult<LocationId> {
+        let location = self.read().unwrap().location.clone();
+        let id = location.location.read().unwrap().id.clone();
+        Ok(id)
+    }
+
+    fn c(&self) -> Box<dyn TLocalSession> {
+        Box::new(self.clone())
     }
 }
 

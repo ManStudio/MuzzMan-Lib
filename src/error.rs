@@ -8,6 +8,8 @@ pub enum SessionError {
 
     NoSession,
 
+    InvalidStatus,
+
     ThereAreLessLocations,
     ThereAreLessElements,
 

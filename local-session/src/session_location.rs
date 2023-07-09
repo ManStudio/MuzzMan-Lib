@@ -5,7 +5,7 @@ use crate::{TLocalSession, UIDPath, Wraper};
 impl TSessionLocation for Box<dyn TLocalSession> {
     fn create_location(&self, location: LocationId, name: String) -> SessionResult<LocationId> {
         let inner = move || {
-            let Wraper::Location(location_parent) = self.as_ref().get(location.uid)? else {return Err(SessionError::UIDIsNotALocation)};
+            let location_parent = self.as_ref().get_location(location.uid)?;
             let UIDPath::Location(mut path) = location_parent.path.read().unwrap().clone() else {return Err(SessionError::UIDIsNotALocation)};
             path.push(usize::MAX);
             let location = self.as_ref().create_location(name, &path);
@@ -26,21 +26,21 @@ impl TSessionLocation for Box<dyn TLocalSession> {
     }
 
     fn location_get_parent(&self, location: LocationId) -> SessionResult<Option<LocationId>> {
-        let Wraper::Location(location) = self
-            .as_ref()
-            .get(location.uid)
-            .map_err(|e| SessionError::LocationGetParent(Box::new(e)))? else {return Err(SessionError::UIDIsNotALocation)};
-        let parent = location.location.read().unwrap().parent.clone();
-        Ok(parent)
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            let parent = location.location.read().unwrap().parent.clone();
+            Ok(parent)
+        };
+        inner().map_err(|e| SessionError::LocationGetParent(Box::new(e)))
     }
 
     fn location_get_locations_len(&self, location: LocationId) -> SessionResult<usize> {
-        let Wraper::Location(location) = self
-            .as_ref()
-            .get(location.uid)
-            .map_err(|e| SessionError::LocationGetLocationsLen(Box::new(e)))? else {return Err(SessionError::UIDIsNotALocation)};
-        let len = location.locations.read().unwrap().len();
-        Ok(len)
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            let len = location.locations.read().unwrap().len();
+            Ok(len)
+        };
+        inner().map_err(|e| SessionError::LocationGetLocationsLen(Box::new(e)))
     }
 
     fn location_get_locations(
@@ -49,28 +49,28 @@ impl TSessionLocation for Box<dyn TLocalSession> {
         start: usize,
         end: usize,
     ) -> SessionResult<Vec<LocationId>> {
-        let Wraper::Location(location) = self
-            .as_ref()
-            .get(location.uid)
-            .map_err(|e| SessionError::LocationGetLocations(Box::new(e)))?else {return Err(SessionError::UIDIsNotALocation)};
-        let location = location.location.read().unwrap();
-        if start < end && location.locations.len() <= end {
-            Err(SessionError::LocationGetLocations(Box::new(
-                SessionError::ThereAreLessLocations,
-            )))
-        } else {
-            let locations = &location.locations[start..=end];
-            Ok(locations.to_vec())
-        }
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            let location = location.location.read().unwrap();
+            if start < end && location.locations.len() <= end {
+                Err(SessionError::LocationGetLocations(Box::new(
+                    SessionError::ThereAreLessLocations,
+                )))
+            } else {
+                let locations = &location.locations[start..=end];
+                Ok(locations.to_vec())
+            }
+        };
+        inner().map_err(|e| SessionError::LocationGetLocations(Box::new(e)))
     }
 
     fn location_get_elements_len(&self, location: LocationId) -> SessionResult<usize> {
-        let Wraper::Location(location) = self
-            .as_ref()
-            .get(location.uid)
-            .map_err(|e| SessionError::LocationGetElementsLen(Box::new(e)))?else {return Err(SessionError::UIDIsNotALocation)};
-        let len = location.elements.read().unwrap().len();
-        Ok(len)
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            let len = location.elements.read().unwrap().len();
+            Ok(len)
+        };
+        inner().map_err(|e| SessionError::LocationGetElementsLen(Box::new(e)))
     }
 
     fn location_get_elements(
@@ -79,29 +79,54 @@ impl TSessionLocation for Box<dyn TLocalSession> {
         start: usize,
         end: usize,
     ) -> SessionResult<Vec<ElementId>> {
-        let Wraper::Location(location) = self.as_ref().get(location.uid)?else {return Err(SessionError::UIDIsNotALocation)};
-        let location = location.location.read().unwrap();
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
 
-        if start < end && location.locations.len() <= end {
-            Err(SessionError::LocationGetLocations(Box::new(
-                SessionError::ThereAreLessLocations,
-            )))
-        } else {
-            let elements = &location.elements[start..=end];
-            Ok(elements.to_vec())
-        }
+            let location = location.location.read().unwrap();
+
+            if start < end && location.locations.len() <= end {
+                Err(SessionError::LocationGetLocations(Box::new(
+                    SessionError::ThereAreLessLocations,
+                )))
+            } else {
+                let elements = &location.elements[start..=end];
+                Ok(elements.to_vec())
+            }
+        };
+
+        inner().map_err(|e| SessionError::LocationGetElements(Box::new(e)))
     }
 
     fn location_get_enabled(&self, location: LocationId) -> SessionResult<bool> {
-        todo!()
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            let enabled = location.location.read().unwrap().enabled;
+            Ok(enabled)
+        };
+        inner().map_err(|e| SessionError::LocationGetEnabled(Box::new(e)))
     }
 
     fn location_set_enabled(&self, location: LocationId, enabled: bool) -> SessionResult<()> {
-        todo!()
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            // TODO: LocalSession::location_set_enabled
+            // We need to start the location on a separate thread
+            // The thread when will finish will set the location enabled to false
+            // If the module location_poll panics will set the location enabled to false and is_error to true,
+            // and add the panic message on status usize::MAX and set status to usize::MAX
+            eprintln!("TODO: LocalSession::location_set_enabled");
+            Ok(())
+        };
+        inner().map_err(|e| SessionError::LocationGetEnabled(Box::new(e)))
     }
 
     fn location_get_path(&self, location: LocationId) -> SessionResult<std::path::PathBuf> {
-        todo!()
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            let path = location.location.read().unwrap().path.clone();
+            Ok(path)
+        };
+        inner().map_err(|e| SessionError::LocationGetPath(Box::new(e)))
     }
 
     fn location_set_path(
@@ -109,19 +134,39 @@ impl TSessionLocation for Box<dyn TLocalSession> {
         location: LocationId,
         path: std::path::PathBuf,
     ) -> SessionResult<()> {
-        todo!()
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            location.location.write().unwrap().path = path;
+            Ok(())
+        };
+        inner().map_err(|e| SessionError::LocationSetPath(Box::new(e)))
     }
 
     fn location_is_completed(&self, location: LocationId) -> SessionResult<bool> {
-        todo!()
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            let is_completed = location.location.read().unwrap().is_completed.clone();
+            Ok(is_completed)
+        };
+        inner().map_err(|e| SessionError::LocationIsCompleted(Box::new(e)))
     }
 
     fn location_is_error(&self, location: LocationId) -> SessionResult<bool> {
-        todo!()
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            let is_error = location.location.read().unwrap().is_error.clone();
+            Ok(is_error)
+        };
+        inner().map_err(|e| SessionError::LocationIsError(Box::new(e)))
     }
 
     fn location_get_statuses(&self, location: LocationId) -> SessionResult<Vec<String>> {
-        todo!()
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            let statuses = location.location.read().unwrap().statuses.clone();
+            Ok(statuses)
+        };
+        inner().map_err(|e| SessionError::LocationGetStatuses(Box::new(e)))
     }
 
     fn location_set_statuses(
@@ -129,19 +174,43 @@ impl TSessionLocation for Box<dyn TLocalSession> {
         location: LocationId,
         statuses: Vec<String>,
     ) -> SessionResult<()> {
-        todo!()
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            location.location.write().unwrap().statuses = statuses;
+            Ok(())
+        };
+        inner().map_err(|e| SessionError::LocationSetStatuses(Box::new(e)))
     }
 
     fn location_get_status(&self, location: LocationId) -> SessionResult<usize> {
-        todo!()
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            let status = location.location.read().unwrap().status.clone();
+            Ok(status)
+        };
+        inner().map_err(|e| SessionError::LocationGetStatus(Box::new(e)))
     }
 
     fn location_set_status(&self, location: LocationId, status: usize) -> SessionResult<()> {
-        todo!()
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            location.location.write().unwrap().status = status;
+            Ok(())
+        };
+        inner().map_err(|e| SessionError::LocationSetStatus(Box::new(e)))
     }
 
     fn location_get_status_str(&self, location: LocationId) -> SessionResult<String> {
-        todo!()
+        let inner = move || {
+            let location = self.as_ref().get_location(location.uid)?;
+            let location = location.location.read().unwrap();
+            if let Some(status) = location.statuses.get(location.status) {
+                Ok(status.clone())
+            } else {
+                Err(SessionError::InvalidStatus)
+            }
+        };
+        inner().map_err(|e| SessionError::LocationGetStatuses(Box::new(e)))
     }
 
     fn location_get_progress(&self, location: LocationId) -> SessionResult<f32> {
