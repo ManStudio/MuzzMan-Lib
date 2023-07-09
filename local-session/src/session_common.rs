@@ -74,4 +74,24 @@ impl TSessionCommon for Box<dyn TLocalSession> {
     fn push_event(&self, uid: UID, event: Event) -> SessionResult<()> {
         todo!()
     }
+
+    fn get_buffer_size(&self, uid: UID) -> SessionResult<usize> {
+        todo!()
+    }
+
+    fn set_buffer_size(&self, uid: UID, size: usize) -> SessionResult<()> {
+        todo!()
+    }
+
+    fn remaining(&self, uid: UID) -> SessionResult<usize> {
+        todo!()
+    }
+
+    fn read(&self, uid: UID, len: usize) -> SessionResult<Vec<u8>> {
+        todo!()
+    }
+
+    fn write(&self, uid: UID, data: &[u8]) -> SessionResult<usize> {
+        todo!()
+    }
 }

@@ -15,6 +15,13 @@ pub trait TCommonHelper {
 
     fn events(&self, consume: bool) -> SessionResult<Vec<Event>>;
     fn push_event(&self, event: Event) -> SessionResult<()>;
+
+    fn get_buffer_size(&self) -> SessionResult<usize>;
+    fn set_buffer_size(&self, size: usize) -> SessionResult<()>;
+
+    fn remaining(&self) -> SessionResult<usize>;
+    fn read(&self, len: usize) -> SessionResult<Vec<u8>>;
+    fn write(&self, data: &[u8]) -> SessionResult<usize>;
 }
 
 impl TCommonHelper for LocationId {
@@ -66,6 +73,31 @@ impl TCommonHelper for LocationId {
     fn push_event(&self, event: Event) -> SessionResult<()> {
         let session = self.get_session()?;
         session.push_event(self.uid, event)
+    }
+
+    fn get_buffer_size(&self) -> SessionResult<usize> {
+        let session = self.get_session()?;
+        session.get_buffer_size(self.uid)
+    }
+
+    fn set_buffer_size(&self, size: usize) -> SessionResult<()> {
+        let session = self.get_session()?;
+        session.set_buffer_size(self.uid, size)
+    }
+
+    fn remaining(&self) -> SessionResult<usize> {
+        let session = self.get_session()?;
+        session.remaining(self.uid)
+    }
+
+    fn read(&self, len: usize) -> SessionResult<Vec<u8>> {
+        let session = self.get_session()?;
+        session.read(self.uid, len)
+    }
+
+    fn write(&self, data: &[u8]) -> SessionResult<usize> {
+        let session = self.get_session()?;
+        session.write(self.uid, data)
     }
 }
 
@@ -119,6 +151,31 @@ impl TCommonHelper for ElementId {
         let session = self.get_session()?;
         session.push_event(self.uid, event)
     }
+
+    fn get_buffer_size(&self) -> SessionResult<usize> {
+        let session = self.get_session()?;
+        session.get_buffer_size(self.uid)
+    }
+
+    fn set_buffer_size(&self, size: usize) -> SessionResult<()> {
+        let session = self.get_session()?;
+        session.set_buffer_size(self.uid, size)
+    }
+
+    fn remaining(&self) -> SessionResult<usize> {
+        let session = self.get_session()?;
+        session.remaining(self.uid)
+    }
+
+    fn read(&self, len: usize) -> SessionResult<Vec<u8>> {
+        let session = self.get_session()?;
+        session.read(self.uid, len)
+    }
+
+    fn write(&self, data: &[u8]) -> SessionResult<usize> {
+        let session = self.get_session()?;
+        session.write(self.uid, data)
+    }
 }
 
 impl TCommonHelper for ModuleId {
@@ -170,5 +227,30 @@ impl TCommonHelper for ModuleId {
     fn push_event(&self, event: Event) -> SessionResult<()> {
         let session = self.get_session()?;
         session.push_event(self.uid, event)
+    }
+
+    fn get_buffer_size(&self) -> SessionResult<usize> {
+        let session = self.get_session()?;
+        session.get_buffer_size(self.uid)
+    }
+
+    fn set_buffer_size(&self, size: usize) -> SessionResult<()> {
+        let session = self.get_session()?;
+        session.set_buffer_size(self.uid, size)
+    }
+
+    fn remaining(&self) -> SessionResult<usize> {
+        let session = self.get_session()?;
+        session.remaining(self.uid)
+    }
+
+    fn read(&self, len: usize) -> SessionResult<Vec<u8>> {
+        let session = self.get_session()?;
+        session.read(self.uid, len)
+    }
+
+    fn write(&self, data: &[u8]) -> SessionResult<usize> {
+        let session = self.get_session()?;
+        session.write(self.uid, data)
     }
 }
