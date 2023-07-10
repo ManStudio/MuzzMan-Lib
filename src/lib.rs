@@ -2,6 +2,7 @@ mod element;
 mod error;
 mod helper;
 mod location;
+pub mod logger;
 mod module;
 mod session;
 mod session_common;
