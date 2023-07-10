@@ -5,7 +5,13 @@ use crate::prelude::SessionError;
 pub type UID = u64;
 pub type SessionResult<T> = std::result::Result<T, SessionError>;
 
-pub enum Event {}
+pub enum Event {
+    /// This will be receive if on that element/location is TCommonSession::write
+    NewData(Vec<u8>),
+    ProgressChanged(UID),
+    Completed(UID),
+    Error(UID),
+}
 
 #[derive(Debug)]
 pub enum Stream {

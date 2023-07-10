@@ -3,20 +3,25 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use crate::prelude::*;
+use crate::{prelude::*, storage::Storage};
 
 pub trait TModule {
     fn poll_element(
         &self,
         ctx: &mut std::task::Context<'_>,
         element: Arc<RwLock<Element>>,
+        storage: &mut Storage,
     ) -> SessionResult<()>;
 
     fn poll_location(
         &self,
         ctx: &mut std::task::Context<'_>,
         location: Arc<RwLock<Location>>,
+        storage: &mut Storage,
     ) -> SessionResult<()>;
+
+    fn on_event_element(&self, element: Arc<RwLock<Element>>, event: Event, storage: &mut Storage);
+    fn on_event_location(&self, element: Arc<RwLock<Element>>, event: Event, storage: &mut Storage);
 
     fn default_element_settings(&self) -> Settings;
     fn default_location_settings(&self) -> Settings;

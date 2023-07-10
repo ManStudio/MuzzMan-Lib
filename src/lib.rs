@@ -9,6 +9,7 @@ mod session_element;
 mod session_location;
 mod session_module;
 mod settings;
+pub mod storage;
 mod types;
 
 pub mod prelude {

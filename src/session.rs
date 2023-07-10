@@ -1,6 +1,8 @@
 use crate::prelude::*;
 
 pub trait TSession: TSessionCommon + TSessionElement + TSessionLocation + TSessionModule {
+    fn version(&self) -> SessionResult<u64>;
+    fn version_str(&self) -> SessionResult<String>;
     fn clone_box(&self) -> Box<dyn TSession>;
 }
 

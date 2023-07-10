@@ -30,6 +30,7 @@ impl LocalSession {
                 parent: None,
                 locations: vec![],
                 elements: vec![],
+                buffer: vec![],
                 status: 0,
                 statuses: vec![],
                 progress: 0.0,
@@ -125,6 +126,7 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
                             parent: Some(location.id.clone()),
                             locations: Vec::new(),
                             elements: Vec::new(),
+                            buffer: vec![],
                             status: 0,
                             statuses: vec![],
                             progress: 0.0,
@@ -187,6 +189,7 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
                     id: id.clone(),
                     parent: location.id.clone(),
                     stream: Stream::None,
+                    buffer: vec![],
                     status: 0,
                     statuses: vec![],
                     progress: 0.0,
@@ -271,5 +274,13 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
 impl TSession for Box<dyn TLocalSession> {
     fn clone_box(&self) -> Box<dyn TSession> {
         Box::new(self.c())
+    }
+
+    fn version(&self) -> SessionResult<u64> {
+        Ok(1)
+    }
+
+    fn version_str(&self) -> SessionResult<String> {
+        Ok("LocalSession: 1".to_string())
     }
 }

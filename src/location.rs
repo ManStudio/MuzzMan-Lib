@@ -17,6 +17,9 @@ pub struct Location {
     pub locations: Vec<LocationId>,
     pub elements: Vec<ElementId>,
 
+    /// From this will be readed when TSessionCommon::read
+    pub buffer: Vec<u8>,
+
     pub status: usize,
     pub statuses: Vec<String>,
 
@@ -35,4 +38,10 @@ pub struct Location {
     pub enabled: bool,
     pub is_error: bool,
     pub is_completed: bool,
+}
+
+impl Location {
+    pub fn get_session(&self) -> Option<Session> {
+        self.id.session.clone()
+    }
 }
