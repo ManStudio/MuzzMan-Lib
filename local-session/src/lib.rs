@@ -6,7 +6,7 @@ mod session_module;
 
 use std::sync::{Arc, RwLock};
 
-use muzzman_lib::prelude::*;
+use muzzman_lib::{prelude::*, storage::Storage};
 
 pub type Path = Arc<RwLock<UIDPath>>;
 
@@ -22,6 +22,9 @@ pub enum UIDPath {
 pub struct ElementWraper {
     pub element: Arc<RwLock<Element>>,
     pub path: Path,
+    pub storage: Arc<RwLock<Storage>>,
+    pub thread: Arc<RwLock<Option<std::thread::JoinHandle<()>>>>,
+    pub sender: Arc<RwLock<Option<std::sync::mpsc::Sender<Event>>>>,
 }
 
 #[derive(Clone, Debug)]
@@ -30,6 +33,9 @@ pub struct LocationWraper {
     pub locations: Arc<RwLock<Vec<LocationWraper>>>,
     pub elements: Arc<RwLock<Vec<ElementWraper>>>,
     pub path: Path,
+    pub storage: Arc<RwLock<Storage>>,
+    pub thread: Arc<RwLock<Option<std::thread::JoinHandle<()>>>>,
+    pub sender: Arc<RwLock<Option<std::sync::mpsc::Sender<Event>>>>,
 }
 
 #[derive(Clone, Debug)]

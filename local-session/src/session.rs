@@ -47,6 +47,9 @@ impl LocalSession {
             locations: Default::default(),
             elements: Default::default(),
             path: path.clone(),
+            storage: Default::default(),
+            thread: Default::default(),
+            sender: Default::default(),
         };
         let s = Box::new(Arc::new(RwLock::new(Self {
             location,
@@ -143,6 +146,9 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
                         locations: Default::default(),
                         elements: Default::default(),
                         path: path.clone(),
+                        storage: Default::default(),
+                        thread: Default::default(),
+                        sender: Default::default(),
                     };
                     locations.push(tmp_location.clone());
                     location.locations.push(LocationId {
@@ -204,6 +210,9 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
                     is_completed: false,
                 })),
                 path: path.clone(),
+                storage: Default::default(),
+                thread: Default::default(),
+                sender: Default::default(),
             };
 
             elements.push(element.clone());

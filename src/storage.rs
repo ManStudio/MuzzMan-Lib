@@ -1,5 +1,6 @@
 use std::any::Any;
 
+#[derive(Debug, Default)]
 pub struct Storage {
     data: Vec<Box<dyn Any>>,
 }
