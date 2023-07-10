@@ -33,92 +33,58 @@ pub fn module_link(
         static MODULE: #name = #name;
 
         #[no_mangle]
-        fn init(info: MRef) -> Result<(), SessionError> {
-            MODULE.init(info)
+        fn name() -> String {
+            MODULE.name()
         }
 
         #[no_mangle]
-        fn get_name() -> String {
-            MODULE.get_name()
+        fn desc() -> String {
+            MODULE.desc()
         }
 
         #[no_mangle]
-        fn get_desc() -> String {
-            MODULE.get_desc()
+        fn id() -> u64 {
+            MODULE.id()
         }
 
         #[no_mangle]
-        fn get_uid() -> UID{
-            MODULE.get_uid()
+        fn version() -> u64 {
+            MODULE.version()
         }
 
         #[no_mangle]
-        fn get_version() -> String{
-            MODULE.get_version()
-        }
-
-        #[no_mangle]
-        fn supported_versions() -> Range<u64>{
+        fn supported_versions() -> Vec<u64>{
             MODULE.supported_versions()
         }
 
         #[no_mangle]
-        fn init_settings(data: &mut Values) -> Result<(), SessionError> {
-            MODULE.init_settings(data)
+        fn default_element_settings() -> Result<Settings, SessionError> {
+            MODULE.default_element_settings()
         }
 
         #[no_mangle]
-        fn init_element_settings(data: &mut Values) -> Result<(), SessionError> {
-            MODULE.init_element_settings(data)
+        fn default_location_settings() -> Result<Settings, SessionError> {
+            MODULE.default_location_settings()
         }
 
         #[no_mangle]
-        fn init_location_settings(data: &mut Values) -> Result<(), SessionError>{
-            MODULE.init_location_settings(data)
+        fn poll_element(ctx: &mut std::task::Context, element: Arc<RwLock<Element>>, storage: &mut Storage) -> Result<(), SessionError> {
+            MODULE.poll_element(ctx, element, storage)
         }
 
         #[no_mangle]
-        fn init_element(element: ERow) -> Result<(), SessionError> {
-            MODULE.init_element(element)
-        }
-        #[no_mangle]
-        fn step_element(element: ERow, control_flow: &mut ControlFlow, storage: &mut Storage) -> Result<(), SessionError> {
-            MODULE.step_element(element, control_flow, storage)
+        fn poll_location(ctx: &mut std::task::Context, location: Arc<RwLock<Location>>, storage: &mut Storage) -> Result<(), SessionError> {
+            MODULE.poll_location(ctx, location, storage)
         }
 
         #[no_mangle]
-        fn accept_extension(filename: &str) -> bool {
-            MODULE.accept_extension(filename)
+        fn supports_protocols() -> Vec<String> {
+            MODULE.supports_protocols()
         }
 
         #[no_mangle]
-        fn accept_url(url: String) -> bool {
-            MODULE.accept_url(url)
-        }
-
-        #[no_mangle]
-        fn accepted_extensions() -> Vec<String>{
-            MODULE.accepted_extensions()
-        }
-
-        #[no_mangle]
-        fn accepted_protocols() -> Vec<String>{
-            MODULE.accepted_protocols()
-        }
-
-        #[no_mangle]
-        fn init_location(location: LRef) -> Result<(), SessionError> {
-            MODULE.init_location(location)
-        }
-
-        #[no_mangle]
-        fn step_location(location: LRow, control_flow: &mut ControlFlow, storage: &mut Storage) -> Result<(), SessionError> {
-            MODULE.step_location(location, control_flow, storage)
-        }
-
-        #[no_mangle]
-        fn notify(_ref: Ref, event: Event) -> Result<(), SessionError> {
-            MODULE.notify(_ref, event)
+        fn supports_extensions() -> Vec<String> {
+            MODULE.supports_extensions()
         }
     }
     .into()

@@ -3,9 +3,18 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use bytes_kman::prelude::*;
+use serde::{Deserialize, Serialize};
+
 use crate::{prelude::*, storage::Storage};
 
-pub trait TModule {
+pub trait TModule: std::panic::UnwindSafe {
+    fn name(&self) -> &str;
+    fn desc(&self) -> &str;
+    fn id(&self) -> u64;
+    fn version(&self) -> u64;
+    fn supported_versions(&self) -> Vec<u64>;
+
     fn poll_element(
         &self,
         ctx: &mut std::task::Context<'_>,
@@ -20,8 +29,18 @@ pub trait TModule {
         storage: &mut Storage,
     ) -> SessionResult<()>;
 
-    fn on_event_element(&self, element: Arc<RwLock<Element>>, event: Event, storage: &mut Storage);
-    fn on_event_location(&self, element: Arc<RwLock<Element>>, event: Event, storage: &mut Storage);
+    fn element_on_event(
+        &self,
+        element: Arc<RwLock<Element>>,
+        event: Event,
+        storage: &mut Storage,
+    ) -> SessionResult<()>;
+    fn location_on_event(
+        &self,
+        location: Arc<RwLock<Location>>,
+        event: Event,
+        storage: &mut Storage,
+    ) -> SessionResult<()>;
 
     fn default_element_settings(&self) -> Settings;
     fn default_location_settings(&self) -> Settings;
@@ -30,12 +49,6 @@ pub trait TModule {
     fn supports_protocols(&self) -> Vec<String>;
     /// Should be like "html, exe"
     fn supports_extensions(&self) -> Vec<String>;
-
-    fn name(&self) -> &str;
-    fn desc(&self) -> &str;
-    fn id(&self) -> u64;
-    fn version(&self) -> u64;
-    fn supported_versions(&self) -> Vec<u64>;
 }
 
 pub enum ModuleSource {
@@ -64,4 +77,28 @@ pub struct Module {
     pub source: ModuleSource,
     pub element_settings: Settings,
     pub location_settings: Settings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Bytes)]
+pub enum RawLibraryError {
+    NotFound,
+    DontHaveSymbolName,
+    DontHaveSymbolDesc,
+    DontHaveSymbolId,
+    DontHaveSymbolVersion,
+    DontHaveSymbolSupportedVersions,
+    DontHaveSymbolPollElement,
+    DontHaveSymbolPollLocation,
+    DontHaveSymbolElementOnEvent,
+    DontHaveSymbolLocationOnEvent,
+    DontHaveSymbolDefaultElementSettings,
+    DontHaveSymbolDefaultLocationSettings,
+    DontHaveSymbolSupportsProtocols,
+    DontHaveSymbolSupportsExtensions,
+}
+
+impl From<RawLibraryError> for SessionError {
+    fn from(value: RawLibraryError) -> Self {
+        Self::RawModule(value)
+    }
 }

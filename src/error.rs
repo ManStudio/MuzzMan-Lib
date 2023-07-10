@@ -1,3 +1,5 @@
+use crate::prelude::RawLibraryError;
+
 #[derive(Clone, Debug)]
 pub enum SessionError {
     UIDWasDestroyed,
@@ -5,6 +7,8 @@ pub enum SessionError {
     UIDIsNotAModule,
     UIDIsNotALocation,
     UIDIsNotAElement,
+
+    RawModule(RawLibraryError),
 
     NoSession,
 

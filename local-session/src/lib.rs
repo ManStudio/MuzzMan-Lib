@@ -1,3 +1,4 @@
+mod module;
 mod session;
 mod session_common;
 mod session_element;

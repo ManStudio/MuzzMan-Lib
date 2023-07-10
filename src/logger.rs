@@ -1,14 +1,21 @@
 use crate::types::UID;
 use bytes_kman::prelude::*;
-use std::sync::RwLock;
+use once_cell::sync::Lazy;
+use std::{
+    sync::{Arc, RwLock},
+    thread::LocalKey,
+};
 
 thread_local! {
-    #[no_mangle]
-    pub static LOGGER_WHO_IAM: RwLock<Iam> = RwLock::new(Iam::MuzzManLib);
+    static WHO_IAM: RwLock<Iam> = RwLock::new(Iam::MuzzManLib);
 }
 
 #[no_mangle]
-pub static LOGGER_STATE: RwLock<State> = RwLock::new(State::new());
+pub static LOGGER_WHO_IAM: Lazy<Arc<LocalKey<RwLock<Iam>>>> = Lazy::new(|| Arc::new(WHO_IAM));
+
+#[no_mangle]
+pub static LOGGER_STATE: Lazy<Arc<RwLock<State>>> =
+    Lazy::new(|| Arc::new(RwLock::new(State::new())));
 
 #[derive(Clone)]
 pub enum Iam {
