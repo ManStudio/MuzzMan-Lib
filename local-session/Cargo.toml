@@ -10,3 +10,4 @@ path = "examples/create_element.rs"
 
 [dependencies]
 muzzman-lib = {path = ".."}
+circular-buffer = "0.1.1"

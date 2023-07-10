@@ -6,6 +6,7 @@ mod session_module;
 
 use std::sync::{Arc, RwLock};
 
+use circular_buffer::CircularBuffer;
 use muzzman_lib::{prelude::*, storage::Storage};
 
 pub type Path = Arc<RwLock<UIDPath>>;
@@ -25,6 +26,7 @@ pub struct ElementWraper {
     pub storage: Arc<RwLock<Storage>>,
     pub thread: Arc<RwLock<Option<std::thread::JoinHandle<()>>>>,
     pub sender: Arc<RwLock<Option<std::sync::mpsc::Sender<Event>>>>,
+    pub events: Arc<RwLock<CircularBuffer<64, Event>>>,
 }
 
 #[derive(Clone, Debug)]
@@ -36,6 +38,7 @@ pub struct LocationWraper {
     pub storage: Arc<RwLock<Storage>>,
     pub thread: Arc<RwLock<Option<std::thread::JoinHandle<()>>>>,
     pub sender: Arc<RwLock<Option<std::sync::mpsc::Sender<Event>>>>,
+    pub events: Arc<RwLock<CircularBuffer<64, Event>>>,
 }
 
 #[derive(Clone, Debug)]

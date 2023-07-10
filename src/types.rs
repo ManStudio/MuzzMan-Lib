@@ -5,6 +5,7 @@ use crate::prelude::SessionError;
 pub type UID = u64;
 pub type SessionResult<T> = std::result::Result<T, SessionError>;
 
+#[derive(Debug, Clone)]
 pub enum Event {
     /// This will be receive if on that element/location is TCommonSession::write
     NewData(Vec<u8>),
