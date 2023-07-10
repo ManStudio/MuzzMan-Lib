@@ -33,7 +33,13 @@ impl TSessionElement for Box<dyn TLocalSession> {
     }
 
     fn element_path(&self, element: ElementId) -> SessionResult<Vec<usize>> {
-        todo!()
+        let inner = move || {
+            let element = self.as_ref().get_element(element.uid)?;
+            let UIDPath::Element(mut element, index) = element.path.read().unwrap().clone() else {return Err(SessionError::UIDIsNotAElement)};
+            element.push(index);
+            Ok(element)
+        };
+        inner().map_err(|e| SessionError::CreateElement(Box::new(e)))
     }
 
     fn element_get_parent(&self, element: ElementId) -> SessionResult<LocationId> {

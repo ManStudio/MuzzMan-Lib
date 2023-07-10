@@ -10,4 +10,5 @@ fn main() {
 
     assert_eq!(new_element.get_name().unwrap(), "NewElement".to_string());
     assert_eq!(new_element.get_parent().unwrap(), default_location);
+    assert_eq!(new_element.path().unwrap(), vec![0])
 }
