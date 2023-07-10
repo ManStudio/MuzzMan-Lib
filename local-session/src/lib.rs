@@ -5,7 +5,10 @@ mod session_element;
 mod session_location;
 mod session_module;
 
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::HashSet,
+    sync::{Arc, RwLock},
+};
 
 use circular_buffer::CircularBuffer;
 use muzzman_lib::{prelude::*, storage::Storage};
@@ -20,6 +23,12 @@ pub enum UIDPath {
     None,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct Events {
+    pub subscribers: HashSet<UID>,
+    pub events: Arc<RwLock<CircularBuffer<64, Event>>>,
+}
+
 #[derive(Clone, Debug)]
 pub struct ElementWraper {
     pub element: Arc<RwLock<Element>>,
@@ -27,7 +36,7 @@ pub struct ElementWraper {
     pub storage: Arc<RwLock<Storage>>,
     pub thread: Arc<RwLock<Option<std::thread::JoinHandle<()>>>>,
     pub sender: Arc<RwLock<Option<std::sync::mpsc::Sender<Event>>>>,
-    pub events: Arc<RwLock<CircularBuffer<64, Event>>>,
+    pub events: Arc<RwLock<Events>>,
 }
 
 #[derive(Clone, Debug)]
@@ -39,7 +48,7 @@ pub struct LocationWraper {
     pub storage: Arc<RwLock<Storage>>,
     pub thread: Arc<RwLock<Option<std::thread::JoinHandle<()>>>>,
     pub sender: Arc<RwLock<Option<std::sync::mpsc::Sender<Event>>>>,
-    pub events: Arc<RwLock<CircularBuffer<64, Event>>>,
+    pub events: Arc<RwLock<Events>>,
 }
 
 #[derive(Clone, Debug)]
