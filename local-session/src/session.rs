@@ -13,7 +13,7 @@ pub struct LocalSession {
 }
 
 impl LocalSession {
-    fn new() -> Box<dyn TLocalSession> {
+    pub fn new() -> Box<dyn TLocalSession> {
         let path = Arc::new(RwLock::new(crate::UIDPath::Location(vec![])));
         let location = LocationWraper {
             location: Arc::new(RwLock::new(Location {
@@ -170,7 +170,6 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
             let mut location = location.location.write().unwrap();
             let mut path = path.to_vec();
             path.pop();
-            path.push(elements.len());
             let path = Arc::new(RwLock::new(crate::UIDPath::Element(path, elements.len())));
             let uid = s.register_path(path.clone());
             let id = ElementId {

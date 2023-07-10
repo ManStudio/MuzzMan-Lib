@@ -8,6 +8,12 @@ pub struct ElementId {
     pub session: Option<Session>,
 }
 
+impl PartialEq for ElementId {
+    fn eq(&self, other: &Self) -> bool {
+        self.uid == other.uid
+    }
+}
+
 impl ElementId {
     pub fn get_session(&self) -> SessionResult<Session> {
         self.session
@@ -17,7 +23,7 @@ impl ElementId {
 }
 
 pub trait TElementHelper: TCommonHelper {
-    fn _move(&self, location_uid: UID) -> SessionResult<()>;
+    fn _move(&self, location: LocationId) -> SessionResult<()>;
     fn path(&self) -> SessionResult<Vec<usize>>;
 
     fn get_parent(&self) -> SessionResult<LocationId>;
@@ -57,4 +63,118 @@ pub trait TElementHelper: TCommonHelper {
     fn wait(&self) -> SessionResult<()>;
 
     fn destroy(self) -> SessionResult<()>;
+}
+
+impl TElementHelper for ElementId {
+    fn _move(&self, location: LocationId) -> SessionResult<()> {
+        self.get_session()?.move_element(self.clone(), location)
+    }
+
+    fn path(&self) -> SessionResult<Vec<usize>> {
+        self.get_session()?.element_path(self.clone())
+    }
+
+    fn get_parent(&self) -> SessionResult<LocationId> {
+        self.get_session()?.element_get_parent(self.clone())
+    }
+
+    fn get_enabled(&self) -> SessionResult<bool> {
+        self.get_session()?.element_get_enabled(self.clone())
+    }
+
+    fn set_enabled(&self, enabled: bool) -> SessionResult<()> {
+        self.get_session()?
+            .element_set_enabled(self.clone(), enabled)
+    }
+
+    fn get_path(&self) -> SessionResult<PathBuf> {
+        self.get_session()?.element_get_path(self.clone())
+    }
+
+    fn set_path(&self, path: PathBuf) -> SessionResult<()> {
+        self.get_session()?.element_set_path(self.clone(), path)
+    }
+
+    fn is_completed(&self) -> SessionResult<bool> {
+        self.get_session()?.element_is_completed(self.clone())
+    }
+
+    fn is_error(&self) -> SessionResult<bool> {
+        self.get_session()?.element_is_error(self.clone())
+    }
+
+    fn get_statuses(&self) -> SessionResult<Vec<String>> {
+        self.get_session()?.element_get_statuses(self.clone())
+    }
+
+    fn set_statuses(&self, statuses: Vec<String>) -> SessionResult<()> {
+        self.get_session()?
+            .element_set_statuses(self.clone(), statuses)
+    }
+
+    fn get_status(&self) -> SessionResult<usize> {
+        self.get_session()?.element_get_status(self.clone())
+    }
+
+    fn set_status(&self, status: usize) -> SessionResult<()> {
+        self.get_session()?.element_set_status(self.clone(), status)
+    }
+
+    fn get_status_str(&self) -> SessionResult<String> {
+        self.get_session()?.element_get_status_str(self.clone())
+    }
+
+    fn get_progress(&self) -> SessionResult<f32> {
+        self.get_session()?.element_get_progress(self.clone())
+    }
+
+    fn get_download_speed(&self) -> SessionResult<usize> {
+        self.get_session()?.element_get_download_speed(self.clone())
+    }
+
+    fn get_upload_speed(&self) -> SessionResult<usize> {
+        self.get_session()?.element_get_upload_speed(self.clone())
+    }
+
+    fn get_download_total(&self) -> SessionResult<usize> {
+        self.get_session()?.element_get_download_total(self.clone())
+    }
+
+    fn get_upload_total(&self) -> SessionResult<usize> {
+        self.get_session()?.element_get_upload_total(self.clone())
+    }
+
+    fn get_data(&self) -> SessionResult<HashMap<String, Atom>> {
+        self.get_session()?.element_get_data(self.clone())
+    }
+
+    fn set_data(&self, data: HashMap<String, Atom>) -> SessionResult<()> {
+        self.get_session()?.element_set_data(self.clone(), data)
+    }
+
+    fn get_settings(&self) -> SessionResult<Settings> {
+        self.get_session()?.element_get_settings(self.clone())
+    }
+
+    fn set_settings(&self, settings: Settings) -> SessionResult<()> {
+        self.get_session()?
+            .element_set_settings(self.clone(), settings)
+    }
+
+    fn get_module(&self) -> SessionResult<Option<ModuleId>> {
+        self.get_session()?.element_get_module(self.clone())
+    }
+
+    fn set_module(&self, module_id: Option<ModuleId>) -> SessionResult<()> {
+        self.get_session()?
+            .element_set_module(self.clone(), module_id)
+    }
+
+    fn wait(&self) -> SessionResult<()> {
+        self.get_session()?.element_wait(self.clone())
+    }
+
+    fn destroy(self) -> SessionResult<()> {
+        self.get_session()?.destroy_element(self)
+    }
 }

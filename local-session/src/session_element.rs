@@ -1,10 +1,27 @@
 use muzzman_lib::prelude::*;
 
-use crate::TLocalSession;
+use crate::{TLocalSession, UIDPath};
 
 impl TSessionElement for Box<dyn TLocalSession> {
     fn create_element(&self, location: LocationId, name: String) -> SessionResult<ElementId> {
-        todo!()
+        let inner = move || {
+            let parent = self.as_ref().get_location(location.uid)?;
+            let UIDPath::Location(mut path) = parent.path.read().unwrap().clone() else{return Err(SessionError::UIDIsNotALocation)};
+            let index = parent.location.read().unwrap().elements.len();
+            path.push(index);
+
+            let id = self
+                .as_ref()
+                .create_element(name, &path)
+                .element
+                .read()
+                .unwrap()
+                .id
+                .clone();
+            Ok(id)
+        };
+
+        inner().map_err(|e| SessionError::CreateElement(Box::new(e)))
     }
 
     fn get_element(&self, path: Vec<usize>) -> SessionResult<ElementId> {
@@ -20,7 +37,15 @@ impl TSessionElement for Box<dyn TLocalSession> {
     }
 
     fn element_get_parent(&self, element: ElementId) -> SessionResult<LocationId> {
-        todo!()
+        Ok(self
+            .as_ref()
+            .get_element(element.uid)
+            .map_err(|e| SessionError::ElementGetParent(Box::new(e)))?
+            .element
+            .read()
+            .unwrap()
+            .parent
+            .clone())
     }
 
     fn element_get_enabled(&self, element: ElementId) -> SessionResult<bool> {

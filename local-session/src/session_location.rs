@@ -25,11 +25,15 @@ impl TSessionLocation for Box<dyn TLocalSession> {
         self.as_ref().get_default_location()
     }
 
-    fn location_get_parent(&self, location: LocationId) -> SessionResult<Option<LocationId>> {
+    fn location_get_parent(&self, location: LocationId) -> SessionResult<LocationId> {
         let inner = move || {
             let location = self.as_ref().get_location(location.uid)?;
             let parent = location.location.read().unwrap().parent.clone();
-            Ok(parent)
+            if let Some(parent) = parent {
+                Ok(parent)
+            } else {
+                Err(SessionError::IsRoot)
+            }
         };
         inner().map_err(|e| SessionError::LocationGetParent(Box::new(e)))
     }
@@ -277,6 +281,10 @@ impl TSessionLocation for Box<dyn TLocalSession> {
     }
 
     fn location_path(&self, location: LocationId) -> SessionResult<Vec<usize>> {
+        todo!()
+    }
+
+    fn location_wait(&self, location: LocationId) -> SessionResult<()> {
         todo!()
     }
 
