@@ -39,6 +39,15 @@ pub enum SessionError {
 
     Events(Box<SessionError>),
     PushEvent(Box<SessionError>),
+
+    GetBufferSize(Box<SessionError>),
+    SetBufferSize(Box<SessionError>),
+
+    Remaining(Box<SessionError>),
+
+    Read(Box<SessionError>),
+    Write(Box<SessionError>),
+
     // Element
     CreateElement(Box<SessionError>),
     GetElement(Box<SessionError>),
