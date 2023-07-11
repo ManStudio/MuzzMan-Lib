@@ -8,6 +8,8 @@ pub enum SessionError {
     UIDIsNotALocation,
     UIDIsNotAElement,
 
+    IsNotAnElementOrLocation,
+
     RawModule(RawLibraryError),
 
     NoSession,
@@ -19,6 +21,8 @@ pub enum SessionError {
 
     NoPermission,
     IsRoot,
+
+    Errors(Vec<SessionError>),
 
     // Common
     GetName(Box<SessionError>),

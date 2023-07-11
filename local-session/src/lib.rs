@@ -26,7 +26,7 @@ pub enum UIDPath {
 #[derive(Clone, Debug, Default)]
 pub struct Events {
     pub subscribers: HashSet<UID>,
-    pub events: Arc<RwLock<CircularBuffer<64, Event>>>,
+    pub events: CircularBuffer<64, Event>,
 }
 
 #[derive(Clone, Debug)]

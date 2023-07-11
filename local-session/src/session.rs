@@ -13,6 +13,7 @@ pub struct LocalSession {
 }
 
 impl LocalSession {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new() -> Box<dyn TLocalSession> {
         let path = Arc::new(RwLock::new(crate::UIDPath::Location(vec![])));
         let location = LocationWraper {

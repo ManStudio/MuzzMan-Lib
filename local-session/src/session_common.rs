@@ -52,7 +52,106 @@ impl TSessionCommon for Box<dyn TLocalSession> {
     }
 
     fn emit(&self, uid: UID, event: Event) -> SessionResult<()> {
-        todo!()
+        let inner = move || {
+            let (event, subscribers) = match self.as_ref().get(uid)? {
+                crate::Wraper::Element(e) => {
+                    let event =
+                        Event::From(e.element.read().unwrap().id.uid, Box::new(event.clone()));
+                    let ids = e
+                        .events
+                        .read()
+                        .unwrap()
+                        .subscribers
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<UID>>();
+                    (event, ids)
+                }
+                crate::Wraper::Location(l) => {
+                    let event =
+                        Event::From(l.location.read().unwrap().id.uid, Box::new(event.clone()));
+                    let ids = l
+                        .events
+                        .read()
+                        .unwrap()
+                        .subscribers
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<UID>>();
+                    (event, ids)
+                }
+                _ => return Err(SessionError::IsNotAnElementOrLocation),
+            };
+
+            let results = subscribers
+                .into_iter()
+                .map(|subscriber| {
+                    match self.as_ref().get(subscriber)? {
+                        crate::Wraper::Element(element) => {
+                            element
+                                .events
+                                .write()
+                                .unwrap()
+                                .events
+                                .push_back(event.clone());
+                            if let Some(module) = element.element.read().unwrap().module.clone() {
+                                let module = self.as_ref().get_module(module.uid)?;
+                                let module = module.module.read().unwrap();
+                                match &module.source {
+                                    ModuleSource::DynamicLoaded(_, module)
+                                    | ModuleSource::Box(module) => {
+                                        let mut storage = element.storage.write().unwrap();
+                                        module.element_on_event(
+                                            element.element.clone(),
+                                            event.clone(),
+                                            &mut storage,
+                                        )?;
+                                    }
+                                    _ => {
+                                        unimplemented!()
+                                    }
+                                }
+                            }
+                        }
+                        crate::Wraper::Location(location) => {
+                            location
+                                .events
+                                .write()
+                                .unwrap()
+                                .events
+                                .push_back(event.clone());
+                            if let Some(module) = location.location.read().unwrap().module.clone() {
+                                let module = self.as_ref().get_module(module.uid)?;
+                                let module = module.module.read().unwrap();
+                                match &module.source {
+                                    ModuleSource::DynamicLoaded(_, module)
+                                    | ModuleSource::Box(module) => {
+                                        let mut storage = location.storage.write().unwrap();
+                                        module.location_on_event(
+                                            location.location.clone(),
+                                            event.clone(),
+                                            &mut storage,
+                                        )?;
+                                    }
+                                    _ => {
+                                        unimplemented!()
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                    SessionResult::Ok(())
+                })
+                .filter_map(|r| r.err())
+                .collect::<Vec<SessionError>>();
+            if results.is_empty() {
+                Ok(())
+            } else {
+                Err(SessionError::Errors(results))
+            }
+        };
+        inner().map_err(|e| SessionError::Emit(Box::new(e)))
     }
 
     fn notify(&self, uid: UID, to: UID, event: Event) -> SessionResult<()> {

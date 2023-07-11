@@ -12,6 +12,7 @@ pub enum Event {
     ProgressChanged(UID),
     Completed(UID),
     Error(UID),
+    From(UID, Box<Event>),
 }
 
 #[derive(Debug)]
