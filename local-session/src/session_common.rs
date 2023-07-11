@@ -216,11 +216,35 @@ impl TSessionCommon for Box<dyn TLocalSession> {
     }
 
     fn subscribe(&self, uid: UID, to: UID) -> SessionResult<()> {
-        todo!()
+        let inner = move || {
+            match self.as_ref().get(to)? {
+                crate::Wraper::Element(e) => {
+                    e.events.write().unwrap().subscribers.insert(uid);
+                }
+                crate::Wraper::Location(l) => {
+                    l.events.write().unwrap().subscribers.insert(uid);
+                }
+                _ => return Err(SessionError::IsNotAnElementOrLocation),
+            }
+            Ok(())
+        };
+        inner().map_err(|e| SessionError::Subscribe(Box::new(e)))
     }
 
     fn unsubscribe(&self, uid: UID, from: UID) -> SessionResult<()> {
-        todo!()
+        let inner = move || {
+            match self.as_ref().get(from)? {
+                crate::Wraper::Element(e) => {
+                    e.events.write().unwrap().subscribers.remove(&uid);
+                }
+                crate::Wraper::Location(l) => {
+                    l.events.write().unwrap().subscribers.remove(&uid);
+                }
+                _ => return Err(SessionError::IsNotAnElementOrLocation),
+            }
+            Ok(())
+        };
+        inner().map_err(|e| SessionError::Subscribe(Box::new(e)))
     }
 
     fn events(&self, uid: UID, consume: bool) -> SessionResult<Vec<Event>> {
