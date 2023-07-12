@@ -64,11 +64,31 @@ impl TModule for ModuleHttp {
 
     fn default_element_settings(&self) -> Settings {
         let mut settings = Settings::default();
+        settings.add(
+            "method",
+            Setting::new(
+                "GET",
+                vec![
+                    "GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH",
+                ],
+                "The HTTP Method to use!",
+            ),
+        );
         settings
     }
 
     fn default_location_settings(&self) -> Settings {
         let mut settings = Settings::default();
+        settings.add(
+            "method",
+            Setting::new(
+                "GET",
+                vec![
+                    "GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH",
+                ],
+                "The HTTP Method to use!",
+            ),
+        );
         settings
     }
 
