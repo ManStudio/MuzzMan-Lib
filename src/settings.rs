@@ -57,6 +57,12 @@ impl From<&str> for Atom {
     }
 }
 
+impl From<i32> for Atom {
+    fn from(value: i32) -> Self {
+        Self::I(value as i64)
+    }
+}
+
 impl From<i64> for Atom {
     fn from(value: i64) -> Self {
         Self::I(value)

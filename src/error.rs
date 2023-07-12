@@ -23,6 +23,7 @@ pub enum SessionError {
     IsRoot,
 
     Errors(Vec<SessionError>),
+    Custom(String),
 
     // Common
     GetName(Box<SessionError>),

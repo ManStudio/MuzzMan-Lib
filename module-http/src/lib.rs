@@ -32,7 +32,31 @@ impl TModule for ModuleHttp {
         element: std::sync::Arc<std::sync::RwLock<Element>>,
         storage: &mut Storage,
     ) -> SessionResult<()> {
-        todo!()
+        let status = element.read().unwrap().status;
+        element.write().unwrap().statuses =
+            vec!["Connecting", "Downloading", "Uploading", "Completed"]
+                .into_iter()
+                .map(|e| e.to_string())
+                .collect();
+        match status {
+            0 => {
+                // Connecting
+            }
+            1 => {
+                // Downloading
+            }
+            2 => {
+                // Uploading
+            }
+            3 => {
+                // Completed
+                let id = element.read().unwrap().id.clone();
+                id.set_enabled(false);
+                element.write().unwrap().is_completed = true;
+            }
+            _ => return Err(SessionError::Custom("Invalid status!".into())),
+        }
+        Ok(())
     }
 
     fn poll_location(
@@ -41,7 +65,9 @@ impl TModule for ModuleHttp {
         location: std::sync::Arc<std::sync::RwLock<Location>>,
         storage: &mut Storage,
     ) -> SessionResult<()> {
-        todo!()
+        Err(SessionError::Custom(
+            "HTTP is not implemented for an Location".into(),
+        ))
     }
 
     fn element_on_event(
@@ -50,7 +76,7 @@ impl TModule for ModuleHttp {
         event: Event,
         storage: &mut Storage,
     ) -> SessionResult<()> {
-        todo!()
+        Ok(())
     }
 
     fn location_on_event(
@@ -59,13 +85,13 @@ impl TModule for ModuleHttp {
         event: Event,
         storage: &mut Storage,
     ) -> SessionResult<()> {
-        todo!()
+        Ok(())
     }
 
     fn default_element_settings(&self) -> Settings {
         let mut settings = Settings::default();
         settings.add(
-            "method",
+            "Method",
             Setting::new(
                 "GET",
                 vec![
@@ -74,21 +100,20 @@ impl TModule for ModuleHttp {
                 "The HTTP Method to use!",
             ),
         );
+        settings.add(
+            "Port",
+            Setting::new(
+                80,
+                Vec::<i32>::new(),
+                "The port that should be used to connect to the server",
+            ),
+        );
+        settings.add("Headers", Setting::new("User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36\r\n", Vec::<String>::new(), "The HTTP Methods that should use, should be valid every one should be separated by `\\r\\n`"));
         settings
     }
 
     fn default_location_settings(&self) -> Settings {
         let mut settings = Settings::default();
-        settings.add(
-            "method",
-            Setting::new(
-                "GET",
-                vec![
-                    "GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH",
-                ],
-                "The HTTP Method to use!",
-            ),
-        );
         settings
     }
 
