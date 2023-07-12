@@ -45,7 +45,7 @@ pub trait TModule: std::panic::UnwindSafe {
     fn default_element_settings(&self) -> Settings;
     fn default_location_settings(&self) -> Settings;
 
-    /// Should be like "http:, https:"
+    /// Should be like "http, https"
     fn supports_protocols(&self) -> &[&'static str];
     /// Should be like "html, exe"
     fn supports_extensions(&self) -> &[&'static str];

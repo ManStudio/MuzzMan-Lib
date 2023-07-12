@@ -93,7 +93,7 @@ impl TModule for ModuleHttp {
     }
 
     fn supports_protocols(&self) -> &[&'static str] {
-        &["http:", "https:"]
+        &["http", "https"]
     }
 
     fn supports_extensions(&self) -> &[&'static str] {
