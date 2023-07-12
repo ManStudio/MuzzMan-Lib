@@ -5,7 +5,7 @@ use std::{
 };
 
 use libloading::{Library, Symbol};
-use muzzman_lib::{prelude::*, storage::Storage};
+use muzzman_lib::{prelude::*, Storage};
 use once_cell::sync::Lazy;
 
 #[allow(clippy::type_complexity)]
@@ -17,7 +17,7 @@ pub struct RawModule {
 
     fn_id: Symbol<'static, fn() -> u64>,
     fn_version: Symbol<'static, fn() -> u64>,
-    fn_supported_versions: Symbol<'static, fn() -> Vec<u64>>,
+    fn_supported_versions: Symbol<'static, fn() -> &'static [u64]>,
 
     fn_poll_element: Symbol<
         'static,
@@ -36,8 +36,8 @@ pub struct RawModule {
     fn_default_element_settings: Symbol<'static, fn() -> Settings>,
     fn_default_location_settings: Symbol<'static, fn() -> Settings>,
 
-    fn_supports_protocols: Symbol<'static, fn() -> Vec<String>>,
-    fn_supports_extensions: Symbol<'static, fn() -> Vec<String>>,
+    fn_supports_protocols: Symbol<'static, fn() -> &'static [&'static str]>,
+    fn_supports_extensions: Symbol<'static, fn() -> &'static [&'static str]>,
 }
 
 impl RawModule {
@@ -203,7 +203,7 @@ impl TModule for RawModule {
         (*self.fn_version)()
     }
 
-    fn supported_versions(&self) -> Vec<u64> {
+    fn supported_versions(&self) -> &'static [u64] {
         (*self.fn_supported_versions)()
     }
 
@@ -251,11 +251,11 @@ impl TModule for RawModule {
         (*self.fn_default_location_settings)()
     }
 
-    fn supports_protocols(&self) -> Vec<String> {
+    fn supports_protocols(&self) -> &[&'static str] {
         (*self.fn_supports_protocols)()
     }
 
-    fn supports_extensions(&self) -> Vec<String> {
+    fn supports_extensions(&self) -> &[&'static str] {
         (*self.fn_supports_extensions)()
     }
 }

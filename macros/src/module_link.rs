@@ -33,12 +33,12 @@ pub fn module_link(
         static MODULE: #name = #name;
 
         #[no_mangle]
-        fn name() -> String {
+        fn name() -> &'static str {
             MODULE.name()
         }
 
         #[no_mangle]
-        fn desc() -> String {
+        fn desc() -> &'static str {
             MODULE.desc()
         }
 
@@ -53,17 +53,17 @@ pub fn module_link(
         }
 
         #[no_mangle]
-        fn supported_versions() -> Vec<u64>{
+        fn supported_versions() -> &'static [u64]{
             MODULE.supported_versions()
         }
 
         #[no_mangle]
-        fn default_element_settings() -> Result<Settings, SessionError> {
+        fn default_element_settings() -> Settings {
             MODULE.default_element_settings()
         }
 
         #[no_mangle]
-        fn default_location_settings() -> Result<Settings, SessionError> {
+        fn default_location_settings() -> Settings {
             MODULE.default_location_settings()
         }
 
@@ -78,12 +78,12 @@ pub fn module_link(
         }
 
         #[no_mangle]
-        fn supports_protocols() -> Vec<String> {
+        fn supports_protocols() -> &'static [&'static str] {
             MODULE.supports_protocols()
         }
 
         #[no_mangle]
-        fn supports_extensions() -> Vec<String> {
+        fn supports_extensions() -> &'static [&'static str] {
             MODULE.supports_extensions()
         }
     }

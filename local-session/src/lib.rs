@@ -11,7 +11,7 @@ use std::{
 };
 
 use circular_buffer::CircularBuffer;
-use muzzman_lib::{prelude::*, storage::Storage};
+use muzzman_lib::{prelude::*, Storage};
 
 pub type Path = Arc<RwLock<UIDPath>>;
 

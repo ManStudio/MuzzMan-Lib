@@ -10,13 +10,17 @@ mod session_element;
 mod session_location;
 mod session_module;
 mod settings;
-pub mod storage;
+mod storage;
 mod types;
+
+pub use storage::Storage;
+
+pub extern crate muzzman_lib_macros;
 
 pub mod prelude {
     pub use crate::{
-        element::*, error::*, helper::*, location::*, module::*, session::*,
-        session_common::TSessionCommon, session_element::TSessionElement,
+        element::*, error::*, helper::*, location::*, module::*, muzzman_lib_macros::module_link,
+        session::*, session_common::TSessionCommon, session_element::TSessionElement,
         session_location::TSessionLocation, session_module::TSessionModule, settings::*, types::*,
     };
 }

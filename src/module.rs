@@ -13,7 +13,7 @@ pub trait TModule: std::panic::UnwindSafe {
     fn desc(&self) -> &str;
     fn id(&self) -> u64;
     fn version(&self) -> u64;
-    fn supported_versions(&self) -> Vec<u64>;
+    fn supported_versions(&self) -> &'static [u64];
 
     fn poll_element(
         &self,
@@ -46,9 +46,9 @@ pub trait TModule: std::panic::UnwindSafe {
     fn default_location_settings(&self) -> Settings;
 
     /// Should be like "http:, https:"
-    fn supports_protocols(&self) -> Vec<String>;
+    fn supports_protocols(&self) -> &[&'static str];
     /// Should be like "html, exe"
-    fn supports_extensions(&self) -> Vec<String>;
+    fn supports_extensions(&self) -> &[&'static str];
 }
 
 pub enum ModuleSource {
