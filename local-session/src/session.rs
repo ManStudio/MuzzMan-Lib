@@ -5,11 +5,14 @@ use std::{
 
 use muzzman_lib::prelude::*;
 
-use crate::{ElementWraper, LocationWraper, ModuleWraper, Path, UIDPath, Wraper};
+use crate::{
+    module::RawModule, ElementWraper, LocationWraper, ModuleWraper, Path, UIDPath, Wraper,
+};
 
 pub struct LocalSession {
     pub location: LocationWraper,
     pub refs: Vec<Path>,
+    pub modules: Vec<ModuleWraper>,
 }
 
 impl LocalSession {
@@ -56,6 +59,7 @@ impl LocalSession {
         let s = Box::new(Arc::new(RwLock::new(Self {
             location,
             refs: vec![path],
+            modules: vec![],
         })));
 
         s.write().unwrap().location.location.write().unwrap().id = LocationId {
@@ -84,6 +88,8 @@ pub trait TLocalSession {
     fn get_location(&self, uid: UID) -> SessionResult<LocationWraper>;
     fn get_element(&self, uid: UID) -> SessionResult<ElementWraper>;
     fn get_module(&self, uid: UID) -> SessionResult<ModuleWraper>;
+
+    fn add_module(&self, source: ModuleSource) -> SessionResult<ModuleId>;
 
     fn get_default_location(&self) -> SessionResult<LocationId>;
 
@@ -281,6 +287,47 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
 
     fn c(&self) -> Box<dyn TLocalSession> {
         Box::new(self.clone())
+    }
+
+    fn add_module(&self, source: ModuleSource) -> SessionResult<ModuleId> {
+        let uid = {
+            let module = match source {
+                ModuleSource::Wasm(_) => unimplemented!(),
+                ModuleSource::Dynamic(path) => RawModule::new_module(&path)?,
+                ModuleSource::Box(module) => module,
+            };
+            let id = module.id();
+            let mut s = self.write().unwrap();
+            let mut index = s.modules.len();
+            for (i, module) in s.modules.iter().enumerate() {
+                if id == module.module.read().unwrap().module.id() {
+                    index = i;
+                    break;
+                }
+            }
+
+            let path = Arc::new(RwLock::new(UIDPath::Module(index)));
+            let uid = s.register_path(path.clone());
+
+            let module = ModuleWraper {
+                module: Arc::new(RwLock::new(Module {
+                    name: module.name().to_string(),
+                    desc: module.desc().to_string(),
+                    proxy: 0,
+                    element_settings: module.default_element_settings(),
+                    location_settings: module.default_location_settings(),
+                    module,
+                })),
+                path,
+            };
+
+            s.modules.push(module);
+            uid
+        };
+        Ok(ModuleId {
+            uid,
+            session: Some((Box::new(self.c()) as Box<dyn TSession>).into()),
+        })
     }
 }
 

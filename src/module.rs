@@ -52,9 +52,11 @@ pub trait TModule: std::panic::UnwindSafe {
 }
 
 pub enum ModuleSource {
+    /// This can be added by any session
     Wasm(Vec<u8>),
+    /// This should be used in general
     Dynamic(PathBuf),
-    DynamicLoaded(PathBuf, Box<dyn TModule>),
+    /// This only should be added when we own the LocalSession
     Box(Box<dyn TModule>),
 }
 
@@ -63,20 +65,30 @@ impl std::fmt::Debug for ModuleSource {
         match self {
             ModuleSource::Wasm(_) => f.write_str("ModuleSource::Wasm"),
             ModuleSource::Dynamic(_) => f.write_str("ModuleSource::Dynamic"),
-            ModuleSource::DynamicLoaded(_, _) => f.write_str("ModuleSource::DynamicLoaded"),
             ModuleSource::Box(_) => f.write_str("ModuleSource::Box"),
         }
     }
 }
 
-#[derive(Debug)]
 pub struct Module {
     pub name: String,
     pub desc: String,
     pub proxy: u32,
-    pub source: ModuleSource,
+    pub module: Box<dyn TModule>,
     pub element_settings: Settings,
     pub location_settings: Settings,
+}
+
+impl std::fmt::Debug for Module {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Module")
+            .field("name", &self.name)
+            .field("desc", &self.desc)
+            .field("proxy", &self.proxy)
+            .field("element_settings", &self.element_settings)
+            .field("location_settings", &self.location_settings)
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Bytes)]

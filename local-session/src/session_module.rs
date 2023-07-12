@@ -1,10 +1,10 @@
 use muzzman_lib::prelude::*;
 
-use crate::TLocalSession;
+use crate::{module::RawModule, TLocalSession};
 
 impl TSessionModule for Box<dyn TLocalSession> {
     fn add_module(&self, source: ModuleSource) -> SessionResult<ModuleId> {
-        todo!()
+        self.as_ref().add_module(source)
     }
 
     fn get_module(&self, path: usize) -> SessionResult<ModuleId> {

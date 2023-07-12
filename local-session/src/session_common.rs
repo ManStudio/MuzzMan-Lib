@@ -97,20 +97,13 @@ impl TSessionCommon for Box<dyn TLocalSession> {
                             if let Some(module) = element.element.read().unwrap().module.clone() {
                                 let module = self.as_ref().get_module(module.uid)?;
                                 let module = module.module.read().unwrap();
-                                match &module.source {
-                                    ModuleSource::DynamicLoaded(_, module)
-                                    | ModuleSource::Box(module) => {
-                                        let mut storage = element.storage.write().unwrap();
-                                        module.element_on_event(
-                                            element.element.clone(),
-                                            event.clone(),
-                                            &mut storage,
-                                        )?;
-                                    }
-                                    _ => {
-                                        unimplemented!()
-                                    }
-                                }
+                                let module = &module.module;
+                                let mut storage = element.storage.write().unwrap();
+                                module.element_on_event(
+                                    element.element.clone(),
+                                    event.clone(),
+                                    &mut storage,
+                                )?;
                             }
                         }
                         crate::Wraper::Location(location) => {
@@ -123,20 +116,13 @@ impl TSessionCommon for Box<dyn TLocalSession> {
                             if let Some(module) = location.location.read().unwrap().module.clone() {
                                 let module = self.as_ref().get_module(module.uid)?;
                                 let module = module.module.read().unwrap();
-                                match &module.source {
-                                    ModuleSource::DynamicLoaded(_, module)
-                                    | ModuleSource::Box(module) => {
-                                        let mut storage = location.storage.write().unwrap();
-                                        module.location_on_event(
-                                            location.location.clone(),
-                                            event.clone(),
-                                            &mut storage,
-                                        )?;
-                                    }
-                                    _ => {
-                                        unimplemented!()
-                                    }
-                                }
+                                let module = &module.module;
+                                let mut storage = location.storage.write().unwrap();
+                                module.location_on_event(
+                                    location.location.clone(),
+                                    event.clone(),
+                                    &mut storage,
+                                )?;
                             }
                         }
                         _ => {}
@@ -168,19 +154,13 @@ impl TSessionCommon for Box<dyn TLocalSession> {
                     if let Some(module) = element.element.read().unwrap().module.clone() {
                         let module = self.as_ref().get_module(module.uid)?;
                         let module = module.module.read().unwrap();
-                        match &module.source {
-                            ModuleSource::DynamicLoaded(_, module) | ModuleSource::Box(module) => {
-                                let mut storage = element.storage.write().unwrap();
-                                module.element_on_event(
-                                    element.element.clone(),
-                                    event.clone(),
-                                    &mut storage,
-                                )?;
-                            }
-                            _ => {
-                                unimplemented!()
-                            }
-                        }
+                        let module = &module.module;
+                        let mut storage = element.storage.write().unwrap();
+                        module.element_on_event(
+                            element.element.clone(),
+                            event.clone(),
+                            &mut storage,
+                        )?;
                     }
                 }
                 crate::Wraper::Location(location) => {
@@ -193,19 +173,13 @@ impl TSessionCommon for Box<dyn TLocalSession> {
                     if let Some(module) = location.location.read().unwrap().module.clone() {
                         let module = self.as_ref().get_module(module.uid)?;
                         let module = module.module.read().unwrap();
-                        match &module.source {
-                            ModuleSource::DynamicLoaded(_, module) | ModuleSource::Box(module) => {
-                                let mut storage = location.storage.write().unwrap();
-                                module.location_on_event(
-                                    location.location.clone(),
-                                    event.clone(),
-                                    &mut storage,
-                                )?;
-                            }
-                            _ => {
-                                unimplemented!()
-                            }
-                        }
+                        let module = &module.module;
+                        let mut storage = location.storage.write().unwrap();
+                        module.location_on_event(
+                            location.location.clone(),
+                            event.clone(),
+                            &mut storage,
+                        )?;
                     }
                 }
                 _ => return Err(SessionError::IsNotAnElementOrLocation),
@@ -285,19 +259,13 @@ impl TSessionCommon for Box<dyn TLocalSession> {
                     if let Some(module) = element.element.read().unwrap().module.clone() {
                         let module = self.as_ref().get_module(module.uid)?;
                         let module = module.module.read().unwrap();
-                        match &module.source {
-                            ModuleSource::DynamicLoaded(_, module) | ModuleSource::Box(module) => {
-                                let mut storage = element.storage.write().unwrap();
-                                module.element_on_event(
-                                    element.element.clone(),
-                                    event.clone(),
-                                    &mut storage,
-                                )?;
-                            }
-                            _ => {
-                                unimplemented!()
-                            }
-                        }
+                        let module = &module.module;
+                        let mut storage = element.storage.write().unwrap();
+                        module.element_on_event(
+                            element.element.clone(),
+                            event.clone(),
+                            &mut storage,
+                        )?;
                     }
                 }
                 crate::Wraper::Location(location) => {
@@ -310,19 +278,13 @@ impl TSessionCommon for Box<dyn TLocalSession> {
                     if let Some(module) = location.location.read().unwrap().module.clone() {
                         let module = self.as_ref().get_module(module.uid)?;
                         let module = module.module.read().unwrap();
-                        match &module.source {
-                            ModuleSource::DynamicLoaded(_, module) | ModuleSource::Box(module) => {
-                                let mut storage = location.storage.write().unwrap();
-                                module.location_on_event(
-                                    location.location.clone(),
-                                    event.clone(),
-                                    &mut storage,
-                                )?;
-                            }
-                            _ => {
-                                unimplemented!()
-                            }
-                        }
+                        let module = &module.module;
+                        let mut storage = location.storage.write().unwrap();
+                        module.location_on_event(
+                            location.location.clone(),
+                            event.clone(),
+                            &mut storage,
+                        )?;
                     }
                 }
                 _ => return Err(SessionError::IsNotAnElementOrLocation),
