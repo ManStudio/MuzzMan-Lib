@@ -217,6 +217,7 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
                     enabled: false,
                     is_error: false,
                     is_completed: false,
+                    url: String::default(),
                 })),
                 path: path.clone(),
                 storage: Default::default(),

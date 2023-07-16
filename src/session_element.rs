@@ -28,6 +28,9 @@ pub trait TSessionElement {
 
     fn element_get_status_str(&self, element: ElementId) -> SessionResult<String>;
 
+    fn element_get_url(&self, element: ElementId) -> SessionResult<String>;
+    fn element_set_url(&self, element: ElementId, url: String) -> SessionResult<()>;
+
     fn element_get_progress(&self, element: ElementId) -> SessionResult<f32>;
     fn element_get_download_speed(&self, element: ElementId) -> SessionResult<usize>;
     fn element_get_upload_speed(&self, element: ElementId) -> SessionResult<usize>;

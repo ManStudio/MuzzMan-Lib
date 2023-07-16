@@ -45,6 +45,9 @@ pub trait TElementHelper: TCommonHelper {
 
     fn get_status_str(&self) -> SessionResult<String>;
 
+    fn get_url(&self) -> SessionResult<String>;
+    fn set_url(&self, url: String) -> SessionResult<()>;
+
     fn get_progress(&self) -> SessionResult<f32>;
     fn get_download_speed(&self) -> SessionResult<usize>;
     fn get_upload_speed(&self) -> SessionResult<usize>;
@@ -122,6 +125,14 @@ impl TElementHelper for ElementId {
 
     fn get_status_str(&self) -> SessionResult<String> {
         self.get_session()?.element_get_status_str(self.clone())
+    }
+
+    fn get_url(&self) -> SessionResult<String> {
+        self.get_session()?.element_get_url(self.clone())
+    }
+
+    fn set_url(&self, url: String) -> SessionResult<()> {
+        self.get_session()?.element_set_url(self.clone(), url)
     }
 
     fn get_progress(&self) -> SessionResult<f32> {

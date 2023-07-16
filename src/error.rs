@@ -74,6 +74,9 @@ pub enum SessionError {
 
     ElementGetStatusStr(Box<SessionError>),
 
+    ElementGetUrl(Box<SessionError>),
+    ElementSetUrl(Box<SessionError>),
+
     ElementGetProgress(Box<SessionError>),
     ElementGetDownloadSpeed(Box<SessionError>),
     ElementGetUploadSpeed(Box<SessionError>),

@@ -98,6 +98,24 @@ impl TSessionElement for Box<dyn TLocalSession> {
         todo!()
     }
 
+    fn element_get_url(&self, element: ElementId) -> SessionResult<String> {
+        let inner = move || {
+            let element = self.as_ref().get_element(element.uid)?;
+            let url = element.element.read().unwrap().url.clone();
+            Ok(url)
+        };
+        inner().map_err(|e| SessionError::ElementGetUrl(Box::new(e)))
+    }
+
+    fn element_set_url(&self, element: ElementId, url: String) -> SessionResult<()> {
+        let inner = move || {
+            let element = self.as_ref().get_element(element.uid)?;
+            element.element.write().unwrap().url = url;
+            Ok(())
+        };
+        inner().map_err(|e| SessionError::ElementSetUrl(Box::new(e)))
+    }
+
     fn element_get_progress(&self, element: ElementId) -> SessionResult<f32> {
         todo!()
     }

@@ -12,6 +12,8 @@ pub struct Element {
     pub module: Option<ModuleId>,
     pub id: ElementId,
 
+    pub url: String,
+
     pub parent: LocationId,
 
     pub stream: Stream,
