@@ -33,11 +33,10 @@ impl TModule for ModuleHttp {
         storage: &mut Storage,
     ) -> SessionResult<()> {
         let status = element.read().unwrap().status;
-        element.write().unwrap().statuses =
-            vec!["Connecting", "Downloading", "Uploading", "Completed"]
-                .into_iter()
-                .map(|e| e.to_string())
-                .collect();
+        element.write().unwrap().statuses = ["Connecting", "Downloading", "Uploading", "Completed"]
+            .into_iter()
+            .map(|e| e.to_string())
+            .collect();
         match status {
             0 => {
                 // Connecting
