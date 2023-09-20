@@ -1,6 +1,8 @@
 use muzzman_lib::prelude::*;
-use muzzman_local_session::LocalSession;
 
+use crate::LocalSession;
+
+#[test]
 fn main() {
     let local_session = LocalSession::new();
     let default_location = local_session.get_default_location().unwrap();

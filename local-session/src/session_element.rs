@@ -5,8 +5,10 @@ use crate::{TLocalSession, UIDPath};
 impl TSessionElement for Box<dyn TLocalSession> {
     fn create_element(&self, location: LocationId, name: String) -> SessionResult<ElementId> {
         let inner = move || {
-            let parent = self.as_ref().get_location(location.uid)?;
-            let UIDPath::Location(mut path) = parent.path.read().unwrap().clone() else{return Err(SessionError::UIDIsNotALocation)};
+            let parent = self.as_ref().location(location.uid)?;
+            let UIDPath::Location(mut path) = parent.path.read().unwrap().clone() else {
+                return Err(SessionError::UIDIsNotALocation);
+            };
             let index = parent.location.read().unwrap().elements.len();
             path.push(index);
 
@@ -34,8 +36,10 @@ impl TSessionElement for Box<dyn TLocalSession> {
 
     fn element_path(&self, element: ElementId) -> SessionResult<Vec<usize>> {
         let inner = move || {
-            let element = self.as_ref().get_element(element.uid)?;
-            let UIDPath::Element(mut element, index) = element.path.read().unwrap().clone() else {return Err(SessionError::UIDIsNotAElement)};
+            let element = self.as_ref().element(element.uid)?;
+            let UIDPath::Element(mut element, index) = element.path.read().unwrap().clone() else {
+                return Err(SessionError::UIDIsNotAElement);
+            };
             element.push(index);
             Ok(element)
         };
@@ -45,7 +49,7 @@ impl TSessionElement for Box<dyn TLocalSession> {
     fn element_get_parent(&self, element: ElementId) -> SessionResult<LocationId> {
         Ok(self
             .as_ref()
-            .get_element(element.uid)
+            .element(element.uid)
             .map_err(|e| SessionError::ElementGetParent(Box::new(e)))?
             .element
             .read()
@@ -55,11 +59,45 @@ impl TSessionElement for Box<dyn TLocalSession> {
     }
 
     fn element_get_enabled(&self, element: ElementId) -> SessionResult<bool> {
-        todo!()
+        let inner = move || {
+            let element = self.as_ref().element(element.uid)?;
+            let enabled = element.element.read().unwrap().enabled;
+            Ok(enabled)
+        };
+        inner().map_err(|e| SessionError::ElementGetEnabled(Box::new(e)))
     }
 
     fn element_set_enabled(&self, element: ElementId, enabled: bool) -> SessionResult<()> {
-        todo!()
+        let inner = move || {
+            let element = self.as_ref().element(element.uid)?;
+            if element.element.read().unwrap().enabled == enabled {
+                return Ok(());
+            }
+            if !enabled {
+                element.thread.write().unwrap().take().unwrap();
+                element.element.write().unwrap().enabled = false;
+            } else {
+                let Some(module_id) = element.element.read().unwrap().module.clone() else {
+                    return Err(SessionError::NoModule);
+                };
+                let module = self.as_ref().module(module_id.uid)?;
+                element.element.write().unwrap().enabled = true;
+                let errors = element.element.read().unwrap().settings.validate();
+                if !errors.is_empty() {
+                    return Err(SessionError::InvalidSettings(errors));
+                }
+                let thread = element.thread.clone();
+                let runtime = self.runtime();
+                *thread.write().unwrap() = Some(std::thread::spawn(move || {
+                    unimplemented!();
+
+                    // When ends
+                    element.element.write().unwrap().enabled = false;
+                }));
+            }
+            Ok(())
+        };
+        inner().map_err(|e| SessionError::ElementSetEnabled(Box::new(e)))
     }
 
     fn element_get_path(&self, element: ElementId) -> SessionResult<std::path::PathBuf> {
@@ -100,7 +138,7 @@ impl TSessionElement for Box<dyn TLocalSession> {
 
     fn element_get_url(&self, element: ElementId) -> SessionResult<String> {
         let inner = move || {
-            let element = self.as_ref().get_element(element.uid)?;
+            let element = self.as_ref().element(element.uid)?;
             let url = element.element.read().unwrap().url.clone();
             Ok(url)
         };
@@ -109,7 +147,7 @@ impl TSessionElement for Box<dyn TLocalSession> {
 
     fn element_set_url(&self, element: ElementId, url: String) -> SessionResult<()> {
         let inner = move || {
-            let element = self.as_ref().get_element(element.uid)?;
+            let element = self.as_ref().element(element.uid)?;
             element.element.write().unwrap().url = url;
             Ok(())
         };
@@ -168,7 +206,13 @@ impl TSessionElement for Box<dyn TLocalSession> {
         element: ElementId,
         module_id: Option<ModuleId>,
     ) -> SessionResult<()> {
-        todo!()
+        self.as_ref()
+            .element(element.uid)?
+            .element
+            .write()
+            .unwrap()
+            .module = module_id;
+        Ok(())
     }
 
     fn element_wait(&self, element: ElementId) -> SessionResult<()> {

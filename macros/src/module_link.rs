@@ -78,6 +78,24 @@ pub fn module_link(
         }
 
         #[no_mangle]
+        fn element_on_event(
+            element: std::sync::Arc<std::sync::RwLock<Element>>,
+            event: Event,
+            storage: &mut Storage,
+        ) -> SessionResult<()> {
+            MODULE.element_on_event(element, event, storage)
+        }
+
+        #[no_mangle]
+        fn location_on_event(
+            location: std::sync::Arc<std::sync::RwLock<Location>>,
+            event: Event,
+            storage: &mut Storage,
+        ) -> SessionResult<()> {
+            MODULE.location_on_event(location, event, storage)
+        }
+
+        #[no_mangle]
         fn supports_protocols() -> &'static [&'static str] {
             MODULE.supports_protocols()
         }

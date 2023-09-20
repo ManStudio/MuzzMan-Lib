@@ -1,9 +1,11 @@
 use crate::prelude::*;
 
-pub trait TSession: TSessionCommon + TSessionElement + TSessionLocation + TSessionModule {
+pub trait TSession:
+    TSessionCommon + TSessionElement + TSessionLocation + TSessionModule + Send + Sync
+{
     fn version(&self) -> SessionResult<u64>;
     fn version_str(&self) -> SessionResult<String>;
-    fn clone_box(&self) -> Box<dyn TSession>;
+    fn weak_box(&self) -> Box<dyn TSession>;
 }
 
 pub struct Session {
@@ -13,7 +15,7 @@ pub struct Session {
 impl Clone for Session {
     fn clone(&self) -> Self {
         Self {
-            session: self.session.clone_box(),
+            session: self.session.weak_box(),
         }
     }
 }

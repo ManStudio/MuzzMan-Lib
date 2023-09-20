@@ -95,7 +95,7 @@ impl TSessionCommon for Box<dyn TLocalSession> {
                                 .events
                                 .push_back(event.clone());
                             if let Some(module) = element.element.read().unwrap().module.clone() {
-                                let module = self.as_ref().get_module(module.uid)?;
+                                let module = self.as_ref().module(module.uid)?;
                                 let module = module.module.read().unwrap();
                                 let module = &module.module;
                                 let mut storage = element.storage.write().unwrap();
@@ -114,7 +114,7 @@ impl TSessionCommon for Box<dyn TLocalSession> {
                                 .events
                                 .push_back(event.clone());
                             if let Some(module) = location.location.read().unwrap().module.clone() {
-                                let module = self.as_ref().get_module(module.uid)?;
+                                let module = self.as_ref().module(module.uid)?;
                                 let module = module.module.read().unwrap();
                                 let module = &module.module;
                                 let mut storage = location.storage.write().unwrap();
@@ -152,7 +152,7 @@ impl TSessionCommon for Box<dyn TLocalSession> {
                         .events
                         .push_back(event.clone());
                     if let Some(module) = element.element.read().unwrap().module.clone() {
-                        let module = self.as_ref().get_module(module.uid)?;
+                        let module = self.as_ref().module(module.uid)?;
                         let module = module.module.read().unwrap();
                         let module = &module.module;
                         let mut storage = element.storage.write().unwrap();
@@ -171,7 +171,7 @@ impl TSessionCommon for Box<dyn TLocalSession> {
                         .events
                         .push_back(event.clone());
                     if let Some(module) = location.location.read().unwrap().module.clone() {
-                        let module = self.as_ref().get_module(module.uid)?;
+                        let module = self.as_ref().module(module.uid)?;
                         let module = module.module.read().unwrap();
                         let module = &module.module;
                         let mut storage = location.storage.write().unwrap();
@@ -257,7 +257,7 @@ impl TSessionCommon for Box<dyn TLocalSession> {
                         .events
                         .push_back(event.clone());
                     if let Some(module) = element.element.read().unwrap().module.clone() {
-                        let module = self.as_ref().get_module(module.uid)?;
+                        let module = self.as_ref().module(module.uid)?;
                         let module = module.module.read().unwrap();
                         let module = &module.module;
                         let mut storage = element.storage.write().unwrap();
@@ -276,7 +276,7 @@ impl TSessionCommon for Box<dyn TLocalSession> {
                         .events
                         .push_back(event.clone());
                     if let Some(module) = location.location.read().unwrap().module.clone() {
-                        let module = self.as_ref().get_module(module.uid)?;
+                        let module = self.as_ref().module(module.uid)?;
                         let module = module.module.read().unwrap();
                         let module = &module.module;
                         let mut storage = location.storage.write().unwrap();

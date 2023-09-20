@@ -5,8 +5,10 @@ use crate::{TLocalSession, UIDPath, Wraper};
 impl TSessionLocation for Box<dyn TLocalSession> {
     fn create_location(&self, location: LocationId, name: String) -> SessionResult<LocationId> {
         let inner = move || {
-            let location_parent = self.as_ref().get_location(location.uid)?;
-            let UIDPath::Location(mut path) = location_parent.path.read().unwrap().clone() else {return Err(SessionError::UIDIsNotALocation)};
+            let location_parent = self.as_ref().location(location.uid)?;
+            let UIDPath::Location(mut path) = location_parent.path.read().unwrap().clone() else {
+                return Err(SessionError::UIDIsNotALocation);
+            };
             path.push(usize::MAX);
             let location = self.as_ref().create_location(name, &path);
             let id = location.location.read().unwrap().id.clone();
@@ -22,12 +24,12 @@ impl TSessionLocation for Box<dyn TLocalSession> {
     }
 
     fn get_default_location(&self) -> SessionResult<LocationId> {
-        self.as_ref().get_default_location()
+        self.as_ref().default_location()
     }
 
     fn location_get_parent(&self, location: LocationId) -> SessionResult<LocationId> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             let parent = location.location.read().unwrap().parent.clone();
             if let Some(parent) = parent {
                 Ok(parent)
@@ -40,7 +42,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
 
     fn location_get_locations_len(&self, location: LocationId) -> SessionResult<usize> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             let len = location.locations.read().unwrap().len();
             Ok(len)
         };
@@ -54,7 +56,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
         end: usize,
     ) -> SessionResult<Vec<LocationId>> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             let location = location.location.read().unwrap();
             if start < end && location.locations.len() <= end {
                 Err(SessionError::LocationGetLocations(Box::new(
@@ -70,7 +72,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
 
     fn location_get_elements_len(&self, location: LocationId) -> SessionResult<usize> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             let len = location.elements.read().unwrap().len();
             Ok(len)
         };
@@ -84,7 +86,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
         end: usize,
     ) -> SessionResult<Vec<ElementId>> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
 
             let location = location.location.read().unwrap();
 
@@ -103,7 +105,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
 
     fn location_get_enabled(&self, location: LocationId) -> SessionResult<bool> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             let enabled = location.location.read().unwrap().enabled;
             Ok(enabled)
         };
@@ -112,7 +114,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
 
     fn location_set_enabled(&self, location: LocationId, enabled: bool) -> SessionResult<()> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             // TODO: LocalSession::location_set_enabled
             // We need to start the location on a separate thread
             // The thread when will finish will set the location enabled to false
@@ -126,7 +128,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
 
     fn location_get_path(&self, location: LocationId) -> SessionResult<std::path::PathBuf> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             let path = location.location.read().unwrap().path.clone();
             Ok(path)
         };
@@ -139,7 +141,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
         path: std::path::PathBuf,
     ) -> SessionResult<()> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             location.location.write().unwrap().path = path;
             Ok(())
         };
@@ -148,7 +150,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
 
     fn location_is_completed(&self, location: LocationId) -> SessionResult<bool> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             let is_completed = location.location.read().unwrap().is_completed.clone();
             Ok(is_completed)
         };
@@ -157,7 +159,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
 
     fn location_is_error(&self, location: LocationId) -> SessionResult<bool> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             let is_error = location.location.read().unwrap().is_error.clone();
             Ok(is_error)
         };
@@ -166,7 +168,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
 
     fn location_get_statuses(&self, location: LocationId) -> SessionResult<Vec<String>> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             let statuses = location.location.read().unwrap().statuses.clone();
             Ok(statuses)
         };
@@ -179,7 +181,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
         statuses: Vec<String>,
     ) -> SessionResult<()> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             location.location.write().unwrap().statuses = statuses;
             Ok(())
         };
@@ -188,7 +190,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
 
     fn location_get_status(&self, location: LocationId) -> SessionResult<usize> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             let status = location.location.read().unwrap().status.clone();
             Ok(status)
         };
@@ -197,7 +199,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
 
     fn location_set_status(&self, location: LocationId, status: usize) -> SessionResult<()> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             location.location.write().unwrap().status = status;
             Ok(())
         };
@@ -206,7 +208,7 @@ impl TSessionLocation for Box<dyn TLocalSession> {
 
     fn location_get_status_str(&self, location: LocationId) -> SessionResult<String> {
         let inner = move || {
-            let location = self.as_ref().get_location(location.uid)?;
+            let location = self.as_ref().location(location.uid)?;
             let location = location.location.read().unwrap();
             if let Some(status) = location.statuses.get(location.status) {
                 Ok(status.clone())

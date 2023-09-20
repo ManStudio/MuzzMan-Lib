@@ -1,6 +1,6 @@
 use std::{
     path::PathBuf,
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock, Weak},
 };
 
 use muzzman_lib::prelude::*;
@@ -13,6 +13,7 @@ pub struct LocalSession {
     pub location: LocationWraper,
     pub refs: Vec<Path>,
     pub modules: Vec<ModuleWraper>,
+    pub runtime: Arc<tokio::runtime::Runtime>,
 }
 
 impl LocalSession {
@@ -60,14 +61,20 @@ impl LocalSession {
             location,
             refs: vec![path],
             modules: vec![],
+            runtime: Arc::new(
+                tokio::runtime::Builder::new_multi_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap(),
+            ),
         })));
 
         s.write().unwrap().location.location.write().unwrap().id = LocationId {
             uid: 0,
-            session: Some(Session::from(Box::new(s.c()) as Box<dyn TSession>)),
+            session: Some(Session::from(Box::new(s.weak_clone()) as Box<dyn TSession>)),
         };
 
-        s.c()
+        s
     }
 
     pub(crate) fn register_path(&mut self, path: Path) -> UID {
@@ -77,7 +84,7 @@ impl LocalSession {
     }
 }
 
-pub trait TLocalSession {
+pub trait TLocalSession: Send + Sync {
     /// create or get
     fn create_location(&self, name: String, path: &[usize]) -> LocationWraper;
     /// create or get
@@ -85,20 +92,21 @@ pub trait TLocalSession {
 
     fn get(&self, uid: UID) -> SessionResult<Wraper>;
 
-    fn get_location(&self, uid: UID) -> SessionResult<LocationWraper>;
-    fn get_element(&self, uid: UID) -> SessionResult<ElementWraper>;
-    fn get_module(&self, uid: UID) -> SessionResult<ModuleWraper>;
+    fn location(&self, uid: UID) -> SessionResult<LocationWraper>;
+    fn element(&self, uid: UID) -> SessionResult<ElementWraper>;
+    fn module(&self, uid: UID) -> SessionResult<ModuleWraper>;
 
     fn add_module(&self, source: ModuleSource) -> SessionResult<ModuleId>;
 
-    fn get_default_location(&self) -> SessionResult<LocationId>;
+    fn default_location(&self) -> SessionResult<LocationId>;
+    fn runtime(&self) -> Arc<tokio::runtime::Runtime>;
 
-    fn c(&self) -> Box<dyn TLocalSession>;
+    fn weak_clone(&self) -> Box<dyn TLocalSession>;
 }
 
-impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
+impl TLocalSession for Arc<RwLock<LocalSession>> {
     fn create_location(&self, name: String, path: &[usize]) -> LocationWraper {
-        let session = Session::from(Box::new(self.c()) as Box<dyn TSession>);
+        let session = Session::from(Box::new(self.weak_clone()) as Box<dyn TSession>);
         let mut location = self.read().unwrap().location.clone();
 
         let mut traversed_path = Vec::<usize>::with_capacity(path.len());
@@ -182,7 +190,7 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
         if let Some(element) = elements.get(*element_index) {
             element.clone()
         } else {
-            let session = Session::from(Box::new(self.c()) as Box<dyn TSession>);
+            let session = Session::from(Box::new(self.weak_clone()) as Box<dyn TSession>);
             let mut s = self.write().unwrap();
             let mut location = location.location.write().unwrap();
             let mut path = path.to_vec();
@@ -190,7 +198,7 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
             let path = Arc::new(RwLock::new(crate::UIDPath::Element(path, elements.len())));
             let uid = s.register_path(path.clone());
             let id = ElementId {
-                uid: uid,
+                uid,
                 session: Some(session),
             };
             let element = ElementWraper {
@@ -257,7 +265,10 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
                     return Ok(Wraper::Location(location));
                 }
                 UIDPath::Module(index) => {
-                    unimplemented!()
+                    let s = self.read().unwrap();
+                    if let Some(module) = s.modules.get(*index) {
+                        return Ok(Wraper::Module(module.clone()));
+                    }
                 }
                 UIDPath::None => return Err(SessionError::UIDWasDestroyed),
             }
@@ -265,29 +276,35 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
         Err(SessionError::InvalidUID)
     }
 
-    fn get_location(&self, uid: UID) -> SessionResult<LocationWraper> {
-        let Wraper::Location(location) = self.get(uid)?else {return Err(SessionError::UIDIsNotALocation)};
+    fn location(&self, uid: UID) -> SessionResult<LocationWraper> {
+        let Wraper::Location(location) = self.get(uid)? else {
+            return Err(SessionError::UIDIsNotALocation);
+        };
         Ok(location)
     }
 
-    fn get_element(&self, uid: UID) -> SessionResult<ElementWraper> {
-        let Wraper::Element(element) = self.get(uid)?else {return Err(SessionError::UIDIsNotAElement)};
+    fn element(&self, uid: UID) -> SessionResult<ElementWraper> {
+        let Wraper::Element(element) = self.get(uid)? else {
+            return Err(SessionError::UIDIsNotAElement);
+        };
         Ok(element)
     }
 
-    fn get_module(&self, uid: UID) -> SessionResult<ModuleWraper> {
-        let Wraper::Module(module) = self.get(uid)?else {return Err(SessionError::UIDIsNotAModule)};
+    fn module(&self, uid: UID) -> SessionResult<ModuleWraper> {
+        let Wraper::Module(module) = self.get(uid)? else {
+            return Err(SessionError::UIDIsNotAModule);
+        };
         Ok(module)
     }
 
-    fn get_default_location(&self) -> SessionResult<LocationId> {
+    fn default_location(&self) -> SessionResult<LocationId> {
         let location = self.read().unwrap().location.clone();
         let id = location.location.read().unwrap().id.clone();
         Ok(id)
     }
 
-    fn c(&self) -> Box<dyn TLocalSession> {
-        Box::new(self.clone())
+    fn weak_clone(&self) -> Box<dyn TLocalSession> {
+        Box::new(Arc::downgrade(self))
     }
 
     fn add_module(&self, source: ModuleSource) -> SessionResult<ModuleId> {
@@ -327,14 +344,65 @@ impl TLocalSession for Box<Arc<RwLock<LocalSession>>> {
         };
         Ok(ModuleId {
             uid,
-            session: Some((Box::new(self.c()) as Box<dyn TSession>).into()),
+            session: Some((Box::new(self.weak_clone()) as Box<dyn TSession>).into()),
         })
+    }
+
+    fn runtime(&self) -> Arc<tokio::runtime::Runtime> {
+        self.read().unwrap().runtime.clone()
+    }
+}
+
+const UPGRADE_ERROR: &str = "LocalSession Was Freed!";
+impl TLocalSession for Weak<RwLock<LocalSession>> {
+    fn create_location(&self, name: String, path: &[usize]) -> LocationWraper {
+        self.upgrade()
+            .expect(UPGRADE_ERROR)
+            .create_location(name, path)
+    }
+
+    fn create_element(&self, name: String, path: &[usize]) -> ElementWraper {
+        self.upgrade()
+            .expect(UPGRADE_ERROR)
+            .create_element(name, path)
+    }
+
+    fn get(&self, uid: UID) -> SessionResult<Wraper> {
+        self.upgrade().expect(UPGRADE_ERROR).get(uid)
+    }
+
+    fn location(&self, uid: UID) -> SessionResult<LocationWraper> {
+        self.upgrade().expect(UPGRADE_ERROR).location(uid)
+    }
+
+    fn element(&self, uid: UID) -> SessionResult<ElementWraper> {
+        self.upgrade().expect(UPGRADE_ERROR).element(uid)
+    }
+
+    fn module(&self, uid: UID) -> SessionResult<ModuleWraper> {
+        self.upgrade().expect(UPGRADE_ERROR).module(uid)
+    }
+
+    fn add_module(&self, source: ModuleSource) -> SessionResult<ModuleId> {
+        self.upgrade().expect(UPGRADE_ERROR).add_module(source)
+    }
+
+    fn default_location(&self) -> SessionResult<LocationId> {
+        self.upgrade().expect(UPGRADE_ERROR).default_location()
+    }
+
+    fn weak_clone(&self) -> Box<dyn TLocalSession> {
+        Box::new(self.clone())
+    }
+
+    fn runtime(&self) -> Arc<tokio::runtime::Runtime> {
+        self.upgrade().expect(UPGRADE_ERROR).runtime()
     }
 }
 
 impl TSession for Box<dyn TLocalSession> {
-    fn clone_box(&self) -> Box<dyn TSession> {
-        Box::new(self.c())
+    fn weak_box(&self) -> Box<dyn TSession> {
+        Box::new(self.weak_clone())
     }
 
     fn version(&self) -> SessionResult<u64> {

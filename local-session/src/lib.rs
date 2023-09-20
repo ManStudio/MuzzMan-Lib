@@ -5,6 +5,9 @@ mod session_element;
 mod session_location;
 mod session_module;
 
+#[cfg(test)]
+mod tests;
+
 use std::{
     collections::HashSet,
     sync::{Arc, RwLock},

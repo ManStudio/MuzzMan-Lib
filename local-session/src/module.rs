@@ -78,7 +78,7 @@ impl RawModule {
             return Err(RawLibraryError::DontHaveSymbolVersion);
         };
 
-        let fn_supported_versions = if let Ok(func) = unsafe { lib.get(b"supported_version\0") } {
+        let fn_supported_versions = if let Ok(func) = unsafe { lib.get(b"supported_versions\0") } {
             func
         } else {
             return Err(RawLibraryError::DontHaveSymbolSupportedVersions);

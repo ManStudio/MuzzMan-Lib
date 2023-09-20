@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{prelude::*, storage::Storage};
 
-pub trait TModule: std::panic::UnwindSafe {
+pub trait TModule: std::panic::UnwindSafe + Sync + Send {
     fn name(&self) -> &str;
     fn desc(&self) -> &str;
     fn id(&self) -> u64;

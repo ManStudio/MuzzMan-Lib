@@ -4,12 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[[example]]
-name = "create_element"
-path = "examples/create_element.rs"
 
 [dependencies]
 muzzman-lib = {path = ".."}
 circular-buffer = "0.1.1"
 libloading = "0.8.0"
 once_cell = "1"
+tokio = { version = "1.32", features = ["full"] }
+
+[dev-dependencies]
+muzzman-module-http = { path = "../module-http" }

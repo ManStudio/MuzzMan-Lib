@@ -13,8 +13,10 @@ pub enum SessionError {
     RawModule(RawLibraryError),
 
     NoSession,
+    NoModule,
 
     InvalidStatus,
+    InvalidSettings(Vec<String>),
 
     ThereAreLessLocations,
     ThereAreLessElements,

@@ -2,7 +2,7 @@ use std::any::Any;
 
 #[derive(Debug, Default)]
 pub struct Storage {
-    data: Vec<Box<dyn Any>>,
+    data: Vec<Box<dyn Any + Send + Sync>>,
 }
 
 impl Storage {
@@ -38,15 +38,15 @@ impl Storage {
         self.data.insert(index, Box::new(data))
     }
 
-    pub fn pop(&mut self) -> Option<Box<dyn Any>> {
+    pub fn pop(&mut self) -> Option<Box<dyn Any + Send + Sync>> {
         self.data.pop()
     }
 
-    pub fn iter(&self) -> std::slice::Iter<Box<dyn Any>> {
+    pub fn iter(&self) -> std::slice::Iter<Box<dyn Any + Send + Sync>> {
         self.data.iter()
     }
 
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<Box<dyn Any>> {
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<Box<dyn Any + Send + Sync>> {
         self.data.iter_mut()
     }
 }

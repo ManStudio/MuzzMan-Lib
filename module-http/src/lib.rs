@@ -1,3 +1,8 @@
+use futures::FutureExt;
+use hyper::http::request;
+use hyper::Body;
+use hyper::Method;
+use hyper::Request;
 use muzzman_lib::prelude::*;
 use muzzman_lib::Storage;
 pub use std::sync::{Arc, RwLock};
@@ -37,8 +42,33 @@ impl TModule for ModuleHttp {
             .into_iter()
             .map(|e| e.to_string())
             .collect();
+        let method = element
+            .read()
+            .unwrap()
+            .settings
+            .get("Method")
+            .unwrap()
+            .value
+            .to_string();
+        let uri = element.read().unwrap().url.clone();
         match status {
             0 => {
+                let mut client = hyper::Client::new();
+                let mut request = client.request(
+                    Request::builder()
+                        .method(Method::from_bytes(method.as_bytes()).unwrap())
+                        .uri(uri)
+                        .body(Body::empty())
+                        .unwrap(),
+                );
+                match request.poll_unpin(ctx) {
+                    std::task::Poll::Ready(res) => {
+                        println!("Res: {res:?}");
+                    }
+                    std::task::Poll::Pending => {
+                        println!("Pending");
+                    }
+                }
                 // Connecting
             }
             1 => {
